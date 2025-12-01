@@ -1,0 +1,351 @@
+{
+  "clinic_id": "clinic_002",
+  "name": "Maple Grove Eye & Laser",
+  "address": {
+    "line1": "4150 North Avenue",
+    "line2": "Suite 210",
+    "city": "Chicago",
+    "state": "IL",
+    "postal_code": "60611",
+    "country": "US"
+  },
+  "primary_contacts": [
+    {
+      "role": "Patient Navigator",
+      "name": "Lauren Mitchell",
+      "phone": "+1-312-555-2480",
+      "email": "lauren@maplegroveeye.com",
+      "hours": "Mon-Fri 8am-5pm CT"
+    },
+    {
+      "role": "After-hours hotline",
+      "phone": "+1-312-555-9905",
+      "available": "Weekdays 5pm-10pm, Sat 10am-4pm"
+    }
+  ],
+  "languages_supported": ["English", "Spanish", "Polish"],
+  "surgeons": [
+    {
+      "id": "doc_101",
+      "name": "Dr. Fiona Blake",
+      "designation": "Chief Cataract Surgeon",
+      "qualifications": ["MD Ophthalmology", "FRCOphth", "ASCRS member"],
+      "experience_years": 20,
+      "specializations": [
+        "Same-day bilateral cataract surgery",
+        "Light Adjustable Lens",
+        "Difficult pseudoexfoliation cases"
+      ],
+      "languages": ["English"],
+      "availability": {
+        "surgery_days": ["Monday", "Thursday"],
+        "consultation_days": ["Tuesday", "Wednesday"],
+        "consultation_hours": "10am-4pm CT"
+      },
+      "patient_reviews": {
+        "average_rating": 4.7,
+        "total_reviews": 410
+      },
+      "profile_url": "https://maplegroveeye.com/doctors/dr-fiona-blake"
+    },
+    {
+      "id": "doc_102",
+      "name": "Dr. Miguel Salazar",
+      "designation": "Attending Ophthalmologist",
+      "qualifications": ["MD Ophthalmology", "Cornea Fellowship (Wills Eye)"],
+      "experience_years": 11,
+      "specializations": [
+        "Premium presbyopia-correcting IOLs",
+        "Post-LASIK cataract surgery",
+        "Complex corneal cases"
+      ],
+      "languages": ["English", "Spanish"],
+      "availability": {
+        "surgery_days": ["Tuesday", "Friday"],
+        "consultation_days": ["Monday", "Thursday"],
+        "consultation_hours": "9am-1pm CT"
+      },
+      "patient_reviews": {
+        "average_rating": 4.9,
+        "total_reviews": 215
+      },
+      "profile_url": "https://maplegroveeye.com/doctors/dr-miguel-salazar"
+    }
+  ],
+  "packages": [
+    {
+      "name": "Essential Vision Plan",
+      "description": "Traditional phacoemulsification with aspheric monofocal IOL, includes pre-op diagnostic suite and first month follow-ups.",
+      "base_price": 3800,
+      "currency": "USD",
+      "includes": [
+        "Comprehensive pre-op work-up",
+        "Aspheric monofocal IOL",
+        "Operating suite and anesthesia",
+        "Day 1 and week 1 follow-ups"
+      ],
+      "add_on_options": [
+        {
+          "name": "ORA intra-op aberrometry",
+          "additional_cost": 400
+        },
+        {
+          "name": "Dry-eye optimisation package",
+          "additional_cost": 250
+        }
+      ],
+      "insurance_notes": "Covered by Medicare Advantage, BCBS PPO, Humana Gold if medically necessary. Deductibles/copays apply.",
+      "updated_at": "2025-11-27"
+    },
+    {
+      "name": "Lifestyle Vision Plan",
+      "description": "Femtosecond-laser assisted surgery with EDOF or multifocal IOL, includes spectacle refill voucher and LASIK touch-up eligibility.",
+      "base_price": 7600,
+      "currency": "USD",
+      "includes": [
+        "Femtosecond laser capsulotomy and lens fragmentation",
+        "Symfony, Vivity, or Tecnis Synergy IOL",
+        "Dry-eye therapy kit",
+        "Unlimited follow-ups for 6 months"
+      ],
+      "add_on_options": [
+        {
+          "name": "Light Adjustable Lens",
+          "additional_cost": 2200
+        },
+        {
+          "name": "Premium shield & drop delivery kit",
+          "additional_cost": 150
+        }
+      ],
+      "insurance_notes": "Premium fees out-of-pocket; can use HSA/FSA. Clinic offers zero-interest financing for 6 months on balances above $5000.",
+      "updated_at": "2025-11-27"
+    }
+  ],
+  "insurance": {
+    "accepted_providers": [
+      {
+        "name": "Blue Cross Blue Shield of Illinois",
+        "policy_types": ["PPO", "Medicare Advantage"],
+        "cashless": true,
+        "coverage_for_standard_package": "80%-100% depending on policy",
+        "coverage_for_premium_package": "Basic cataract portion only; patient pays premium fees",
+        "pre_authorization_required": false,
+        "claim_contact": "1-800-972-8088"
+      },
+      {
+        "name": "UnitedHealthcare",
+        "policy_types": ["UHC Choice Plus", "AARP Medicare Complete"],
+        "cashless": true,
+        "coverage_for_standard_package": "Up to $3,400",
+        "coverage_for_premium_package": "Not covered",
+        "pre_authorization_required": true,
+        "pre_auth_timeline": "2 business days",
+        "claim_contact": "claims@uhc.com"
+      },
+      {
+        "name": "Cigna",
+        "policy_types": ["Open Access Plus", "Medicare Supplement"],
+        "cashless": false,
+        "reimbursement": true,
+        "coverage_for_standard_package": "Patient pays upfront; reimbursed up to $3,000 within 10 days",
+        "notes": "Surgeon must complete Cigna cataract surgery form"
+      }
+    ],
+    "not_accepted": ["Aetna HMO", "Kaiser Permanente"],
+    "emi_options": {
+      "available": true,
+      "providers": ["CareCredit", "Synchrony"],
+      "min_amount": 2500,
+      "tenure_months": [6, 12, 18],
+      "interest_rate": "0% for 6 months, 14.99% thereafter"
+    }
+  },
+  "iol_catalog": [
+    {
+      "id": "iol_201",
+      "type": "Aspheric Monofocal",
+      "brand": "Bausch + Lomb enVista",
+      "model": "MX60",
+      "material": "Hydrophobic acrylic",
+      "country_of_origin": "USA",
+      "fda_approved": true,
+      "ce_marked": true,
+      "lifespan": "Lifetime",
+      "indications": ["Standard cataract", "Insurance-covered cases"],
+      "benefits": ["Aberration-neutral optics", "Glare control"],
+      "limitations": ["Requires readers"],
+      "ideal_candidate": "Medicare beneficiaries comfortable with glasses",
+      "pricing": {
+        "included_in_package": "Essential Vision Plan",
+        "standalone_cost": 1200
+      },
+      "counselling_talking_points": [
+        "Aspheric design improves contrast",
+        "Covered by most insurance plans"
+      ]
+    },
+    {
+      "id": "iol_202",
+      "type": "EDOF",
+      "brand": "Alcon AcrySof IQ Vivity",
+      "model": "DFT015",
+      "material": "Hydrophobic acrylic",
+      "country_of_origin": "USA",
+      "fda_approved": true,
+      "ce_marked": true,
+      "lifespan": "Lifetime",
+      "indications": ["Desire for better intermediate vision", "Healthy ocular surface"],
+      "benefits": ["Smooth visual range", "Minimal night halos"],
+      "limitations": ["May still need small-print readers", "Higher cost"],
+      "ideal_candidate": "Frequent computer users, drivers",
+      "pricing": {
+        "included_in_package": "Lifestyle Vision Plan",
+        "standalone_cost": 3500
+      },
+      "counselling_talking_points": [
+        "Excellent for laptop/dashboard use",
+        "Less night glare than trifocals"
+      ]
+    },
+    {
+      "id": "iol_203",
+      "type": "Adjustable",
+      "brand": "RxSight Light Adjustable Lens",
+      "model": "LAL",
+      "material": "Photosensitive silicone",
+      "country_of_origin": "USA",
+      "fda_approved": true,
+      "ce_marked": true,
+      "lifespan": "Lifetime",
+      "indications": ["Post-refractive surgery eyes", "Perfectionists"],
+      "benefits": ["Post-op refractive tuning", "Highly customisable"],
+      "limitations": ["Requires UV-blocking glasses until lock-in", "Multiple light treatments"],
+      "ideal_candidate": "Patients demanding precise vision outcome",
+      "pricing": {
+        "included_in_package": "Lifestyle Vision Plan with add-on",
+        "standalone_cost": 5200
+      },
+      "counselling_talking_points": [
+        "Vision fine-tuned after surgery",
+        "Expect 2-3 light treatment visits"
+      ]
+    }
+  ],
+  "pre_op": {
+    "general_guidelines": "Coordinate systemic meds, ensure diabetes/HTN well controlled.",
+    "checklist": [
+      {
+        "item": "Comprehensive cataract work-up",
+        "deadline": "Within 10 days prior",
+        "notes": "Includes topography + mac OCT"
+      },
+      {
+        "item": "Medication adjustments",
+        "deadline": "5 days prior",
+        "notes": "Blood thinners per PCP; stop herbal supplements"
+      },
+      {
+        "item": "Start lid hygiene & PF tears",
+        "deadline": "1 week prior",
+        "notes": "Reduces MGD flare-ups"
+      }
+    ]
+  },
+  "post_op": {
+    "timeline": {
+      "day_0": {
+        "instructions": "Rest, keep patch on, start drops same evening.",
+        "allowed": ["TV", "Light meals"],
+        "prohibited": ["Eye rubbing", "Sleeping on operated side"]
+      },
+      "day_1": {
+        "appointment": "Visit between 8-10am.",
+        "allowed": ["Short walks", "Reading"],
+        "prohibited": ["Driving", "Eye makeup"],
+        "notes": "Wear protective shield during naps/night"
+      },
+      "week_1": {
+        "allowed": ["Return to desk job", "Light chores"],
+        "prohibited": ["Gym/swimming", "Dusty environments"],
+        "follow_up": "Day 5-7 check"
+      },
+      "week_2_to_4": {
+        "allowed": ["Most activities", "Travel"],
+        "prohibited": ["High-impact sports", "Swimming until week 4"],
+        "follow_up": "Week 4 refraction"
+      }
+    },
+    "eye_drop_schedule": {
+      "week_1": [
+        {
+          "drop": "Gatifloxacin 0.5%",
+          "frequency": "4x/day"
+        },
+        {
+          "drop": "Durezol (steroid)",
+          "frequency": "3x/day"
+        }
+      ],
+      "week_2": [
+        {
+          "drop": "Durezol",
+          "frequency": "2x/day"
+        }
+      ],
+      "week_3_to_4": [
+        {
+          "drop": "Lotemax",
+          "frequency": "2x/day then taper"
+        }
+      ]
+    }
+  },
+  "follow_up": {
+    "visits": [
+      {
+        "day": 1,
+        "purpose": "IOP + slit-lamp",
+        "notes": "Bring drop schedule"
+      },
+      {
+        "day": 6,
+        "purpose": "Evaluate wound, adjust drops",
+        "notes": "Consider punctal plugs if dry eye"
+      },
+      {
+        "day": 28,
+        "purpose": "Refraction & spectacle Rx",
+        "notes": "Discuss second eye timeline"
+      }
+    ]
+  },
+  "red_flags": [
+    {
+      "symptom": "Flashes/floaters increase suddenly",
+      "action": "Call clinic and visit urgent eye care"
+    },
+    {
+      "symptom": "Persistent nausea/vomiting with eye pain",
+      "action": "Possible angle-closure; visit ER"
+    }
+  ],
+  "logistics": {
+    "parking": "Validated parking in attached deck (enter on North Ave).",
+    "pharmacy": "Partnered with Walgreens Specialty (deliveries same day).",
+    "documents_required": [
+      "Photo ID",
+      "Insurance cards",
+      "Medication/allergy list"
+    ]
+  },
+  "communication": {
+    "patient_portal": "https://portal.maplegroveeye.com",
+    "faq_links": [
+      "https://maplegroveeye.com/faq/cataract",
+      "https://maplegroveeye.com/faq/premium-iol"
+    ],
+    "preferred_messaging": "Portal messages or SMS reminders via Twilio"
+  }
+}
+

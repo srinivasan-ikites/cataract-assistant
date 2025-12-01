@@ -1,0 +1,82 @@
+# PRD 1 – Cataract Counselling Assistant (Overall System)
+
+## 1. Background & Problem
+
+Cataract patients have many questions before and after surgery:
+
+- “What is cataract and why did I get it?”
+- “What are the risks of surgery?”
+- “What should I do before the operation?”
+- “What is normal vs emergency after surgery?”
+- “Will I need glasses? How much will this cost here?”
+
+Today, most of these questions are answered manually by counsellors and doctors.  
+This leads to:
+
+- Repetitive explanations and heavy load on staff.
+- Inconsistent information across hospitals.
+- Limited time for personalised counselling.
+- Patients leaving with doubts or misinformation from the internet.
+
+We want a **CATARACT assistant** that can handle a large portion of counselling and FAQ-type queries safely and consistently, while still allowing human counsellors to handle complex or emotional cases.
+
+## 2. High-Level Solution
+
+Build a **multi-layered, RAG-based (Retrieval-Augmented Generation) assistant** with three main knowledge sources:
+
+1. **General Cataract Knowledge Base (General_KB)**
+   - Standard cataract education content: what cataract is, symptoms, causes, risks, surgery, recovery, lens types, etc.
+   - Same for all hospitals.
+   - Designed to be medically accurate and patient-friendly.
+
+2. **Clinic Knowledge Base (Clinic_KB)**
+   - Data specific to each clinic/hospital:
+     - Packages, add-on lens pricing, basic insurance principles per clinic.
+     - Clinic-specific protocols (report collection, follow-up schedules, contact numbers).
+   - Multi-tenant: strictly separated by `clinic_id`.
+
+3. **Patient Context (Patient_KB)**
+   - Per-patient structured data coming from the hospital system:
+     - Basic demographics.
+     - Eye(s) involved, diagnosis summary.
+     - Planned/actual surgery date, chosen lens type.
+     - Follow-up dates, basic surgery notes.
+   - Not stored in vector search; accessed from the hospital’s DB/API.
+
+The assistant will:
+
+- Use an **agent-style router** to decide which combination of knowledge sources to use for each query.
+- Perform **retrieval** from the relevant KB(s).
+- Use an LLM to generate a **safe, empathetic answer** in simple language, based only on retrieved and trusted data.
+
+## 3. Target Capabilities
+
+- Answer general cataract questions accurately and consistently.
+- Personalise answers using patient data (e.g. “your surgery date is…”, “your lens type is…”).
+- Include clinic-specific details when relevant (e.g. approximate package range, follow-up process).
+- Recognise potential **emergency/red-flag symptoms** and direct the patient to immediate care instead of answering casually.
+- Support multiple hospitals (multi-tenant) without data leakage between them.
+
+## 4. System Phases
+
+The build is split into two concrete phases:
+
+1. **Phase 1 – Data Collection & Ingestion**
+   - Collect curated cataract education content from multiple trusted URLs and internal content.
+   - Clean, structure, chunk, and embed this data.
+   - Store it into a **General Cataract KB** in a vector store with appropriate metadata.
+
+2. **Phase 2 – Retrieval & Agentic Orchestration**
+   - Implement an **agent-like router** that:
+     - Understands the user’s question.
+     - Decides which KBs are needed (General, Clinic, Patient).
+     - Optionally normalises/rephrases the query for better retrieval.
+   - Implement retrieval from the selected KBs and answer generation using an LLM.
+   - Provide APIs that a chatbot/frontend can call.
+
+Future phases (not in this PRD set):
+
+- Enrich Clinic_KB and Patient_KB.
+- Add safety layers, analytics, monitoring, and production-grade deployment.
+
+---

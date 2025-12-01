@@ -1,0 +1,6 @@
+chunk_size_tokens: 300
+chunk_overlap_tokens: 60
+output_path: data/chunks/general_kb.jsonl
+
+
+

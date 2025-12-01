@@ -1,0 +1,88 @@
+# Configuration for Phase 1 ingestion.
+# Each entry defines a deterministic source to download and process.
+defaults:
+  source_name: AAO
+  language: en
+  snapshot_html: true
+
+sources:
+  - id: aao-what-are-cataracts
+    url: https://www.aao.org/eye-health/diseases/what-are-cataracts
+    type: article
+    tags: [basics, symptoms, diagnosis, treatment]
+    enabled: true
+    notes: Core explainer on cataract definition, symptoms, diagnosis, and treatment.
+
+  - id: aao-what-is-cataract-surgery
+    url: https://www.aao.org/eye-health/diseases/what-is-cataract-surgery
+    type: article
+    tags: [surgery_expect, surgery_risks, recovery]
+    enabled: true
+    notes: Step-by-step overview of cataract surgery, risks, and recovery guidance.
+
+  - id: aao-new-eyehealthcontent-3
+    url: https://www.aao.org/eye-health/diseases/new-eyehealthcontent-3
+    type: article
+    tags: [tips, prevention]
+    enabled: true
+    notes: Additional cataract-focused patient education referenced by AAO navigations.
+
+  - id: aao-cataracts-iol-implants
+    url: https://www.aao.org/eye-health/diseases/cataracts-iol-implants
+    type: article
+    tags: [iol_options, treatment_overview]
+    enabled: true
+    notes: Describes intraocular lens (IOL) choices and expectations after surgery.
+
+  - id: aao-cataracts-pictures-videos
+    url: https://www.aao.org/eye-health/diseases/cataracts-pictures-videos
+    type: article
+    tags: [visuals, basics]
+    enabled: true
+    notes: Photo-driven explainer showing different cataract presentations.
+
+  - id: aao-choose-cataract-surgeon
+    url: https://www.aao.org/eye-health/diseases/choosing-cataract-surgeon
+    type: article
+    tags: [tips, surgery_expect]
+    enabled: true
+    notes: Guidance on selecting an ophthalmologist for cataract surgery.
+
+  - id: aao-presbyopia-correcting-iols
+    url: https://www.aao.org/eye-health/diseases/presbyopia-correcting-iols
+    type: article
+    tags: [iol_options, presbyopia]
+    enabled: true
+    notes: Deep dive on presbyopia-correcting IOLs for cataract patients.
+
+  - id: aao-pediatric-cataracts
+    url: https://www.aao.org/eye-health/diseases/what-are-pediatric-cataracts
+    type: article
+    tags: [pediatric, diagnosis, treatment]
+    enabled: true
+    notes: Pediatric-specific cataract information and care pathways.
+
+  - id: aao-astigmatism
+    url: https://www.aao.org/eye-health/astigmatism
+    type: article
+    tags: [vision_basics, comorbidity]
+    enabled: true
+    notes: Background on astigmatism, helpful for mixed cataract-astigmatism counselling.
+
+  - id: aao-best-implant-iol
+    url: https://www.aao.org/eye-health/tips-prevention/best-artificial-lens-implant-iol-cataract-surgery
+    type: article
+    tags: [iol_options, tips]
+    enabled: true
+    notes: Tips on selecting premium IOL implants after cataract surgery.
+
+  - id: aao-cataract-qa-index
+    url: https://www.aao.org/eye-health/ask-ophthalmologist/categories?tid=dfb23dca-407a-4860-82f8-ffd316212c7c
+    type: qa_index
+    tags: [faq]
+    enabled: true
+    crawl:
+      mode: view_all
+      follow_links: question_detail
+    notes: Entry point for ~579 cataract Q&A items. Fetch detail pages discovered on this index.
+

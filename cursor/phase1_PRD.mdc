@@ -1,0 +1,144 @@
+---
+alwaysApply: false
+---
+
+Phase 1: General Cataract Data Collection & Ingestion
+
+## 1. Objective
+
+Create a **production-grade General Cataract Knowledge Base (General_KB)** that:
+
+- Aggregates cataract education content from a curated set of URLs and/or internal documents.
+- Structures this content into clean, coherent chunks with rich metadata.
+- Stores all chunks in a vector store, ready for retrieval by the RAG system.
+
+This KB will be the primary source for general cataract information used by the cataract assistant.
+
+## 2. Inputs & Sources
+
+- A configurable list of **cataract-related URLs** from one or more reputable ophthalmology/eye-health sites.
+  - At least ~10 URLs to cover:
+    - Basics: what cataracts are, vision problems.
+    - Symptoms and causes.
+    - Diagnosis and evaluation.
+    - Treatment options (including non-surgical).
+    - Cataract surgery overview.
+    - Pre-operative expectations.
+    - Post-operative care and recovery.
+    - Risks and complications.
+    - Posterior capsular opacification (PCO).
+    - Costs and high-level insurance concepts.
+- Additional internal patient-education documents may be included later using the same pipeline.
+
+## 3. High-Level Workflow
+
+### 3.1 Source Configuration
+
+- Maintain a configuration file or table listing:
+  - Each source URL.
+  - The source label (e.g., `AAO_EXPERIMENT`, `INTERNAL_DOC`).
+  - Any additional hints (e.g., expected main topics on that page).
+
+### 3.2 Fetch & Access
+
+- Programmatically download each configured URL.
+- Respect basic access rules and rate limits.
+- Log failures and retries; ingestion should be resilient to transient errors.
+
+### 3.3 Content Extraction
+
+Goal: isolate **article body text** and discard boilerplate.
+
+- Parse HTML for each page.
+- Identify the **main content area** using structural tags (`article`, `main`, etc.) and/or custom heuristics.
+- Remove navigation, sidebars, footers, ads, and obvious non-article content.
+- Extract any visible section headings (e.g., H2/H3) and the paragraphs/lists that belong to each heading.
+
+### 3.4 Sectioning
+
+- Treat each heading and its associated text as a **logical section**, e.g.:
+  - “Symptoms of Cataracts”
+  - “What to Expect with Cataract Surgery”
+  - “Cataract Surgery Recovery”
+- Represent each section as:
+  - `section_title`
+  - `section_text` (combined paragraphs, cleaned)
+
+### 3.5 Cleaning & Normalisation
+
+For each section:
+
+- Normalise whitespace and remove duplicate line breaks.
+- Remove visible tracking or navigation wording that slipped through.
+- Preserve medical content; do not paraphrase at this stage.
+- Label the **language** (initially `en`).
+
+### 3.6 Chunking
+
+Sections may still be too long for efficient retrieval.
+
+- Split each `section_text` into **overlapping chunks** of manageable size (e.g., tuned to typical context window, but defined in config).
+- Each chunk should remain logically coherent (avoid splitting mid-sentence when possible).
+- Maintain a link from each chunk back to:
+  - Source URL
+  - Page title
+  - Section title
+
+### 3.7 Topic Tagging & Metadata
+
+Assign high-level **topics** to each chunk based on its section title (rule-based mapping is sufficient initially). Example topics:
+
+- `BASICS`
+- `SYMPTOMS`
+- `CAUSES_RISK`
+- `DIAGNOSIS`
+- `TREATMENT_OVERVIEW`
+- `SURGERY_EXPECT`
+- `SURGERY_RECOVERY`
+- `SURGERY_RISKS`
+- `PCO`
+- `SURGERY_COSTS`
+- `FAQ`
+- `OTHER`
+
+Each chunk record should contain at least:
+
+- `chunk_id`
+- `text`
+- `topic`
+- `source_url`
+- `source_name` (origin site or internal)
+- `page_title`
+- `section_title`
+- `language`
+- `ingested_at` timestamp
+
+### 3.8 Embedding & Storage
+
+- Generate a vector embedding for each chunk.
+- Store chunk text, metadata, and embeddings in a **vector store collection** representing `General_KB`.
+- Support:
+  - Full re-ingestion (rebuild from scratch).
+  - Incremental ingestion (add new URLs, update existing ones).
+
+## 4. Quality & Validation
+
+- Basic statistics:
+  - Total number of chunks.
+  - Distribution by `topic`.
+  - Number of chunks per source and per URL.
+- Spot-check a sample of chunks:
+  - Confirm text is clean and readable.
+  - Confirm metadata (topic, section, URL) is sensible.
+- Confirm the vector store can be queried by:
+  - Topic filters (e.g., retrieving only `SURGERY_RISKS` chunks).
+  - Simple similarity search on test queries (manually inspected).
+
+## 5. Non-Functional Requirements
+
+- **Config-driven**: URLs, topic mappings, chunk size, and vector store configuration must be externalised.
+- **Reproducible**: Running the ingestion pipeline from scratch with the same inputs should produce consistent results.
+- **Extensible**: The same pipeline should support adding internal PDFs/docs as sources with minimal changes.
+- **Loggable & Auditable**: Logs should allow tracing each chunk back to its origin page and ingestion run.
+
+---

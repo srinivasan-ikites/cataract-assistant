@@ -1,0 +1,168 @@
+---
+alwaysApply: false
+---
+
+Phase 2: Retrieval & Agentic Orchestration
+
+## 1. Objective
+
+Build the **runtime RAG layer** that:
+
+- Takes a patient’s natural-language question.
+- Uses an **agent-like router** to decide how to answer.
+- Retrieves relevant content from the General_KB (and later Clinic_KB and Patient_KB).
+- Uses an LLM to generate a safe, patient-friendly response.
+
+This layer should be designed so that later we can plug in clinic and patient data with minimal refactor.
+
+## 2. High-Level Behaviour
+
+Given a user query, the system should:
+
+1. Interpret and classify the query.
+2. Decide which knowledge sources are needed.
+3. Optionally normalise or rephrase the query to improve retrieval quality.
+4. Retrieve the most relevant context chunks.
+5. Construct an LLM prompt including context and instructions.
+6. Generate and return the answer.
+7. Log all steps for traceability.
+
+Initially, only **General_KB** will be hooked up, but the router should be structured to support more sources in future.
+
+## 3. Components
+
+### 3.1 Query Normalisation (Optional, but Designed-In)
+
+**Purpose:** Improve retrieval robustness, especially for noisy, code-mixed, or typo-heavy queries.
+
+Behaviour (when enabled):
+
+- Take the raw user question.
+- Produce a **normalised query**:
+  - Cleaner spelling and grammar.
+  - Same medical meaning.
+  - Preferably in English for alignment with the KB language.
+- Return both:
+  - Original question (for logging and answer wording).
+  - Normalised query (for routing and retrieval).
+
+Normalization can be added or tuned later; the architecture must support this step in the pipeline.
+
+### 3.2 Router / Classifier Agent
+
+**Purpose:** Decide which knowledge sources are needed for the query.
+
+Initial version (for this phase):
+
+- Operates primarily on the **normalised query** (or raw if normalisation is disabled).
+- Outputs a structured decision object, e.g.:
+
+  - `needs_general_kb` (bool)
+  - Future-ready fields (even if unused initially):
+    - `needs_clinic_kb`
+    - `needs_patient_data`
+    - `is_emergency`
+    - `topics` (optional list of KB topics related to the question, e.g. `["SYMPTOMS", "SURGERY_RISKS"]`)
+
+For this phase:
+
+- `needs_general_kb` will almost always be `true`.
+- `needs_clinic_kb` and `needs_patient_data` will be reserved for later.
+- `is_emergency` can start as a placeholder but the design should anticipate emergency handling.
+
+The router can be implemented using an LLM classification prompt or another classifier, but this PRD focuses on *what* it outputs, not *how*.
+
+### 3.3 Retrieval Layer
+
+**Purpose:** Fetch the best supporting context chunks from the selected KB(s).
+
+For this phase:
+
+- When `needs_general_kb = true`:
+  - Embed the normalised query.
+  - Query the `General_KB` vector store for top-N similar chunks.
+  - Optionally use:
+    - Topic hints from the router (`topics`) as filters or boosts.
+- Later:
+  - When Clinic_KB/Patient_KB are added, the retrieval layer will also query those sources separately and combine context.
+
+Output:
+
+- A set of retrieved chunks for each KB:
+  - `general_context[]` (list of chunks)
+  - (Future) `clinic_context[]`
+  - (Future) `patient_context` (structured fields, not chunks)
+
+### 3.4 Prompt Builder
+
+**Purpose:** Construct a consistent prompt that instructs the LLM how to answer.
+
+Responsibilities:
+
+- Take:
+  - Original question.
+  - Normalised query (optional).
+  - Retrieved general context chunks.
+  - (Future) clinic context and patient data.
+- Build a prompt with:
+  - System role: the assistant is a cataract counsellor, not a diagnosing doctor.
+  - Safety rules: use only given context, avoid speculation, highlight when the patient must contact the doctor/hospital.
+  - Context sections: clearly separated blocks for general KB, clinic KB, and patient info.
+  - The user’s question at the end.
+
+Design requirements:
+
+- Easy to evolve (e.g., adding a new section for emergency guidance).
+- Supports multi-turn extension later (though Phase 2 can be single-turn).
+
+### 3.5 Answer Generation (LLM)
+
+**Purpose:** Generate the final patient-facing message.
+
+Behaviour:
+
+- Call the configured LLM with the prompt from the prompt builder.
+- Ensure responses:
+  - Are consistent with the provided context.
+  - Use simple, empathetic language.
+  - Explicitly mention when information is not available in the context.
+  - Encourage consulting the doctor for decisions, emergencies, or uncertainty.
+
+Output:
+
+- Final answer text (and optionally a structured classification like `answer_type`, `needs_followup`, etc. for future logic).
+
+### 3.6 Logging & Telemetry
+
+For each answered query, log at least:
+
+- Timestamp, clinic identifier (when available), and anonymised patient/session ID.
+- Raw question and normalised query.
+- Router decision object (`needs_general_kb`, `topics`, etc.).
+- IDs and metadata of retrieved chunks.
+- Final answer text.
+
+These logs will be used for:
+
+- Debugging retrieval behaviour.
+- Offline evaluation of accuracy and safety.
+- Future automated tests.
+
+## 4. End-to-End Flow Summary
+
+1. **Input:** Patient asks a question via chatbot (e.g., “What are the risks of cataract surgery?”).
+2. **Normalisation (optional):** System generates a clean, standard English version of the question.
+3. **Routing:** Router marks `needs_general_kb = true` and identifies topics (e.g., `["SURGERY_RISKS"]`).
+4. **Retrieval:** Retrieval layer queries the General_KB and gets the top-N chunks about surgery risks.
+5. **Prompt Construction:** Prompt builder combines the context chunks and the user’s question with system instructions.
+6. **LLM Call:** LLM generates a clear explanation of cataract surgery risks, using only the context.
+7. **Output:** Answer is sent back to the frontend. Logs capture all intermediate steps.
+
+## 5. Non-Functional Requirements
+
+- **Extensibility:** Router and retrieval must be ready to add Clinic_KB and Patient_KB without redesign.
+- **Determinism & Debuggability:** For a given question, the system should produce similar retrieval results; logs should allow reconstruction of how an answer was formed.
+- **Performance:** Latency is secondary to accuracy for this phase, but the design should avoid unnecessary external calls.
+- **Security & Privacy (Future-aware):** Even though Phase 2 focuses on General_KB, the architecture must be ready to handle PHI securely when Patient_KB is attached.
+
+---

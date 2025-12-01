@@ -1,0 +1,50 @@
+default_topic: OTHER
+
+article_rules:
+  - topic: BASICS
+    keywords: ["overview", "what are", "basics"]
+  - topic: SYMPTOMS
+    keywords: ["symptom", "vision problem", "signs"]
+  - topic: CAUSES_RISK
+    keywords: ["cause", "risk factor", "why", "trigger"]
+  - topic: DIAGNOSIS
+    keywords: ["diagnos", "exam", "test", "evaluation"]
+  - topic: TREATMENT_OVERVIEW
+    keywords: ["treatment", "manage", "therapy"]
+  - topic: SURGERY_EXPECT
+    keywords: ["surgery", "procedure", "operation", "surgeon"]
+  - topic: SURGERY_RECOVERY
+    keywords: ["recovery", "after surgery", "healing", "post-op"]
+  - topic: SURGERY_RISKS
+    keywords: ["risk", "complication", "danger", "side effect"]
+  - topic: SURGERY_COSTS
+    keywords: ["cost", "price", "insurance", "afford"]
+  - topic: PCO
+    keywords: ["pco", "posterior capsular opacification"]
+  - topic: FAQ
+    keywords: ["question", "faq"]
+
+qa_category_map:
+  Cataracts: BASICS
+  Cataract Surgery: SURGERY_EXPECT
+  Surgery: SURGERY_EXPECT
+  Cataracts and Lens Implant: TREATMENT_OVERVIEW
+  LASIK and Laser Surgery: TREATMENT_OVERVIEW
+  Children and Teens: OTHER
+  Cataracts and Diabetes: CAUSES_RISK
+  Cataracts and Recovery: SURGERY_RECOVERY
+
+qa_keyword_rules:
+  - topic: SURGERY_RISKS
+    keywords: ["risk", "complication", "infection", "side effect"]
+  - topic: SURGERY_RECOVERY
+    keywords: ["recover", "healing", "weeks after", "months after"]
+  - topic: SURGERY_EXPECT
+    keywords: ["before surgery", "during surgery", "procedure"]
+  - topic: TREATMENT_OVERVIEW
+    keywords: ["lens", "iol", "treatment option"]
+  - topic: SYMPTOMS
+    keywords: ["blurred vision", "pain", "symptom"]
+  - topic: CAUSES_RISK
+    keywords: ["cause", "why", "trigger", "risk factor"]
+

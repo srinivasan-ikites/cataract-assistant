@@ -1,0 +1,454 @@
+{
+  "patients": [
+    {
+      "patient_id": "pt_1001",
+      "clinic_id": "clinic_001",
+      "name": {
+        "first": "Linda",
+        "last": "Harrison"
+      },
+      "date_of_birth": "1956-04-18",
+      "gender": "Female",
+      "contact": {
+        "phone": "+1-619-555-8712",
+        "email": "linda.harrison@example.com",
+        "preferred_channel": "phone"
+      },
+      "language_preference": "English",
+      "diagnosis": {
+        "eye": "Right",
+        "condition": "Age-related nuclear cataract",
+        "astigmatism_diopters": 1.25,
+        "notes": "Dry eye history; on PF artificial tears."
+      },
+      "surgery": {
+        "status": "scheduled",
+        "date": "2025-12-10",
+        "surgeon_id": "doc_001",
+        "iol_plan": [
+          {
+            "type": "Toric Monofocal",
+            "model": "Tecnis Toric II ZCT200",
+            "priority": "preferred",
+            "notes": "Matches 1.25D astigmatism; good night driving performance"
+          },
+          {
+            "type": "EDOF",
+            "model": "AcrySof Vivity",
+            "priority": "backup",
+            "notes": "Consider if patient willing to accept reading glasses for fine print"
+          }
+        ],
+        "anesthesia": "Topical + mild sedation",
+        "special_considerations": [
+          "Continue losartan morning of surgery",
+          "Stop vitamin E 5 days prior"
+        ]
+      },
+      "medical_history": {
+        "systemic_conditions": [
+          {
+            "name": "Hypertension",
+            "status": "controlled",
+            "medications": ["Losartan 50mg daily"]
+          },
+          {
+            "name": "Hypothyroidism",
+            "status": "controlled",
+            "medications": ["Levothyroxine 75mcg daily"]
+          }
+        ],
+        "ocular_history": [
+          {
+            "condition": "Dry eye disease",
+            "notes": "Uses preservative-free lubricants QID"
+          },
+          {
+            "condition": "LASIK (left eye)",
+            "year": 2005,
+            "notes": "Plan topography-guided measurements for fellow eye later"
+          }
+        ],
+        "allergies": [
+          {
+            "substance": "Sulfa drugs",
+            "reaction": "Rash"
+          }
+        ],
+        "past_surgeries": [
+          {
+            "procedure": "Appendectomy",
+            "year": 1992
+          }
+        ]
+      },
+      "follow_up_schedule": [
+        {
+          "visit": "Day 1 Post-op",
+          "date": "2025-12-11",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Day 7 Post-op",
+          "date": "2025-12-17",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Week 4 Post-op",
+          "date": "2026-01-07",
+          "status": "scheduled"
+        }
+      ],
+      "medications": [
+        {
+          "name": "Moxifloxacin 0.5%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day",
+          "start_date": "2025-12-08",
+          "end_date": "2025-12-17"
+        },
+        {
+          "name": "Prednisolone Acetate 1%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day (taper over 4 weeks)",
+          "start_date": "2025-12-10",
+          "end_date": "2026-01-07"
+        }
+      ],
+      "insurance": {
+        "provider": "Star Health Insurance",
+        "policy_number": "SHI-45877-2025",
+        "coverage_notes": "Standard package fully covered; toric upgrade paid out-of-pocket."
+      },
+      "lifestyle": {
+        "occupation": "Graphic designer",
+        "driving_needs": "Drives daily at night",
+        "hobbies": ["Photography", "Reading", "Pilates"]
+      },
+      "alerts": [
+        "Has mild seasonal allergies – avoid preserved drops",
+        "Prefers phone calls over email"
+      ]
+    },
+    {
+      "patient_id": "pt_1002",
+      "clinic_id": "clinic_001",
+      "name": {
+        "first": "Marcus",
+        "last": "Reynolds"
+      },
+      "date_of_birth": "1948-09-03",
+      "gender": "Male",
+      "contact": {
+        "phone": "+1-858-555-6678",
+        "email": "marcus.reynolds@example.com",
+        "preferred_channel": "email"
+      },
+      "language_preference": "English",
+      "diagnosis": {
+        "eye": "Left",
+        "condition": "Mature cortical cataract",
+        "astigmatism_diopters": 0.5,
+        "notes": "Pseudophakic right eye (2018); wants similar distance outcome."
+      },
+      "surgery": {
+        "status": "scheduled",
+        "date": "2026-01-15",
+        "surgeon_id": "doc_002",
+        "iol_plan": [
+          {
+            "type": "Monofocal",
+            "model": "Alcon AcrySof IQ SN60WF",
+            "priority": "preferred",
+            "notes": "Matches fellow eye"
+          }
+        ],
+        "anesthesia": "Topical",
+        "special_considerations": ["Dilates poorly – epi-Shugarcaine planned"]
+      },
+      "medical_history": {
+        "systemic_conditions": [
+          {
+            "name": "Type 2 diabetes",
+            "status": "controlled",
+            "medications": ["Metformin 1000mg BID"]
+          }
+        ],
+        "ocular_history": [
+          {
+            "condition": "Cataract surgery OD",
+            "year": 2018
+          }
+        ],
+        "allergies": [],
+        "past_surgeries": [
+          {
+            "procedure": "Knee arthroscopy",
+            "year": 2009
+          }
+        ]
+      },
+      "follow_up_schedule": [
+        {
+          "visit": "Day 1 Post-op",
+          "date": "2026-01-16",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Day 14 Post-op",
+          "date": "2026-01-29",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Week 6 Post-op",
+          "date": "2026-02-26",
+          "status": "scheduled"
+        }
+      ],
+      "medications": [
+        {
+          "name": "Ofloxacin 0.3%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day",
+          "start_date": "2026-01-13",
+          "end_date": "2026-01-23"
+        },
+        {
+          "name": "Loteprednol 0.5%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day taper",
+          "start_date": "2026-01-15",
+          "end_date": "2026-02-12"
+        }
+      ],
+      "insurance": {
+        "provider": "Medicare + Supplement",
+        "policy_number": "MC-884422",
+        "coverage_notes": "Standard package covered; patient pays 20% coinsurance."
+      },
+      "lifestyle": {
+        "occupation": "Retired pilot",
+        "driving_needs": "High emphasis on distance vision",
+        "hobbies": ["Golf", "Travel", "Grandkids"]
+      },
+      "alerts": ["Monitor blood sugar morning of surgery", "Prefers email reminders"]
+    },
+    {
+      "patient_id": "pt_2001",
+      "clinic_id": "clinic_002",
+      "name": {
+        "first": "Sofia",
+        "last": "Martinez"
+      },
+      "date_of_birth": "1963-11-12",
+      "gender": "Female",
+      "contact": {
+        "phone": "+1-312-555-3321",
+        "email": "sofia.martinez@example.com",
+        "preferred_channel": "text"
+      },
+      "language_preference": "Spanish",
+      "diagnosis": {
+        "eye": "Both",
+        "condition": "Bilateral cataract with mild astigmatism",
+        "astigmatism_diopters": 0.75,
+        "notes": "Desires reduced dependence on reading glasses"
+      },
+      "surgery": {
+        "status": "scheduled",
+        "date": "2026-02-05",
+        "surgeon_id": "doc_101",
+        "iol_plan": [
+          {
+            "type": "EDOF",
+            "model": "Alcon Vivity",
+            "priority": "preferred",
+            "notes": "Balanced intermediate/near for office work"
+          },
+          {
+            "type": "Adjustable",
+            "model": "RxSight LAL",
+            "priority": "backup",
+            "notes": "Consider for post-op tuning"
+          }
+        ],
+        "anesthesia": "Topical + IV sedation",
+        "special_considerations": ["Treat MGD aggressively pre-op"]
+      },
+      "medical_history": {
+        "systemic_conditions": [
+          {
+            "name": "Migraine",
+            "status": "intermittent",
+            "medications": ["Sumatriptan PRN"]
+          }
+        ],
+        "ocular_history": [
+          {
+            "condition": "Meibomian gland dysfunction",
+            "notes": "Warm compress BID"
+          }
+        ],
+        "allergies": [],
+        "past_surgeries": []
+      },
+      "follow_up_schedule": [
+        {
+          "visit": "Day 1 Post-op",
+          "date": "2026-02-06",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Day 5 Post-op",
+          "date": "2026-02-10",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Week 4 Post-op",
+          "date": "2026-03-05",
+          "status": "scheduled"
+        }
+      ],
+      "medications": [
+        {
+          "name": "Gatifloxacin 0.5%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day",
+          "start_date": "2026-02-03",
+          "end_date": "2026-02-13"
+        },
+        {
+          "name": "Durezol 0.05%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "3x/day taper",
+          "start_date": "2026-02-05",
+          "end_date": "2026-03-05"
+        }
+      ],
+      "insurance": {
+        "provider": "BCBS of Illinois",
+        "policy_number": "BCBS-77331",
+        "coverage_notes": "Essential plan covered; Lifestyle upgrade financed via CareCredit."
+      },
+      "lifestyle": {
+        "occupation": "Marketing executive",
+        "driving_needs": "Evening commuter",
+        "hobbies": ["Yoga", "Cooking", "Travel"]
+      },
+      "alerts": ["Primary language Spanish – interpreter booked", "Prefers text reminders"]
+    },
+    {
+      "patient_id": "pt_2002",
+      "clinic_id": "clinic_002",
+      "name": {
+        "first": "James",
+        "last": "Caldwell"
+      },
+      "date_of_birth": "1972-02-22",
+      "gender": "Male",
+      "contact": {
+        "phone": "+1-312-555-9050",
+        "email": "james.caldwell@example.com",
+        "preferred_channel": "email"
+      },
+      "language_preference": "English",
+      "diagnosis": {
+        "eye": "Right",
+        "condition": "Posterior subcapsular cataract",
+        "astigmatism_diopters": 1.8,
+        "notes": "Professional photographer; high contrast demands"
+      },
+      "surgery": {
+        "status": "scheduled",
+        "date": "2026-03-18",
+        "surgeon_id": "doc_102",
+        "iol_plan": [
+          {
+            "type": "Toric Monofocal",
+            "model": "Tecnis Toric II ZCT225",
+            "priority": "preferred",
+            "notes": "Sharp distance for photography work"
+          },
+          {
+            "type": "Light Adjustable Lens",
+            "model": "RxSight LAL",
+            "priority": "backup",
+            "notes": "Option if patient wants fine-tuning post-op"
+          }
+        ],
+        "anesthesia": "Topical",
+        "special_considerations": ["Schedule light treatments if LAL chosen"]
+      },
+      "medical_history": {
+        "systemic_conditions": [
+          {
+            "name": "Mild asthma",
+            "status": "controlled",
+            "medications": ["Albuterol inhaler PRN"]
+          }
+        ],
+        "ocular_history": [],
+        "allergies": [
+          {
+            "substance": "Penicillin",
+            "reaction": "Hives"
+          }
+        ],
+        "past_surgeries": []
+      },
+      "follow_up_schedule": [
+        {
+          "visit": "Day 1 Post-op",
+          "date": "2026-03-19",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Week 2 Post-op",
+          "date": "2026-04-02",
+          "status": "scheduled"
+        },
+        {
+          "visit": "Week 6 Post-op",
+          "date": "2026-04-30",
+          "status": "scheduled"
+        }
+      ],
+      "medications": [
+        {
+          "name": "Gatifloxacin 0.5%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "4x/day",
+          "start_date": "2026-03-16",
+          "end_date": "2026-03-26"
+        },
+        {
+          "name": "Durezol 0.05%",
+          "route": "ophthalmic",
+          "dose": "1 drop",
+          "frequency": "3x/day taper",
+          "start_date": "2026-03-18",
+          "end_date": "2026-04-18"
+        }
+      ],
+      "insurance": {
+        "provider": "UnitedHealthcare Choice Plus",
+        "policy_number": "UHC-884211",
+        "coverage_notes": "Standard portion covered up to $3,400; premium toric upgrade paid out-of-pocket."
+      },
+      "lifestyle": {
+        "occupation": "Professional photographer",
+        "driving_needs": "Frequent night driving",
+        "hobbies": ["Cycling", "Travel blogging"]
+      },
+      "alerts": ["Penicillin allergy - avoid related meds", "Prefers detailed email summaries"]
+    }
+  ]
+}
+

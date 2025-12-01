@@ -1,0 +1,30 @@
+# HTTP client for downloading source HTML
+requests
+# DOM parsing helpers
+beautifulsoup4
+lxml
+# Config and data validation models
+pydantic
+# Config-driven ingestion inputs
+PyYAML
+# Load environment variables from .env
+python-dotenv
+# Progress bars for long-running jobs
+tqdm
+# Resilient retries for network calls
+tenacity
+# OpenAI embeddings API
+openai
+# Vector store client for Qdrant
+qdrant-client
+# Token-aware chunking utilities
+tiktoken
+# Google Agent Development Kit for runtime orchestration
+google-adk
+# LiteLLM adapter used for non-Gemini providers inside ADK
+litellm>=1.35.0
+# FastAPI + server dependencies for the API layer
+fastapi
+uvicorn[standard]
+streamlit
+
