@@ -364,7 +364,7 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
     // We use a negative delay so the float animation starts "mid-cycle" immediately
     setFloatDelay(`${-Math.random() * 5}s`);
     // Vary duration slightly (between 5s and 7s) so they drift organically
-    setFloatDuration(`${20 + Math.random() * 20}s`);
+    setFloatDuration(`${10 + Math.random() * 6}s`);
 
     return () => window.removeEventListener('resize', updateSize);
   }, []);

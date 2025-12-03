@@ -138,36 +138,6 @@
       "alerts": [
         "Has mild seasonal allergies \u2013 avoid preserved drops",
         "Prefers phone calls over email"
-      ],
-      "chat_history": [
-        {
-          "role": "user",
-          "text": "Hi, i want to know about cataract and why i got cataract as i am very healthy",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "Hi Linda, it's completely understandable to want to learn more about cataracts and why they develop, especially when you feel healthy. Let me help explain.\n\nFirst, regarding what a cataract is, it's essentially a clouding of your eye's natural lens. This development usually progresses very slowly, much like day turning to night, with many shades of darkness as it progresses [Chunk 1]. Most people over the age of 65 have some degree of clouding in their eye's natural lens, even if it's not yet classified as a cataract [Chunk 1].\n\nNow, addressing your question about why you got a cataract, especially since you're healthy: your patient information indicates you have an **age-related nuclear cataract** in your right eye. This is the most common type of cataract, and as the name suggests, it's primarily a natural part of the aging process. While it's wonderful that you feel very healthy overall, cataracts can still develop as we get older, regardless of our general health. It's a very common condition, and it doesn't mean you're not healthy in other aspects of your life.\n\nWe're here to support you through this process. If you have any more questions or concerns, please don't hesitate to ask.",
-          "suggestions": [
-            "Tell me more.",
-            "What are the risks?"
-          ],
-          "timestamp": "now"
-        },
-        {
-          "role": "user",
-          "text": "What are the risks?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "It's completely understandable to want to know about the potential risks involved with any medical procedure, and it's a very good question to ask. We want you to feel as informed and comfortable as possible.\n\nCataract surgery is generally considered a very safe operation with an extremely low complication rate [Chunk 5]. However, like any surgery, it does carry some potential risks or complications. Your ophthalmologist will discuss these with you in detail, considering your individual eye health [Chunk 2, Chunk 5].\n\nHere are some of the risks that can occur:\n\n*   **Eye Infection** [Chunk 1, Chunk 2, Chunk 3]\n*   **Bleeding in the eye** [Chunk 1, Chunk 2]\n*   **Swelling** of the front of the eye or inside of the eye, or swelling of the retina (the nerve layer at the back of your eye) [Chunk 2]\n*   **Retinal detachment**, which is when the retina lifts up from the back of the eye [Chunk 2, Chunk 3]\n*   **Damage to other parts of your eye** [Chunk 2]\n*   **Pain** that doesn't get better with over-the-counter medicine [Chunk 2]\n*   **Blurred vision** [Chunk 2, Chunk 3]\n*   **Seeing halos, glare, and dark shadows** around lights [Chunk 2, Chunk 3]\n*   **Vision loss** [Chunk 2, Chunk 3]\n*   The **IOL (intraocular lens) implant may become dislocated**, moving out of position [Chunk 2, Chunk 3]\n*   Your vision could be **overcorrected or undercorrected**, potentially requiring re-treatment [Chunk 3]\n*   You might notice **more floaters** in your field of vision [Chunk 3]\n*   **Reduced contrast sensitivity**, making it harder to distinguish objects from similarly colored backgrounds [Chunk 3]\n*   You could develop **clouding or hazing of part of the IOL** [Chunk 3]\n*   You may **need additional surgery** to fine-tune the IOL prescription or for other reasons [Chunk 1, Chunk 3]\n\nIt's also important to remember that cataract surgery will not restore vision loss that is due to other eye conditions, such as macular degeneration, glaucoma, or diabetic retinopathy [Chunk 2].\n\nBefore your surgery, your ophthalmologist will perform a thorough and careful examination of your eye, including the retina, to prepare accordingly and help ensure a safe operation [Chunk 5]. They will talk with you about the specific risks and benefits of cataract surgery for your situation [Chunk 2].\n\nIf you experience any sudden changes in your vision, severe pain, or other concerning symptoms after surgery, please contact your surgeon immediately.",
-          "suggestions": [
-            "How long does it take?",
-            "Is it painful?"
-          ],
-          "timestamp": "now"
-        }
       ]
     },
     {
@@ -284,37 +254,6 @@
       "alerts": [
         "Monitor blood sugar morning of surgery",
         "Prefers email reminders"
-      ],
-      "chat_history": [
-        {
-          "role": "user",
-          "text": "So is my surgery covered in my insurance itself?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "It's completely understandable to want clarity on your insurance coverage for such an important procedure. Let's look at what we know.\n\nBased on the information provided in your **Patient Context**, you have \"Medicare + Supplement\" insurance, and it states that your \"Standard package [is] covered; patient pays 20% coinsurance.\" Your preferred lens, the Alcon AcrySof IQ SN60WF (Monofocal), is generally considered a standard lens.\n\nHowever, looking at the **Clinic Context** regarding accepted insurance plans, Medicare is not explicitly listed among the accepted providers (Star Health Insurance, HDFC Ergo, Max Bupa). It also lists LIC and United India Insurance as \"Not accepted.\"\n\nTherefore, while your patient information indicates coverage for a standard package with a 20% coinsurance, the provided clinic information does not explicitly confirm that our clinic accepts Medicare.\n\nTo get a definitive answer and ensure everything is clear for your surgery on January 15, 2026, I highly recommend reaching out directly to our clinic's billing department. They can confirm if your specific Medicare + Supplement plan is accepted here and provide a precise breakdown of your out-of-pocket costs. You can also contact Medicare directly to understand your benefits when receiving care at a specific facility.",
-          "suggestions": [
-            "Is it covered by insurance?",
-            "How long does it take?",
-            "Is it painful?"
-          ],
-          "timestamp": "now"
-        },
-        {
-          "role": "user",
-          "text": "What are the risks of this cataract surgery?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "It's completely understandable to want to know more about the risks associated with cataract surgery, Marcus. It's a very common and generally safe procedure, and we want to make sure you feel as informed and comfortable as possible.\n\nCataract surgery is about 98% or more safe and effective [Chunk 1]. While serious complications are rare, it's important to be aware of potential risks, which can range from minimal to severe. Blindness, for example, occurs in less than one in ten thousand cataract surgeries [Chunk 1].\n\nHere are some of the potential risks and things to be aware of:\n\n*   **Retinal Detachment:** Although cataract surgery does increase your risk for a retinal detachment, this risk is still fairly low, affecting less than 1% of surgeries. The risk can be greater if you are young, male, or nearsighted (myopia). If you have a pre-existing posterior vitreous detachment (PVD), this can decrease your risk, but it doesn't eliminate it [Chunk 2].\n*   **Other Potential Complications:** Less common risks can include glaucoma, infection, and the need for more surgery [Chunk 5].\n*   **Vision Changes After Surgery:** It's normal for vision to be blurry for a few hours to a few days after surgery [Chunk 1]. Sometimes, vision might not be as clear as expected due to other factors. A common finding is a posterior capsule opacity, which is a build-up of proteins on the back of your new lens implant. This can often be cleared with a laser procedure called a YAG capsulotomy. Other reasons for decreased vision can include refractive error needing glasses, dry eye syndrome, or pre-existing corneal or retinal diseases that might worsen or progress after surgery, such as macular degeneration or macular edema [Chunk 4].\n\nWe don't have specific information about your age, gender, or if you are nearsighted, which are factors that can influence the risk of retinal detachment [Chunk 2]. Your surgeon, doc_002, will discuss your individual risk factors with you in more detail.\n\nPlease remember, if you ever have concerns or suspect an emergency after your surgery, don't hesitate to contact your surgeon or the Bayview Cataract Institute's 24/7 Emergency Hotline at +1-858-555-9900.",
-          "suggestions": [
-            "How long does it take?",
-            "Is it painful?"
-          ],
-          "timestamp": "now"
-        }
       ]
     },
     {
@@ -962,36 +901,6 @@
       "alerts": [
         "Penicillin allergy - avoid related meds",
         "Prefers detailed email summaries"
-      ],
-      "chat_history": [
-        {
-          "role": "user",
-          "text": "What is cataract?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "A cataract is a very common eye condition where the natural lens inside your eye becomes cloudy [General Knowledge]. Think of your eye's lens like a clear window that helps focus light so you can see clearly. When you have a cataract, this clear window starts to get cloudy, much like looking through a foggy or dusty car windshield [General Knowledge].\n\nThis cloudiness happens because proteins in your lens break down over time, making things look blurry, hazy, or less colorful [General Knowledge]. It can also make lights seem brighter or cause difficulty seeing at night.\n\nThe good news is that cataracts can be treated. When a cataract starts to affect your daily life, surgery can remove the cloudy natural lens and replace it with a clear, artificial lens, helping to restore your vision [General Knowledge].",
-          "suggestions": [
-            "Tell me more.",
-            "What are the risks?"
-          ],
-          "timestamp": "now"
-        },
-        {
-          "role": "user",
-          "text": "What is cataract?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "A cataract is a very common eye condition where the natural lens inside your eye becomes cloudy [General Knowledge]. Think of your eye's lens like a clear window that helps focus light so you can see clearly. When you have a cataract, this clear window starts to get cloudy, much like looking through a foggy or dusty car windshield [General Knowledge].\n\nThis cloudiness happens because proteins in your lens break down over time, making things look blurry, hazy, or less colorful [General Knowledge]. It can also make lights seem brighter or cause difficulty seeing at night.\n\nThe good news is that cataracts can be treated. When a cataract starts to affect your daily life, surgery can remove the cloudy natural lens and replace it with a clear, artificial lens, helping to restore your vision [General Knowledge].",
-          "suggestions": [
-            "Tell me more.",
-            "What are the risks?"
-          ],
-          "timestamp": "now"
-        }
       ]
     }
   ]
