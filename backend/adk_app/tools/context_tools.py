@@ -7,7 +7,7 @@ from google.adk.tools import FunctionTool
 from adk_app.telemetry.logger import get_logger
 from adk_app.utils.data_loader import get_clinic_data, get_patient_data
 
-logger = get_logger(__name__)
+logger = get_logger(__name__)  # noqa: F401
 
 
 def _format_money(value: float | int, currency: str | None) -> str:
@@ -32,10 +32,10 @@ def clinic_context_tool(
 ) -> str:
     """Returns clinic-specific information requested by the agent."""
     clinic = get_clinic_data(clinic_id)
-    logger.info(
-        "context.clinic",
-        extra={"clinic_id": clinic_id, "info_type": info_type},
-    )
+    # logger.info(
+    #     "context.clinic",
+    #     extra={"clinic_id": clinic_id, "info_type": info_type},
+    # )
     handlers = {
         "overview": _clinic_overview,
         "packages": _clinic_packages,
@@ -63,10 +63,10 @@ def patient_context_tool(
 ) -> str:
     """Returns patient-specific context without exposing entire record."""
     patient = get_patient_data(patient_id)
-    logger.info(
-        "context.patient",
-        extra={"patient_id": patient_id, "info_type": info_type},
-    )
+    # logger.info(
+    #     "context.patient",
+    #     extra={"patient_id": patient_id, "info_type": info_type},
+    # )
     handlers = {
         "summary": _patient_summary,
         "medications": _patient_medications,

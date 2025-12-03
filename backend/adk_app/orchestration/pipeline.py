@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Dict, Optional
 
 from adk_app.prompting.prompt_builder import build_prompt_block, parse_router_payload
@@ -20,6 +21,11 @@ class ContextPackage:
     patient_context: Optional[str]
 
 
+def _log_latency(label: str, duration_ms: float, executed: bool = True) -> None:
+    suffix = "" if executed else " (skipped)"
+    print(f"[Latency] {label}: {duration_ms:.2f} ms{suffix}")
+
+
 def prepare_context(
     question: str,
     clinic_id: Optional[str] = None,
@@ -28,21 +34,31 @@ def prepare_context(
     """Run the full RAG orchestration pipeline for a question."""
     print(f"\n[Pipeline] question='{question}' clinic={clinic_id} patient={patient_id}")
 
+    overall_start = perf_counter()
     patient_record = None
     derived_clinic_id = clinic_id
+    patient_lookup_ms = 0.0
     if patient_id:
+        lookup_start = perf_counter()
         try:
             patient_record = get_patient_data(patient_id)
             if not derived_clinic_id:
                 derived_clinic_id = patient_record.get("clinic_id")
         except ValueError as exc:
             print(f"[Pipeline] patient lookup failed: {exc}")
+        finally:
+            patient_lookup_ms = (perf_counter() - lookup_start) * 1000
+    _log_latency("patient_lookup_ms", patient_lookup_ms, executed=bool(patient_id))
 
+    router_start = perf_counter()
     router_output = router_tool(
         question=question,
         clinic_id=derived_clinic_id,
         patient_id=patient_id,
     )
+    router_ms = (perf_counter() - router_start) * 1000
+    _log_latency("router_llm_ms", router_ms)
+
     summary = parse_router_payload(router_output)
     print(
         "[Router Decision] general="
@@ -52,11 +68,17 @@ def prepare_context(
     )
 
     general_context = None
+    general_ms = 0.0
     if summary.needs_general_kb:
+        general_start = perf_counter()
         general_context = general_kb_search_tool(query=question, topics=list(summary.topics))
+        general_ms = (perf_counter() - general_start) * 1000
+    _log_latency("general_kb_ms", general_ms, executed=summary.needs_general_kb)
 
     clinic_context_parts: list[str] = []
+    clinic_ms = 0.0
     if summary.needs_clinic_kb and derived_clinic_id:
+        clinic_start = perf_counter()
         try:
             if {"INSURANCE"} & set(summary.topics):
                 clinic_context_parts.append(
@@ -72,10 +94,19 @@ def prepare_context(
                 )
         except Exception as exc:
             print(f"[Pipeline] clinic context failed for {derived_clinic_id}: {exc}")
+        finally:
+            clinic_ms = (perf_counter() - clinic_start) * 1000
+    _log_latency(
+        "clinic_context_ms",
+        clinic_ms,
+        executed=bool(summary.needs_clinic_kb and derived_clinic_id),
+    )
     clinic_context = "\n\n".join(clinic_context_parts) if clinic_context_parts else None
 
     patient_context_parts: list[str] = []
+    patient_context_ms = 0.0
     if summary.needs_patient_data and patient_id:
+        patient_context_start = perf_counter()
         try:
             patient_context_parts.append(
                 patient_context_tool(patient_id=patient_id, info_type="summary")
@@ -90,8 +121,19 @@ def prepare_context(
                 )
         except Exception as exc:
             print(f"[Pipeline] patient context failed for {patient_id}: {exc}")
+        finally:
+            patient_context_ms = (perf_counter() - patient_context_start) * 1000
+    _log_latency(
+        "patient_context_ms",
+        patient_context_ms,
+        executed=bool(summary.needs_patient_data and patient_id),
+    )
     patient_context = "\n\n".join(patient_context_parts) if patient_context_parts else None
 
+    prompt_start = perf_counter()
+    print("\n\n ###################################")
+    print("\n[Pipeline] prompt_start")
+    print("\n\n ###################################")
     prompt = build_prompt_block(
         question=question,
         router_output={"needs_general_kb": summary.needs_general_kb,
@@ -102,8 +144,13 @@ def prepare_context(
                        "rationale": summary.rationale},
         general_context=general_context,
         clinic_context=clinic_context,
-        patient_context=patient_context,
+        patient_context=patient_context
     )
+    prompt_ms = (perf_counter() - prompt_start) * 1000
+    _log_latency("prompt_builder_ms", prompt_ms)
+
+    total_ms = (perf_counter() - overall_start) * 1000
+    _log_latency("orchestration_total_ms", total_ms)
 
     return ContextPackage(
         question=question,
@@ -120,6 +167,3 @@ def prepare_context(
         clinic_context=clinic_context,
         patient_context=patient_context,
     )
-
-
-

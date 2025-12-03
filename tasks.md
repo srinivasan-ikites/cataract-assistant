@@ -11,14 +11,17 @@
 
 ## Phase 2 Checklist
 
-- [ ] Define clinic JSON schema and seed sample clinic data
-- [ ] Define patient JSON schema and stub sample patient records
-- [ ] Implement query router + normaliser (Gemini-based)
-- [ ] Build retrieval service (embed query, query Qdrant, apply topic filters)
-- [ ] Implement prompt builder with General/Clinic/Patient context blocks
-- [ ] Integrate LLM answer generator (Gemini) with safety instructions
-- [ ] Add structured logging/telemetry for router/retrieval/LLM steps
-- [ ] Expose HTTP API endpoints for the assistant (single-turn)
+- [x] Define clinic JSON schema and seed sample clinic data
+- [x] Define patient JSON schema and stub sample patient records
+- [x] Implement query router + normaliser (Gemini-based)
+- [x] Build retrieval service (embed query, query Qdrant, apply topic filters)
+- [x] Implement prompt builder with General/Clinic/Patient context blocks
+- [x] Integrate LLM answer generator (Gemini) with safety instructions
+- [x] Add structured logging/telemetry for router/retrieval/LLM steps
+- [x] Expose HTTP API endpoints for the assistant (single-turn)
+- [ ] So currently we will send last 10 convo to chat history, so we need to later summarize those chat, after 10 history is done. So we will keep the summay of previous 10 chats for more proper context. 
+
+
 
 
 

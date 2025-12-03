@@ -39,10 +39,15 @@ def general_kb_search_tool(
         metadata = hit.get("metadata", {})
         section_title = metadata.get("section_title") or metadata.get("page_title") or "Unknown section"
         score = hit.get("score", 0.0) or 0.0
+        chunk_id = hit.get('chunk_id', 'unknown')
+        
+        # Log chunk ID for debugging (visible in logs)
+        print(f"[General KB] Chunk {idx} (ID: {chunk_id}): {section_title} | Score: {score:.4f}")
+        
+        # Use patient-friendly label in context sent to LLM
         sections.append(
-            f"[Chunk {idx}] {section_title}\n"
+            f"[General Knowledge - {section_title}]\n"
             f"Topic: {hit.get('topic')}\n"
-            f"Score: {score:.4f}\n"
             f"Text: {hit.get('text')}\n"
             f"Source: {metadata.get('source_url','N/A')}"
         )

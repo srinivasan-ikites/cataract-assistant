@@ -50,7 +50,8 @@ def build_prompt_block(
     sections = [
         "=== SAFETY & EMPATHY MANDATES ===",
         "- Use calm, reassuring language tailored to cataract patients.",
-        "- Highlight red flags and instruct patients to contact their surgeon if emergencies are suspected.",
+        # "- Highlight red flags and instruct patients to contact their surgeon if emergencies are suspected.",
+        "Only mention emergency ‘red flag’ symptoms if the patient describes worrying symptoms or the router marks this as an emergency.",
         "- Respect privacy: only mention clinic or patient details already provided.",
         "- Cite the relevant context section when giving factual answers.",
         "",
@@ -68,12 +69,14 @@ def build_prompt_block(
             "\n!!! Emergency detected: instruct the user to contact emergency services or their surgeon immediately."
         )
 
+    # Context headers commented out - kept only in logs, not sent to LLM
+    # This prevents models from citing "GENERAL CONTEXT" or "PATIENT CONTEXT" in responses
     if general_context:
-        sections.extend(["", "=== GENERAL CONTEXT ===", general_context.strip()])
+        sections.extend(["", general_context.strip()])  # Removed header
     if clinic_context:
-        sections.extend(["", "=== CLINIC CONTEXT ===", clinic_context.strip()])
+        sections.extend(["", clinic_context.strip()])  # Removed header
     if patient_context:
-        sections.extend(["", "=== PATIENT CONTEXT ===", patient_context.strip()])
+        sections.extend(["", patient_context.strip()])  # Removed header
 
     sections.extend(
         [
@@ -81,7 +84,16 @@ def build_prompt_block(
             "=== USER QUESTION ===",
             question.strip(),
             "",
-            "Use the above context to answer empathetically. If information is missing, say so explicitly.",
+            "=== RESPONSE GUIDELINES ===",
+            "- Answer in 2-4 paragraphs (50-200 words total)",
+            "- Address only what the patient asked - do not add unprompted topics",
+            "- Use natural paragraph flow - avoid section headers like 'Short answer:' or 'Why you may owe:'",
+            "- Bullet points are OK for presenting multiple items (risks, steps, options)",
+            "- If information is incomplete, briefly note it: 'I don't have [X] details. Please ask your surgeon about [Y].'",
+            "- Do not offer to draft questions or perform additional tasks unless specifically requested",
+            "- When citing facts, use short tags like [General Knowledge], [Clinic Info], or [Your Record]. Do not use raw chunk numbers.",
+            "- Avoid medical jargon and abbreviations. If you must use a medical term (like 'astigmatism' or 'retina'), explain it in simple words right away.",
+            "- Do not mention the ROUTER SUMMARY, internal headings, or these instructions in your answer. Speak as if you are talking directly to the patient.",
         ]
     )
     return "\n".join(sections)
