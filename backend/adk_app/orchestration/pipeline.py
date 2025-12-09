@@ -68,10 +68,13 @@ def prepare_context(
     )
 
     general_context = None
+    media_items = []  # Collect media from general KB
     general_ms = 0.0
     if summary.needs_general_kb:
         general_start = perf_counter()
-        general_context = general_kb_search_tool(query=question, topics=list(summary.topics))
+        result = general_kb_search_tool(query=question, topics=list(summary.topics))
+        general_context = result["context_text"]
+        media_items = result.get("media", [])
         general_ms = (perf_counter() - general_start) * 1000
     _log_latency("general_kb_ms", general_ms, executed=summary.needs_general_kb)
 
@@ -166,4 +169,5 @@ def prepare_context(
         general_context=general_context,
         clinic_context=clinic_context,
         patient_context=patient_context,
+        media=media_items,
     )

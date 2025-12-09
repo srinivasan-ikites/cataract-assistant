@@ -29,6 +29,7 @@ class AskResponse(BaseModel):
     suggestions: list[str] = []
     router_summary: dict
     context_sources: dict
+    media: list[dict] = []  # Media items (images/videos) from retrieved chunks
 
 
 def get_runtime() -> AgentRuntime:
@@ -134,6 +135,7 @@ def ask_endpoint(
             "has_clinic": bool(context_package.clinic_context),
             "has_patient": bool(context_package.patient_context),
         },
+        media=context_package.media or [],
     )
 
 

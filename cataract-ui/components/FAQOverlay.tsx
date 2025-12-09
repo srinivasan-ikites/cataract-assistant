@@ -48,7 +48,8 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient }) => {
       setChatHistory(prev => [...prev, {
         role: 'bot',
         text: response.answer,
-        suggestions: response.suggestions
+        suggestions: response.suggestions,
+        media: response.media || []
       }]);
     } catch (error) {
       setChatHistory(prev => [...prev, { role: 'bot', text: "I'm sorry, I'm having trouble connecting to the clinic server right now." }]);
@@ -99,6 +100,37 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient }) => {
                     }`}
                 >
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  
+                  {/* Display media if present (bot messages only) */}
+                  {msg.role === 'bot' && msg.media && msg.media.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {msg.media.map((item, idx) => (
+                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
+                          {item.type === 'image' && (
+                            <img 
+                              src={item.url} 
+                              alt={item.alt || 'Educational image'} 
+                              className="w-full h-auto"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          {item.type === 'video' && (
+                            <iframe 
+                              src={item.url} 
+                              title={item.caption || item.alt || 'Educational video'}
+                              className="w-full h-64"
+                              allowFullScreen
+                            />
+                          )}
+                          {item.caption && (
+                            <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
