@@ -91,7 +91,8 @@ app = FastAPI(title="Cataract Counsellor API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173",
-    "https://cataract-p9pks1uzc-srinivas831s-projects.vercel.app"],
+    "https://cataract-p9pks1uzc-srinivas831s-projects.vercel.app", 
+    "https://cataract-8p61yr28h-srinivas831s-projects.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

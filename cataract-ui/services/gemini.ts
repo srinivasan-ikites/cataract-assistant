@@ -1,6 +1,7 @@
 import { GeminiContentResponse } from '../types';
 
-const API_BASE = 'http://localhost:8000'; // align with backend
+// const API_BASE = 'http://localhost:8000'; // align with backend
+const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
 export const generateModuleContent = async (moduleTitle: string, patientId: string): Promise<GeminiContentResponse> => {
   try {
