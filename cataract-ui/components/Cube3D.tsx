@@ -34,68 +34,68 @@
 // const themePalette: Record<string, any> = {
 //   default: {
 //     top: 'bg-blue-400',
-//     bottom: 'bg-blue-950',
+//     bottom: 'bg-blue-800',
 //     left: 'bg-blue-600',
 //     back: 'bg-blue-900',
-//     rightResting: 'bg-blue-700',
-//     rightBorder: 'border-blue-800',
+//     rightResting: 'bg-blue-600',
+//     rightBorder: 'border-blue-500',
 //     textTitle: 'text-blue-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-blue-600',
 //     pillBg: 'bg-blue-50',
-//     borderActive: 'border-blue-100',
+//     borderActive: 'border-blue-200',
 //   },
 //   magenta: {
 //     top: 'bg-pink-400',
-//     bottom: 'bg-pink-950',
+//     bottom: 'bg-pink-800',
 //     left: 'bg-pink-600',
 //     back: 'bg-pink-900',
-//     rightResting: 'bg-pink-700',
-//     rightBorder: 'border-pink-800',
+//     rightResting: 'bg-pink-600',
+//     rightBorder: 'border-pink-500',
 //     textTitle: 'text-pink-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-pink-600',
 //     pillBg: 'bg-pink-50',
-//     borderActive: 'border-pink-100',
+//     borderActive: 'border-pink-200',
 //   },
 //   lavender: {
 //     top: 'bg-violet-400',
-//     bottom: 'bg-violet-950',
+//     bottom: 'bg-violet-800',
 //     left: 'bg-violet-600',
 //     back: 'bg-violet-900',
-//     rightResting: 'bg-violet-700',
-//     rightBorder: 'border-violet-800',
+//     rightResting: 'bg-violet-600',
+//     rightBorder: 'border-violet-500',
 //     textTitle: 'text-violet-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-violet-600',
 //     pillBg: 'bg-violet-50',
-//     borderActive: 'border-violet-100',
+//     borderActive: 'border-violet-200',
 //   },
 //   turquoise: {
 //     top: 'bg-cyan-400',
-//     bottom: 'bg-cyan-950',
+//     bottom: 'bg-cyan-800',
 //     left: 'bg-cyan-600',
 //     back: 'bg-cyan-900',
-//     rightResting: 'bg-cyan-700',
-//     rightBorder: 'border-cyan-800',
+//     rightResting: 'bg-cyan-600',
+//     rightBorder: 'border-cyan-500',
 //     textTitle: 'text-cyan-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-cyan-600',
 //     pillBg: 'bg-cyan-50',
-//     borderActive: 'border-cyan-100',
+//     borderActive: 'border-cyan-200',
 //   },
 //   gradient: {
 //     top: 'bg-violet-400',
-//     bottom: 'bg-violet-950',
+//     bottom: 'bg-violet-800',
 //     left: 'bg-violet-600',
 //     back: 'bg-violet-900',
-//     rightResting: 'bg-violet-700',
-//     rightBorder: 'border-violet-800',
+//     rightResting: 'bg-violet-600',
+//     rightBorder: 'border-violet-500',
 //     textTitle: 'text-violet-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-violet-600',
 //     pillBg: 'bg-violet-50',
-//     borderActive: 'border-violet-100',
+//     borderActive: 'border-violet-200',
 //   },
 // };
 
@@ -107,26 +107,44 @@
 // const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
 //   const [isHovered, setIsHovered] = useState(false);
 //   const [isFlipped, setIsFlipped] = useState(false);
-//   const [halfSize, setHalfSize] = useState("7.5rem");
-//   const { classes, currentTheme } = useTheme();
+//   const [halfSize, setHalfSize] = useState("7rem");
 
+//   // Random animation offsets for the "float" effect
+//   const [floatDelay, setFloatDelay] = useState("0s");
+//   const [floatDuration, setFloatDuration] = useState("6s");
+
+//   // Calculated entrance delay based on ID for the "drop in" effect
+//   // Assuming IDs are numeric "1", "2", etc.
+//   const index = parseInt(item.id) || 0;
+//   const dropDelay = `${(index - 1) * 0.15}s`;
+
+//   const { classes, currentTheme } = useTheme();
 //   const colors = themePalette[currentTheme?.id] || themePalette['default'];
 
-//   // Responsive sizing logic
+//   // Responsive sizing & Random Animation logic
 //   useEffect(() => {
+//     // 1. Calculate size based on screen
 //     const updateSize = () => {
 //       if (window.matchMedia('(min-width: 768px)').matches) {
-//         setHalfSize("7.5rem");
+//         setHalfSize("7rem");
 //       } else {
-//         setHalfSize("4.5rem");
+//         setHalfSize("4.25rem");
 //       }
 //     };
 //     updateSize();
 //     window.addEventListener('resize', updateSize);
+
+//     // 2. Generate random animation values to desynchronize the float
+//     // We use a negative delay so the float animation starts "mid-cycle" immediately
+//     setFloatDelay(`${-Math.random() * 5}s`);
+//     // Vary duration slightly (between 5s and 7s) so they drift organically
+//     setFloatDuration(`${10 + Math.random() * 6}s`);
+
 //     return () => window.removeEventListener('resize', updateSize);
 //   }, []);
 
-//   const faceClass = `absolute inset-0 rounded-xl flex flex-col items-center justify-center backface-visible overflow-hidden transition-all duration-500 shadow-sm border border-white/10`;
+//   // Softer edges, no hard border
+//   const faceClass = `absolute inset-0 rounded-xl flex flex-col items-center justify-center backface-visible overflow-hidden transition-all duration-500 shadow-md`;
 
 //   const handleInteraction = () => {
 //     const hasHover = window.matchMedia('(hover: hover)').matches;
@@ -146,74 +164,134 @@
 //   const isShowingInfo = isHovered || isFlipped;
 
 //   return (
-//     <div
-//       className={`relative w-36 h-36 md:w-60 md:h-60 group cursor-pointer perspective-1000 mx-auto my-6`}
-//       onMouseEnter={() => setIsHovered(true)}
-//       onMouseLeave={handleMouseLeave}
-//       onClick={handleInteraction}
-//       style={{ perspective: "1200px" }}
-//     >
+//     <>
+//       <style>
+//         {`
+//           @keyframes dropIn {
+//             0% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+//             100% { opacity: 1; transform: translateY(0) scale(1); }
+//           }
+//           @keyframes floatCube {
+//             0% { transform: rotateX(-5deg) rotateY(-10deg); }
+//             50% { transform: rotateX(-12deg) rotateY(10deg); }
+//             100% { transform: rotateX(-5deg) rotateY(-10deg); }
+//           }
+//           @keyframes floatShadow {
+//             0% { transform: translateX(-50%) scale(1); opacity: 0.2; }
+//             50% { transform: translateX(-50%) scale(0.85); opacity: 0.15; }
+//             100% { transform: translateX(-50%) scale(1); opacity: 0.2; }
+//           }
+//           .cube-floater {
+//             transform-style: preserve-3d;
+//             transform: rotateX(-5deg) rotateY(-8deg);
+//             width: 100%;
+//             height: 100%;
+//           }
+//         `}
+//       </style>
+
+//       {/* OUTER CONTAINER: Handles the "Drop In" Entrance Animation 
+//         - Perspective container
+//         - Grid placement
+//         - Entrance animation (dropIn)
+//       */}
 //       <div
-//         className={`relative w-full h-full transition-transform duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) transform-style-3d`}
+//         className={`relative w-[8.5rem] h-[8.5rem] md:w-[14rem] md:h-[14rem] group cursor-pointer perspective-1000 mx-auto my-6`}
+//         onMouseEnter={() => setIsHovered(true)}
+//         onMouseLeave={handleMouseLeave}
+//         onClick={handleInteraction}
 //         style={{
-//           transformStyle: "preserve-3d",
-//           // UPDATED TRANSFORMS:
-//           // 1. Removed rotateZ(2deg) to fix the "odd/crooked" look.
-//           // 2. Reduced rotateX to 5deg for a cleaner, less "top-down" view.
-//           // 3. Adjusted rotateY to -12deg for a subtle "teaser" of the right side without twisting too much.
-//           transform: isShowingInfo
-//             ? "rotateY(-90deg)"
-//             : "rotateX(5deg) rotateY(-12deg)",
+//           perspective: "1200px",
+//           // The drop-in animation plays once on mount
+//           animation: `dropIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards`,
+//           animationDelay: dropDelay
 //         }}
 //       >
-
-//         {/* --- FRONT FACE --- */}
+//         {/* WRAPPER: Handles the Continuous "Float" Animation
+//           - Runs infinitely
+//           - Randomized start/duration to look organic
+//           - Pauses ONLY the float when interacting, but keeps the current tilt frame if we wanted (or resets)
+//           - Note: We disable the animation string when showing info to prevent fighting with the hover rotation
+//         */}
 //         <div
-//           className={`${faceClass} ${classes.cube.frontGradient} shadow-2xl`}
-//           style={{ transform: `translateZ(${halfSize})` }}
+//           className="cube-floater"
+//           style={{
+//             animation: !isShowingInfo ? `floatCube ${floatDuration} ease-in-out infinite` : "none",
+//             animationDelay: !isShowingInfo ? floatDelay : undefined
+//           }}
 //         >
-//           <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
 
-//           <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10`}>
-//             <div className="hidden md:block">{getIcon(item.iconName, 40, "text-white")}</div>
-//             <div className="block md:hidden">{getIcon(item.iconName, 24, "text-white")}</div>
+//           {/* INNER CONTAINER: Handles the Interactive Rotation
+//             - Rotates -90deg on Y axis to show info
+//             - Smooth transition
+//           */}
+//           <div
+//             className={`relative w-full h-full transition-transform duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) transform-style-3d`}
+//             style={{
+//               transformStyle: "preserve-3d",
+//               // We only rotate Y here. The Tilt (X and Y) comes from the parent .cube-floater
+//               transform: isShowingInfo ? "rotateY(-90deg)" : "rotateY(0deg)",
+//             }}
+//           >
+
+//             {/* --- FRONT FACE --- */}
+//             <div
+//               className={`${faceClass} ${classes.cube.frontGradient} shadow-2xl`}
+//               style={{ transform: `translateZ(${halfSize})` }}
+//             >
+//               {/* Minimal bevel only */}
+//               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"></div>
+
+//               <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10 backdrop-blur-sm bg-white/12 border border-white/15`}>
+//                 <div className="hidden md:block">{getIcon(item.iconName, 40, "text-white")}</div>
+//                 <div className="block md:hidden">{getIcon(item.iconName, 24, "text-white")}</div>
+//               </div>
+//               <h3 className={`text-sm md:text-xl font-medium ${classes.cube.frontTitle} text-center px-2 md:px-6 tracking-wide leading-tight text-white relative z-10 drop-shadow-md`}>
+//                 {item.title}
+//               </h3>
+//             </div>
+
+//             {/* --- RIGHT FACE --- */}
+//             <div
+//               className={`${faceClass} ${isShowingInfo ? `bg-white ${colors.borderActive}` : `${colors.rightResting} ${colors.rightBorder}`}`}
+//               style={{ transform: `rotateY(90deg) translateZ(${halfSize})` }}
+//             >
+//               <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-center items-center text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
+                
+//                   <p className={`text-sm md:text-xl font-bold leading-tight ${colors.textTitle} line-clamp-4 md:line-clamp-4 mb-4`}>
+//                     {item.shortDescription}
+//                   </p>
+                
+//                 <div className={`flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-wider ${colors.pillText} ${colors.pillBg} py-2 px-4 rounded-full mx-auto`}>
+//                   Details <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
+//                 </div>
+//               </div>
+
+//               <div className={`absolute inset-0 ${colors.back}/40 ${isShowingInfo ? 'opacity-0' : 'opacity-100'}`}></div>
+//             </div>
+
+//             {/* --- OTHER SIDES --- */}
+//             <div className={`${faceClass} ${colors.back}`} style={{ transform: `rotateY(180deg) translateZ(${halfSize})` }}></div>
+//             <div className={`${faceClass} ${colors.left}`} style={{ transform: `rotateY(-90deg) translateZ(${halfSize})` }}></div>
+//             <div className={`${faceClass} ${colors.top}`} style={{ transform: `rotateX(90deg) translateZ(${halfSize})` }}></div>
+//             <div className={`${faceClass} ${colors.bottom}`} style={{ transform: `rotateX(-90deg) translateZ(${halfSize})` }}></div>
 //           </div>
-//           <h3 className={`text-sm md:text-xl font-medium ${classes.cube.frontTitle} text-center px-2 md:px-6 tracking-wide leading-tight text-white relative z-10 drop-shadow-md`}>
-//             {item.title}
-//           </h3>
 //         </div>
 
-//         {/* --- RIGHT FACE --- */}
+//         {/* Floating Shadow - Also gets the drop-in animation! */}
 //         <div
-//           className={`${faceClass} ${isShowingInfo ? `bg-white ${colors.borderActive}` : `${colors.rightResting} ${colors.rightBorder}`}`}
-//           style={{ transform: `rotateY(90deg) translateZ(${halfSize})` }}
-//         >
-//           <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-between text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
-//             <div>
-//               <h4 className={`text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3 ${colors.textTitle} opacity-80`}>
-//                 Overview
-//               </h4>
-//               <p className={`text-[10px] md:text-sm font-normal leading-relaxed ${colors.textBody} line-clamp-4`}>
-//                 {item.shortDescription}
-//               </p>
-//             </div>
-//             <div className={`flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-wider ${colors.pillText} ${colors.pillBg} py-2 px-4 rounded-full mx-auto`}>
-//               Read More <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
-//             </div>
-//           </div>
-
-//           <div className={`absolute inset-0 ${colors.back}/40 ${isShowingInfo ? 'opacity-0' : 'opacity-100'}`}></div>
-//         </div>
-
-//         {/* --- OTHER SIDES --- */}
-//         <div className={`${faceClass} ${colors.back}`} style={{ transform: `rotateY(180deg) translateZ(${halfSize})` }}></div>
-//         <div className={`${faceClass} ${colors.left}`} style={{ transform: `rotateY(-90deg) translateZ(${halfSize})` }}></div>
-//         <div className={`${faceClass} ${colors.top}`} style={{ transform: `rotateX(90deg) translateZ(${halfSize})` }}></div>
-//         <div className={`${faceClass} ${colors.bottom}`} style={{ transform: `rotateX(-90deg) translateZ(${halfSize})` }}></div>
+//           className={`absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/20 blur-xl rounded-[100%] transition-all duration-500`}
+//           style={{
+//             // Combine drop animation (fade in) with float animation
+//             // Note: We use a separate keyframe for shadow drop to avoid moving it vertically too much, mainly opacity
+//             animation: `${!isShowingInfo ? `floatShadow ${floatDuration} ease-in-out infinite` : "none"}, dropIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards`,
+//             animationDelay: `${!isShowingInfo ? floatDelay : "0s"}, ${dropDelay}`,
+//             opacity: isShowingInfo ? 0.4 : undefined,
+//             transform: isShowingInfo ? "translateX(-50%) scale(0.6)" : undefined
+//           }}
+//         ></div>
 //       </div>
-
-//       <div className={`absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/20 blur-xl rounded-[100%] transition-all duration-500 ${isHovered ? 'scale-75 opacity-20' : 'scale-100 opacity-40'}`}></div>
-//     </div>
+//     </>
 //   );
 // };
 
@@ -224,35 +302,36 @@
 
 
 
+
 import React, { useState, useEffect } from 'react';
 import { ModuleItem } from '../types';
 import { useTheme } from '../theme';
 import {
-  Eye,
-  Activity,
-  AlertTriangle,
-  Disc,
+  ScanEye,
+  Sparkles,
+  Aperture,
+  ShieldAlert,
+  CalendarClock,
+  ClipboardCheck,
+  FileHeart,
   HelpCircle,
-  Calendar,
-  ClipboardList,
-  FileText,
   Info,
   ArrowRight
 } from 'lucide-react';
 
 const getIcon = (name: string, size = 32, color = "currentColor") => {
-  const props = { size, className: color };
+  const props = { size, className: color, strokeWidth: 1.5 };
   switch (name) {
-    case 'type': return <Eye {...props} />;
-    case 'surgery': return <Activity {...props} />;
-    case 'risk': return <AlertTriangle {...props} />;
-    case 'iol': return <Disc {...props} />;
+    case 'type': return <ScanEye {...props} />;
+    case 'surgery': return <Sparkles {...props} />;
+    case 'risk': return <ShieldAlert {...props} />;
+    case 'iol': return <Aperture {...props} />;
     case 'options': return <HelpCircle {...props} />;
-    case 'day': return <Calendar {...props} />;
-    case 'preop': return <ClipboardList {...props} />;
+    case 'day': return <CalendarClock {...props} />;
+    case 'preop': return <ClipboardCheck {...props} />;
     case 'postop': return <Info {...props} />;
-    case 'forms': return <FileText {...props} />;
-    default: return <Eye {...props} />;
+    case 'forms': return <FileHeart {...props} />;
+    default: return <ScanEye {...props} />;
   }
 };
 
@@ -333,7 +412,7 @@ interface Cube3DProps {
 const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [halfSize, setHalfSize] = useState("7.5rem");
+  const [halfSize, setHalfSize] = useState("7rem");
 
   // Random animation offsets for the "float" effect
   const [floatDelay, setFloatDelay] = useState("0s");
@@ -352,9 +431,9 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
     // 1. Calculate size based on screen
     const updateSize = () => {
       if (window.matchMedia('(min-width: 768px)').matches) {
-        setHalfSize("7.5rem");
+        setHalfSize("7rem");
       } else {
-        setHalfSize("4.5rem");
+        setHalfSize("4.25rem");
       }
     };
     updateSize();
@@ -369,7 +448,8 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  const faceClass = `absolute inset-0 rounded-lg flex flex-col items-center justify-center backface-visible overflow-hidden transition-all duration-500 shadow-sm border border-white/20`;
+  // Softer edges, no hard border
+  const faceClass = `absolute inset-0 rounded-xl flex flex-col items-center justify-center backface-visible overflow-hidden transition-all duration-500 shadow-md`;
 
   const handleInteraction = () => {
     const hasHover = window.matchMedia('(hover: hover)').matches;
@@ -421,7 +501,7 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
         - Entrance animation (dropIn)
       */}
       <div
-        className={`relative w-36 h-36 md:w-60 md:h-60 group cursor-pointer perspective-1000 mx-auto my-6`}
+        className={`relative w-[8.5rem] h-[8.5rem] md:w-[14rem] md:h-[14rem] group cursor-pointer perspective-1000 mx-auto my-6`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={handleMouseLeave}
         onClick={handleInteraction}
@@ -461,19 +541,38 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
 
             {/* --- FRONT FACE --- */}
             <div
-              className={`${faceClass} ${classes.cube.frontGradient} shadow-2xl`}
-              style={{ transform: `translateZ(${halfSize})` }}
+              className={`${faceClass} ${classes.cube.frontGradient} shadow-2xl rounded-xl overflow-hidden`}
+              // style={{ transform: `translateZ(${halfSize})` }}
+              style={{
+                transform: `translateZ(${halfSize})`,
+                boxShadow: '0 24px 48px rgba(0,0,0,0.14), 0 0 38px rgba(104,140,255,0.28)'
+              }}
             >
-              {/* Subtle top highlight for 3D bevel effect */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/40"></div>
+              {/* Soft glow wash */}
+              <div className="absolute inset-[-12%] bg-[radial-gradient(circle_at_50%_32%,rgba(255,255,255,0.24),rgba(124,152,255,0.14),transparent_62%)] opacity-90 pointer-events-none"></div>
+              {/* Top edge glint */}
+              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/70 to-transparent pointer-events-none"></div>
 
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
-
-              <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10`}>
-                <div className="hidden md:block">{getIcon(item.iconName, 40, "text-white")}</div>
-                <div className="block md:hidden">{getIcon(item.iconName, 24, "text-white")}</div>
+              {/* Optional: Large faint watermark icon (kept here commented in case you want it) */}
+              {/* <div className="absolute -bottom-4 -right-4 opacity-10 text-white rotate-12 scale-150 pointer-events-none">
+                {getIcon(item.iconName, 120, "text-white")}
+              </div> */}
+             
+              {/* <div className={`${classes.cube.frontIconBg} p-4 md:p-5 rounded-full mb-3 
+              md:mb-5 shadow-inner relative z-10 backdrop-blur-md bg-white/12 border 
+              border-white/30 overflow-hidden transition-transform duration-300 
+              group-hover:scale-110`}> */}
+              {/* Holographic icon badge with glow */}
+              <div className={`${classes.cube.frontIconBg} p-4 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10 backdrop-blur-md bg-white/12 border border-white/30 overflow-hidden transition-transform duration-300 group-hover:scale-110 shadow-[0_0_28px_rgba(255,255,255,0.26),0_12px_30px_rgba(0,0,0,0.18)]`}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.22),transparent_62%)] pointer-events-none"></div>
+                <div className="hidden md:block relative text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                  {getIcon(item.iconName, 44, "text-white")}
+                </div>
+                <div className="block md:hidden relative text-white drop-shadow-md">
+                  {getIcon(item.iconName, 28, "text-white")}
+                </div>
               </div>
-              <h3 className={`text-sm md:text-xl font-medium ${classes.cube.frontTitle} text-center px-2 md:px-6 tracking-wide leading-tight text-white relative z-10 drop-shadow-md`}>
+              <h3 className={`text-sm md:text-xl font-medium ${classes.cube.frontTitle} text-center px-2 md:px-6 tracking-wide leading-tight text-white relative z-10 drop-shadow-lg`}>
                 {item.title}
               </h3>
             </div>
@@ -483,17 +582,14 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
               className={`${faceClass} ${isShowingInfo ? `bg-white ${colors.borderActive}` : `${colors.rightResting} ${colors.rightBorder}`}`}
               style={{ transform: `rotateY(90deg) translateZ(${halfSize})` }}
             >
-              <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-between text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
-                <div>
-                  <h4 className={`text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3 ${colors.textTitle} opacity-80`}>
-                    Overview
-                  </h4>
-                  <p className={`text-[10px] md:text-sm font-normal leading-relaxed ${colors.textBody} line-clamp-4`}>
+              <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-center items-center text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
+                
+                  <p className={`text-sm md:text-xl font-bold leading-tight ${colors.textTitle} line-clamp-4 md:line-clamp-4 mb-4`}>
                     {item.shortDescription}
                   </p>
-                </div>
+                
                 <div className={`flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-wider ${colors.pillText} ${colors.pillBg} py-2 px-4 rounded-full mx-auto`}>
-                  Read More <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
+                  Details <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
                 </div>
               </div>
 
@@ -507,7 +603,7 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
             <div className={`${faceClass} ${colors.bottom}`} style={{ transform: `rotateX(-90deg) translateZ(${halfSize})` }}></div>
           </div>
         </div>
-
+                
         {/* Floating Shadow - Also gets the drop-in animation! */}
         <div
           className={`absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/20 blur-xl rounded-[100%] transition-all duration-500`}
@@ -526,6 +622,14 @@ const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
 };
 
 export default Cube3D;
+
+
+
+
+
+
+
+
 
 
 
@@ -570,8 +674,8 @@ export default Cube3D;
 //     bottom: 'bg-blue-800',
 //     left: 'bg-blue-600',
 //     back: 'bg-blue-900',
-//     rightResting: 'bg-blue-600',
-//     rightBorder: 'border-blue-500',
+//     rightResting: 'bg-white',
+//     rightBorder: 'border-slate-100',
 //     textTitle: 'text-blue-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-blue-600',
@@ -583,8 +687,8 @@ export default Cube3D;
 //     bottom: 'bg-pink-800',
 //     left: 'bg-pink-600',
 //     back: 'bg-pink-900',
-//     rightResting: 'bg-pink-600',
-//     rightBorder: 'border-pink-500',
+//     rightResting: 'bg-white',
+//     rightBorder: 'border-slate-100',
 //     textTitle: 'text-pink-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-pink-600',
@@ -596,8 +700,8 @@ export default Cube3D;
 //     bottom: 'bg-violet-800',
 //     left: 'bg-violet-600',
 //     back: 'bg-violet-900',
-//     rightResting: 'bg-violet-600',
-//     rightBorder: 'border-violet-500',
+//     rightResting: 'bg-white',
+//     rightBorder: 'border-slate-100',
 //     textTitle: 'text-violet-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-violet-600',
@@ -609,8 +713,8 @@ export default Cube3D;
 //     bottom: 'bg-cyan-800',
 //     left: 'bg-cyan-600',
 //     back: 'bg-cyan-900',
-//     rightResting: 'bg-cyan-600',
-//     rightBorder: 'border-cyan-500',
+//     rightResting: 'bg-white',
+//     rightBorder: 'border-slate-100',
 //     textTitle: 'text-cyan-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-cyan-600',
@@ -622,8 +726,8 @@ export default Cube3D;
 //     bottom: 'bg-violet-800',
 //     left: 'bg-violet-600',
 //     back: 'bg-violet-900',
-//     rightResting: 'bg-violet-600',
-//     rightBorder: 'border-violet-500',
+//     rightResting: 'bg-white',
+//     rightBorder: 'border-slate-100',
 //     textTitle: 'text-violet-900',
 //     textBody: 'text-slate-600',
 //     pillText: 'text-violet-600',
@@ -640,13 +744,18 @@ export default Cube3D;
 // const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
 //   const [isHovered, setIsHovered] = useState(false);
 //   const [isFlipped, setIsFlipped] = useState(false);
-//   const [halfSize, setHalfSize] = useState("7.5rem");
-//   // Add state for random animation offsets
-//   const [animDelay, setAnimDelay] = useState("0s");
-//   const [animDuration, setAnimDuration] = useState("6s");
+//   const [halfSize, setHalfSize] = useState("7rem");
+
+//   // Random animation offsets for the "float" effect
+//   const [floatDelay, setFloatDelay] = useState("0s");
+//   const [floatDuration, setFloatDuration] = useState("6s");
+
+//   // Calculated entrance delay based on ID for the "drop in" effect
+//   // Assuming IDs are numeric "1", "2", etc.
+//   const index = parseInt(item.id) || 0;
+//   const dropDelay = `${(index - 1) * 0.15}s`;
 
 //   const { classes, currentTheme } = useTheme();
-
 //   const colors = themePalette[currentTheme?.id] || themePalette['default'];
 
 //   // Responsive sizing & Random Animation logic
@@ -654,24 +763,25 @@ export default Cube3D;
 //     // 1. Calculate size based on screen
 //     const updateSize = () => {
 //       if (window.matchMedia('(min-width: 768px)').matches) {
-//         setHalfSize("7.5rem");
+//         setHalfSize("7rem");
 //       } else {
-//         setHalfSize("4.5rem");
+//         setHalfSize("4.25rem");
 //       }
 //     };
 //     updateSize();
 //     window.addEventListener('resize', updateSize);
 
-//     // 2. Generate random animation values to desynchronize cubes
-//     // Delay between -5s and 0s effectively starts the animation at a random point in its loop immediately
-//     setAnimDelay(`${-Math.random() * 5}s`);
+//     // 2. Generate random animation values to desynchronize the float
+//     // We use a negative delay so the float animation starts "mid-cycle" immediately
+//     setFloatDelay(`${-Math.random() * 5}s`);
 //     // Vary duration slightly (between 5s and 7s) so they drift organically
-//     setAnimDuration(`${5 + Math.random() * 2}s`);
+//     setFloatDuration(`${10 + Math.random() * 6}s`);
 
 //     return () => window.removeEventListener('resize', updateSize);
 //   }, []);
 
-//   const faceClass = `absolute inset-0 rounded-lg flex flex-col items-center justify-center backface-visible overflow-hidden transition-all duration-500 shadow-sm border border-white/20`;
+//   // Softer edges, crisp bevel (no hard border)
+//   const faceClass = `absolute inset-0 rounded-xl flex flex-col items-center justify-center backface-hidden overflow-hidden transition-all duration-500`;
 
 //   const handleInteraction = () => {
 //     const hasHover = window.matchMedia('(hover: hover)').matches;
@@ -694,6 +804,21 @@ export default Cube3D;
 //     <>
 //       <style>
 //         {`
+//           .cube-scene {
+//             --cube-size: 9rem;
+//             --cube-half: 4.5rem;
+//             perspective: 1200px;
+//           }
+//           @media (min-width: 768px) {
+//             .cube-scene {
+//               --cube-size: 15rem;
+//               --cube-half: 7.5rem;
+//             }
+//           }
+//           @keyframes dropIn {
+//             0% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+//             100% { opacity: 1; transform: translateY(0) scale(1); }
+//           }
 //           @keyframes floatCube {
 //             0% { transform: rotateX(-5deg) rotateY(-10deg); }
 //             50% { transform: rotateX(-12deg) rotateY(10deg); }
@@ -704,34 +829,57 @@ export default Cube3D;
 //             50% { transform: translateX(-50%) scale(0.85); opacity: 0.15; }
 //             100% { transform: translateX(-50%) scale(1); opacity: 0.2; }
 //           }
-//           /* This class is applied to the wrapper to handle the continuous float */
 //           .cube-floater {
-//             /* Animation is defined inline to use dynamic duration */
 //             transform-style: preserve-3d;
+//             transform: rotateX(-5deg) rotateY(-8deg);
 //             width: 100%;
 //             height: 100%;
+//           }
+//           /* Bevel + ambient drop for crisp edges */
+//           .cube-bevel {
+//             box-shadow:
+//               inset 0 0 18px rgba(0,0,0,0.06),
+//               inset 0 0 0 1px rgba(255,255,255,0.25),
+//               0 16px 36px rgba(0,0,0,0.12);
 //           }
 //         `}
 //       </style>
 
+//       {/* OUTER CONTAINER: Handles the "Drop In" Entrance Animation 
+//         - Perspective container
+//         - Grid placement
+//         - Entrance animation (dropIn)
+//       */}
 //       <div
-//         className={`relative w-36 h-36 md:w-60 md:h-60 group cursor-pointer perspective-1000 mx-auto my-6`}
+//         className={`cube-scene relative w-[8.5rem] h-[8.5rem] md:w-[14rem] md:h-[14rem] group cursor-pointer mx-auto my-6`}
 //         onMouseEnter={() => setIsHovered(true)}
 //         onMouseLeave={handleMouseLeave}
 //         onClick={handleInteraction}
-//         style={{ perspective: "1200px" }}
+//         style={{
+//           perspective: "1200px",
+//           // The drop-in animation plays once on mount
+//           animation: `dropIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards`,
+//           animationDelay: dropDelay
+//         }}
 //       >
-//         {/* Wrapper for Floating Animation - Always runs, preserving 3D context */}
+//         {/* WRAPPER: Handles the Continuous "Float" Animation
+//           - Runs infinitely
+//           - Randomized start/duration to look organic
+//           - Pauses ONLY the float when interacting, but keeps the current tilt frame if we wanted (or resets)
+//           - Note: We disable the animation string when showing info to prevent fighting with the hover rotation
+//         */}
 //         <div
 //           className="cube-floater"
 //           style={{
-//             // Apply the random duration and delay here
-//             animation: !isShowingInfo ? `floatCube ${animDuration} ease-in-out infinite` : "none",
-//             animationDelay: !isShowingInfo ? animDelay : undefined
+//             animation: !isShowingInfo ? `floatCube ${floatDuration} ease-in-out infinite` : "none",
+//             animationDelay: !isShowingInfo ? floatDelay : undefined
 //           }}
 //         >
 
-//           {/* Inner Container for Interaction Rotation - Handles the turn */}
+//           {/* INNER CONTAINER: Handles the Interactive Rotation
+//             - Rotates -90deg on Y axis to show info
+//             - Smooth transition
+//           */}
 //           <div
 //             className={`relative w-full h-full transition-transform duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) transform-style-3d`}
 //             style={{
@@ -743,15 +891,16 @@ export default Cube3D;
 
 //             {/* --- FRONT FACE --- */}
 //             <div
-//               className={`${faceClass} ${classes.cube.frontGradient} shadow-2xl`}
+//               className={`${faceClass} ${classes.cube.frontGradient} cube-bevel`}
 //               style={{ transform: `translateZ(${halfSize})` }}
 //             >
-//               {/* Subtle top highlight for 3D bevel effect */}
-//               <div className="absolute top-0 left-0 right-0 h-1 bg-white/40"></div>
+//               {/* Edge highlights for crisp bevel */}
+//               <div className="absolute inset-0 pointer-events-none">
+//                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/55 to-transparent"></div>
+//                 <div className="absolute inset-0 rounded-xl shadow-[inset_0_-8px_18px_rgba(0,0,0,0.12)]"></div>
+//               </div>
 
-//               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
-
-//               <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10`}>
+//               <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-inner relative z-10 backdrop-blur-sm bg-white/12 border border-white/15`}>
 //                 <div className="hidden md:block">{getIcon(item.iconName, 40, "text-white")}</div>
 //                 <div className="block md:hidden">{getIcon(item.iconName, 24, "text-white")}</div>
 //               </div>
@@ -763,23 +912,23 @@ export default Cube3D;
 //             {/* --- RIGHT FACE --- */}
 //             <div
 //               className={`${faceClass} ${isShowingInfo ? `bg-white ${colors.borderActive}` : `${colors.rightResting} ${colors.rightBorder}`}`}
-//               style={{ transform: `rotateY(90deg) translateZ(${halfSize})` }}
+//               style={{
+//                 transform: `rotateY(90deg) translateZ(${halfSize})`,
+//                 background: 'linear-gradient(135deg, #ffffff 0%, #f4f7fb 100%)',
+//                 boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.02), 0 14px 28px rgba(0,0,0,0.12)'
+//               }}
 //             >
-//               <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-between text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
-//                 <div>
-//                   <h4 className={`text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3 ${colors.textTitle} opacity-80`}>
-//                     Overview
-//                   </h4>
-//                   <p className={`text-[10px] md:text-sm font-normal leading-relaxed ${colors.textBody} line-clamp-4`}>
+//               <div className={`w-full h-full p-3 md:p-6 flex flex-col justify-center items-center text-center transition-opacity duration-300 ${isShowingInfo ? 'opacity-100 delay-200' : 'opacity-0'}`}>
+                
+//                   <p className={`text-sm md:text-xl font-bold leading-tight ${colors.textTitle} line-clamp-4 md:line-clamp-4 mb-4`}>
 //                     {item.shortDescription}
 //                   </p>
-//                 </div>
+                
 //                 <div className={`flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-wider ${colors.pillText} ${colors.pillBg} py-2 px-4 rounded-full mx-auto`}>
-//                   Read More <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
+//                   Details <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
 //                 </div>
 //               </div>
 
-//               <div className={`absolute inset-0 ${colors.back}/40 ${isShowingInfo ? 'opacity-0' : 'opacity-100'}`}></div>
 //             </div>
 
 //             {/* --- OTHER SIDES --- */}
@@ -790,209 +939,20 @@ export default Cube3D;
 //           </div>
 //         </div>
 
-//         {/* Floating Shadow */}
+//         {/* Floating Shadow - Also gets the drop-in animation! */}
 //         <div
 //           className={`absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/20 blur-xl rounded-[100%] transition-all duration-500`}
 //           style={{
-//             animation: !isShowingInfo ? `floatShadow ${animDuration} ease-in-out infinite` : "none",
-//             animationDelay: !isShowingInfo ? animDelay : undefined,
-//             opacity: isShowingInfo ? 0.4 : undefined, // Slightly stronger shadow when "active"
+//             // Combine drop animation (fade in) with float animation
+//             // Note: We use a separate keyframe for shadow drop to avoid moving it vertically too much, mainly opacity
+//             animation: `${!isShowingInfo ? `floatShadow ${floatDuration} ease-in-out infinite` : "none"}, dropIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards`,
+//             animationDelay: `${!isShowingInfo ? floatDelay : "0s"}, ${dropDelay}`,
+//             opacity: isShowingInfo ? 0.4 : undefined,
 //             transform: isShowingInfo ? "translateX(-50%) scale(0.6)" : undefined
 //           }}
 //         ></div>
 //       </div>
 //     </>
-//   );
-// };
-
-// export default Cube3D;
-
-
-
-
-
-
-
-
-
-
-// import React, { useState, useEffect } from 'react';
-// import { ModuleItem } from '../types';
-// import { useTheme } from '../theme';
-// import {
-//   Eye,
-//   Activity,
-//   AlertTriangle,
-//   Disc,
-//   HelpCircle,
-//   Calendar,
-//   ClipboardList,
-//   FileText,
-//   Info,
-//   ArrowRight
-// } from 'lucide-react';
-
-// const getIcon = (name: string, size = 32, color = "currentColor") => {
-//   const props = { size, className: color };
-//   switch (name) {
-//     case 'type': return <Eye {...props} />;
-//     case 'surgery': return <Activity {...props} />;
-//     case 'risk': return <AlertTriangle {...props} />;
-//     case 'iol': return <Disc {...props} />;
-//     case 'options': return <HelpCircle {...props} />;
-//     case 'day': return <Calendar {...props} />;
-//     case 'preop': return <ClipboardList {...props} />;
-//     case 'postop': return <Info {...props} />;
-//     case 'forms': return <FileText {...props} />;
-//     default: return <Eye {...props} />;
-//   }
-// };
-
-// interface Cube3DProps {
-//   item: ModuleItem;
-//   onClick: (item: ModuleItem) => void;
-// }
-
-// const Cube3D: React.FC<Cube3DProps> = ({ item, onClick }) => {
-//   const [isHovered, setIsHovered] = useState(false);
-//   const [isFlipped, setIsFlipped] = useState(false);
-//   const [halfSize, setHalfSize] = useState("7.5rem"); // Default to desktop size
-//   const { classes } = useTheme();
-
-//   // Responsive sizing logic
-//   useEffect(() => {
-//     const updateSize = () => {
-//       // Check if it matches the 'md' breakpoint (768px)
-//       if (window.matchMedia('(min-width: 768px)').matches) {
-//         setHalfSize("7.5rem"); // 15rem / 2 (w-60)
-//       } else {
-//         setHalfSize("4.5rem"); // 9rem / 2 (w-36)
-//       }
-//     };
-
-//     // Initial check
-//     updateSize();
-
-//     // Listener
-//     window.addEventListener('resize', updateSize);
-//     return () => window.removeEventListener('resize', updateSize);
-//   }, []);
-
-//   // UPDATED: Added a faint border to help the edges look "solid" and distinct
-//   const faceClass = `absolute inset-0 border border-white/10 rounded-xl flex flex-col items-center justify-center backface-visible overflow-hidden transition-colors duration-300 shadow-sm`;
-
-//   const handleInteraction = () => {
-//     const hasHover = window.matchMedia('(hover: hover)').matches;
-
-//     if (hasHover) {
-//       onClick(item);
-//     } else {
-//       if (isFlipped) {
-//         onClick(item);
-//       } else {
-//         setIsFlipped(true);
-//       }
-//     }
-//   };
-
-//   const handleMouseLeave = () => {
-//     setIsHovered(false);
-//     setIsFlipped(false);
-//   };
-
-//   return (
-//     <div
-//       className={`relative w-36 h-36 md:w-60 md:h-60 group cursor-pointer perspective-1000 mx-auto my-6`}
-//       onMouseEnter={() => setIsHovered(true)}
-//       onMouseLeave={handleMouseLeave}
-//       onClick={handleInteraction}
-//       style={{ perspective: "1200px" }} // Increased perspective slightly for better 3D look
-//     >
-//       <div
-//         className={`relative w-full h-full transition-transform duration-500 ease-out transform-style-3d`}
-//         style={{
-//           transformStyle: "preserve-3d",
-//           // UPDATED: This logic creates the "Resting Tilt"
-//           // When idle: Rotate X and Y slightly to show depth.
-//           // When active: Rotate Y full -90deg to show the side face.
-//           transform: (isHovered || isFlipped)
-//             ? "rotateY(-90deg)"
-//             : "rotateX(10deg) rotateY(-15deg) rotateZ(2deg)",
-//         }}
-//       >
-
-//         {/* FRONT FACE - Branding */}
-//         <div
-//           className={`${faceClass} ${classes.cube.frontGradient} shadow-md`}
-//           style={{ transform: `translateZ(${halfSize})` }}
-//         >
-//           {/* Shine effect on tilt */}
-//           <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/0 to-white/20 opacity-100 transition-opacity duration-300"></div>
-
-//           <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-
-//           <div className={`${classes.cube.frontIconBg} p-3 md:p-5 rounded-full mb-3 md:mb-5 shadow-sm relative z-10`}>
-//             {/* Responsive Icon Size */}
-//             <div className="hidden md:block">
-//               {getIcon(item.iconName, 40, "text-white")}
-//             </div>
-//             <div className="block md:hidden">
-//               {getIcon(item.iconName, 24, "text-white")}
-//             </div>
-//           </div>
-//           <h3 className={`text-sm md:text-xl font-medium ${classes.cube.frontTitle} text-center px-2 md:px-6 tracking-wide leading-tight relative z-10`}>
-//             {item.title}
-//           </h3>
-//         </div>
-
-//         {/* RIGHT FACE - Info (Revealed on Hover) */}
-//         <div
-//           className={`${faceClass} ${classes.cube.right} border ${classes.cube.rightBorder}`}
-//           style={{ transform: `rotateY(90deg) translateZ(${halfSize})` }}
-//         >
-//           <div className="p-3 md:p-6 flex flex-col h-full justify-between text-center bg-white">
-//             <div>
-//               <h4 className={`text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3 ${classes.cube.rightTitle} opacity-80`}>
-//                 Overview
-//               </h4>
-//               <p className={`text-[10px] md:text-sm font-normal leading-relaxed ${classes.cube.rightText} line-clamp-4 md:line-clamp-4`}>
-//                 {item.shortDescription}
-//               </p>
-//             </div>
-//             <div className={`flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-wider ${classes.cube.rightActionText} ${classes.cube.rightActionBg} py-1.5 px-3 md:py-2 md:px-4 rounded-full`}>
-//               Read More <ArrowRight size={12} className="md:w-3.5 md:h-3.5" />
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* BACK FACE */}
-//         <div
-//           className={`${faceClass} ${classes.cube.back}`}
-//           style={{ transform: `rotateY(180deg) translateZ(${halfSize})` }}
-//         ></div>
-
-//         {/* LEFT FACE */}
-//         <div
-//           className={`${faceClass} ${classes.cube.left}`}
-//           style={{ transform: `rotateY(-90deg) translateZ(${halfSize})` }}
-//         ></div>
-
-//         {/* TOP FACE */}
-//         <div
-//           className={`${faceClass} ${classes.cube.top} bg-blue-400/90`} // Added slight color to top
-//           style={{ transform: `rotateX(90deg) translateZ(${halfSize})` }}
-//         ></div>
-
-//         {/* BOTTOM FACE */}
-//         <div
-//           className={`${faceClass} ${classes.cube.bottom} bg-blue-800/90`} // Added darken to bottom
-//           style={{ transform: `rotateX(-90deg) translateZ(${halfSize})` }}
-//         ></div>
-//       </div>
-
-//       {/* Material Shadow Elevation */}
-//       <div className={`absolute -bottom-6 md:-bottom-10 left-1/2 -translate-x-1/2 w-24 md:w-40 h-3 md:h-4 bg-black/20 blur-lg rounded-[100%] transition-all duration-500 ${isHovered ? 'scale-75 opacity-20' : 'scale-100 opacity-40'}`}></div>
-//     </div>
 //   );
 // };
 

@@ -141,7 +141,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentThemeId, setCurrentThemeId] = useState<string>('gradient');
+  const [currentThemeId, setCurrentThemeId] = useState<string>('lavender');
 
   const currentTheme = THEMES[currentThemeId] || THEMES['default'];
   const classes = getThemeClasses(currentTheme);

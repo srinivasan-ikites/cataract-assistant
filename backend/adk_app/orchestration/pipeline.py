@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Dict, Optional
+import json
 
 from adk_app.prompting.prompt_builder import build_prompt_block, parse_router_payload
-from adk_app.tools.context_tools import clinic_context_tool, patient_context_tool
 from adk_app.tools.general_kb_tool import general_kb_search_tool
 from adk_app.tools.router_tool import router_tool
-from adk_app.utils.data_loader import get_patient_data
+from adk_app.utils.data_loader import get_patient_data, get_clinic_data
 
 
 @dataclass
@@ -19,6 +19,8 @@ class ContextPackage:
     general_context: Optional[str]
     clinic_context: Optional[str]
     patient_context: Optional[str]
+    media: Optional[list] = None
+    sources: Optional[list] = None
 
 
 def _log_latency(label: str, duration_ms: float, executed: bool = True) -> None:
@@ -69,32 +71,30 @@ def prepare_context(
 
     general_context = None
     media_items = []  # Collect media from general KB
+    source_items = []
     general_ms = 0.0
     if summary.needs_general_kb:
         general_start = perf_counter()
         result = general_kb_search_tool(query=question, topics=list(summary.topics))
-        general_context = result["context_text"]
+        if isinstance(result, dict):
+            general_context = result.get("context_text")
         media_items = result.get("media", [])
+        if "sources" in result:
+            source_items = result.get("sources", [])
+        else:
+            # Backward safety: if tool returns a string
+            general_context = str(result)
+            media_items = []
         general_ms = (perf_counter() - general_start) * 1000
     _log_latency("general_kb_ms", general_ms, executed=summary.needs_general_kb)
 
-    clinic_context_parts: list[str] = []
+    clinic_context = None
     clinic_ms = 0.0
     if summary.needs_clinic_kb and derived_clinic_id:
         clinic_start = perf_counter()
         try:
-            if {"INSURANCE"} & set(summary.topics):
-                clinic_context_parts.append(
-                    clinic_context_tool(clinic_id=derived_clinic_id, info_type="insurance")
-                )
-            if {"LENSES"} & set(summary.topics):
-                clinic_context_parts.append(
-                    clinic_context_tool(clinic_id=derived_clinic_id, info_type="packages")
-                )
-            if not clinic_context_parts:
-                clinic_context_parts.append(
-                    clinic_context_tool(clinic_id=derived_clinic_id, info_type="overview")
-                )
+            clinic_record = get_clinic_data(derived_clinic_id)
+            clinic_context = json.dumps(clinic_record.get("extra") or clinic_record, indent=2)
         except Exception as exc:
             print(f"[Pipeline] clinic context failed for {derived_clinic_id}: {exc}")
         finally:
@@ -104,24 +104,14 @@ def prepare_context(
         clinic_ms,
         executed=bool(summary.needs_clinic_kb and derived_clinic_id),
     )
-    clinic_context = "\n\n".join(clinic_context_parts) if clinic_context_parts else None
 
-    patient_context_parts: list[str] = []
+    patient_context = None
     patient_context_ms = 0.0
     if summary.needs_patient_data and patient_id:
         patient_context_start = perf_counter()
         try:
-            patient_context_parts.append(
-                patient_context_tool(patient_id=patient_id, info_type="summary")
-            )
-            if {"LENSES", "SURGERY"} & set(summary.topics):
-                patient_context_parts.append(
-                    patient_context_tool(patient_id=patient_id, info_type="lens_plan")
-                )
-            if {"INSURANCE"} & set(summary.topics):
-                patient_context_parts.append(
-                    patient_context_tool(patient_id=patient_id, info_type="insurance")
-                )
+            if patient_record:
+                patient_context = json.dumps(patient_record.get("extra") or patient_record, indent=2)
         except Exception as exc:
             print(f"[Pipeline] patient context failed for {patient_id}: {exc}")
         finally:
@@ -131,7 +121,6 @@ def prepare_context(
         patient_context_ms,
         executed=bool(summary.needs_patient_data and patient_id),
     )
-    patient_context = "\n\n".join(patient_context_parts) if patient_context_parts else None
 
     prompt_start = perf_counter()
     print("\n\n ###################################")
@@ -170,4 +159,5 @@ def prepare_context(
         clinic_context=clinic_context,
         patient_context=patient_context,
         media=media_items,
+        sources=source_items,
     )

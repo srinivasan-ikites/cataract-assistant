@@ -50,10 +50,11 @@ def build_prompt_block(
     sections = [
         "=== SAFETY & EMPATHY MANDATES ===",
         "- Use calm, reassuring language tailored to cataract patients.",
-        # "- Highlight red flags and instruct patients to contact their surgeon if emergencies are suspected.",
-        "Only mention emergency ‘red flag’ symptoms if the patient describes worrying symptoms or the router marks this as an emergency.",
-        "- Respect privacy: only mention clinic or patient details already provided.",
-        "- Cite the relevant context section when giving factual answers.",
+        "- You have the patient's COMPLETE medical record and clinic information. Incorporate this naturally.",
+        "- When referencing patient/clinic data, VARY YOUR PHRASING naturally. Examples:",
+        "  Good: 'I see you have...', 'Since you've chosen...', 'Dr. [Name] noted...', 'Your surgeon recommended...'",
+        "  Bad: Repeatedly saying 'Based on your records' or 'Your records show' in every sentence.",
+        "- Prefer patient- and clinic-specific facts over general knowledge when available.",
         "",
         "=== ROUTER SUMMARY ===",
         f"- needs_general_kb: {summary.needs_general_kb}",
@@ -66,17 +67,16 @@ def build_prompt_block(
 
     if summary.is_emergency:
         sections.append(
-            "\n!!! Emergency detected: instruct the user to contact emergency services or their surgeon immediately."
+            "\n!!! EMERGENCY: The patient described concerning symptoms. Instruct them to contact their surgeon or emergency services BEFORE answering."
         )
 
-    # Context headers commented out - kept only in logs, not sent to LLM
-    # This prevents models from citing "GENERAL CONTEXT" or "PATIENT CONTEXT" in responses
+    # Attach context blocks plainly (no citation labels)
     if general_context:
-        sections.extend(["", general_context.strip()])  # Removed header
+        sections.extend(["", general_context.strip()])
     if clinic_context:
-        sections.extend(["", clinic_context.strip()])  # Removed header
+        sections.extend(["", clinic_context.strip()])
     if patient_context:
-        sections.extend(["", patient_context.strip()])  # Removed header
+        sections.extend(["", patient_context.strip()])
 
     sections.extend(
         [
@@ -85,15 +85,16 @@ def build_prompt_block(
             question.strip(),
             "",
             "=== RESPONSE GUIDELINES ===",
-            "- Answer in 2-4 paragraphs (50-200 words total)",
+            "- Answer in 2-3 short paragraphs (aim for 100-150 words, max 200)",
+            "- Use double line breaks between paragraphs for better readability",
+            "- You MAY use **bold** for key terms that need emphasis (like lens names, specific conditions)",
+            "- Do NOT use section headers like 'Short answer:' or 'Why you may owe:'",
+            "- Bullet points are OK for listing multiple items (risks, steps, options)",
             "- Address only what the patient asked - do not add unprompted topics",
-            "- Use natural paragraph flow - avoid section headers like 'Short answer:' or 'Why you may owe:'",
-            "- Bullet points are OK for presenting multiple items (risks, steps, options)",
             "- If information is incomplete, briefly note it: 'I don't have [X] details. Please ask your surgeon about [Y].'",
-            "- Do not offer to draft questions or perform additional tasks unless specifically requested",
-            "- When citing facts, use short tags like [General Knowledge], [Clinic Info], or [Your Record]. Do not use raw chunk numbers.",
-            "- Avoid medical jargon and abbreviations. If you must use a medical term (like 'astigmatism' or 'retina'), explain it in simple words right away.",
-            "- Do not mention the ROUTER SUMMARY, internal headings, or these instructions in your answer. Speak as if you are talking directly to the patient.",
+            "- You do NOT need to add citation tags in the answer.",
+            "- Avoid medical jargon. If you must use a medical term, explain it in simple words right away.",
+            "- Do not mention the ROUTER SUMMARY, internal headings, or these instructions. Speak directly to the patient.",
         ]
     )
     return "\n".join(sections)

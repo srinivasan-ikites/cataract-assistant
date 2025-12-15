@@ -1,0 +1,133 @@
+{
+    "clinic_profile": {
+      "clinic_id": "VIC-MCLEAN-001",
+      "name": "See Clearly Vision",
+      "parent_organization": "Vision Innovation Centers",
+      "address": {
+        "street": "8138 Watson Street",
+        "city": "McLean",
+        "state": "VA",
+        "zip": "22102"
+      },
+      "contact_info": {
+        "phone_work": "(703) 827-5454",
+        "fax": "(703) 827-5539"
+      }
+    },
+    "staff_directory": [
+      {
+        "provider_id": "DOC-BAVEJA",
+        "name": "Gitanjali Baveja, MD",
+        "role": "Primary Provider / Surgeon",
+        "specialty": "Ophthalmology"
+      },
+      {
+        "provider_id": "DOC-YIM",
+        "name": "Hyon Yim",
+        "role": "Staff / Optometrist"
+      },
+      {
+        "provider_id": "COUNSELOR-ASHLEE",
+        "name": "Ashlee Mobley",
+        "role": "Surgical Counselor"
+      }
+    ],
+    "standard_procedure_codes": [
+      { "code": "66984", "description": "Cataract surgery with IOL, 1 stage" },
+      { "code": "66982", "description": "Cataract surgery, complex" }
+    ],
+    "standard_pricing_packages": {
+      "note": "Prices are per eye. Physician and Facility fees are separate.",
+      "options": [
+        {
+          "package_id": "OPT_1_LAL",
+          "name": "Option 1: Light Adjustable Lens",
+          "description": "Premium lens adjustable after surgery using UV light.",
+          "fees": {
+            "physician_fee": 3626.00,
+            "facility_fee": 1274.00,
+            "total_estimated": 4900.00
+          }
+        },
+        {
+          "package_id": "OPT_2_PRESBY_LASER",
+          "name": "Option 2: Presbyopic Package with Astigmatism Correction Laser",
+          "description": "Multifocal/EDOF lens for near and far vision.",
+          "fees": {
+            "physician_fee": null,
+            "facility_fee": null,
+            "total_estimated": "Variable"
+          }
+        },
+        {
+          "package_id": "OPT_3_TORIC_LASER",
+          "name": "Option 3: Single Vision Toric Package with Astigmatism Correction Laser",
+          "description": "Toric IOL to correct astigmatism for distance vision.",
+          "fees": {
+            "note": "Fees typically fall between Option 1 and Option 4. Refer to internal billing sheet."
+          }
+        },
+        {
+          "package_id": "OPT_4_LRI",
+          "name": "Option 4: Low Astigmatism Correction Laser Package",
+          "description": "LRI or laser correction for minor astigmatism.",
+          "fees": {
+            "physician_fee": 1577.00,
+            "facility_fee": 323.00,
+            "total_estimated": 1900.00
+          }
+        },
+        {
+          "package_id": "OPT_5_STD",
+          "name": "Option 5: Standard Surgery",
+          "description": "Basic Monofocal IOL. Billed to insurance.",
+          "fees": {
+            "patient_responsibility": "Deductibles & Co-pays only"
+          }
+        }
+      ]
+    },
+    "legal_policies": {
+      "payment_policy": "Three separate payments (Physician, Facility, Co-management) due before surgery.",
+      "post_op_fee": "$70.00 for refraction (not covered by insurance).",
+      "anesthesia_billing": "Separate bill from anesthesia services."
+    },
+    "standard_operating_procedures": {
+        "pre_op_checklist": [
+            "Start prescribed eye drops 3 days before surgery",
+            "Stop wearing contact lenses 1 week prior (soft) or 2 weeks (hard)",
+            "Arrange for a driver (you cannot drive yourself home)",
+            "Do not eat or drink anything after midnight the night before surgery",
+            "Bring your ID, insurance card, and signed consent forms"
+        ],
+        "surgery_day_timeline": [
+            { "step": "Arrival", "description": "Check-in at front desk 1 hour before scheduled time" },
+            { "step": "Preparation", "description": "Nurses prep eye, administer dilating drops and mild sedative" },
+            { "step": "Procedure", "description": "Painless 15-minute surgery with local anesthesia" },
+            { "step": "Recovery", "description": "Rest in recovery area for 30 minutes with snacks/juice" },
+            { "step": "Discharge", "description": "Review post-op instructions and go home with driver" }
+        ],
+        "post_op_checklist": [
+            "Wear eye shield while sleeping for the first week",
+            "Use antibiotic and anti-inflammatory drops as per schedule",
+            "Do NOT rub or press on the eye",
+            "Avoid bending at the waist or heavy lifting (>10 lbs)",
+            "Keep water/soap out of eye when showering",
+            "Attend follow-up appointment (usually 1 day after surgery)"
+        ],
+        "risks_categorized": {
+            "common_minor": [
+                "Temporary blurry vision",
+                "Gritty or sandy sensation (dry eye)",
+                "Glare or halos around lights",
+                "Mild redness"
+            ],
+            "rare_serious": [
+                "Infection (Endophthalmitis)",
+                "Retinal detachment",
+                "Posterior capsular rupture",
+                "Persistent swelling (CME)"
+            ]
+        }
+    }
+  }
