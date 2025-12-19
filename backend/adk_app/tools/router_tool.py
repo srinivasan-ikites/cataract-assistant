@@ -117,9 +117,17 @@ def _route_with_gemini(prompt: str, model: str) -> Optional[str]:
     try:
         from google import genai
         from google.genai import types as genai_types
+        import time
 
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
+        # Use global client if available, else init (lazy loading fallback)
+        global _GEMINI_CLIENT
+        if _GEMINI_CLIENT is None:
+             t_client_start = time.perf_counter()
+             _GEMINI_CLIENT = genai.Client(api_key=api_key)
+             print(f"####### timing router.gemini_client_init_ms={(time.perf_counter() - t_client_start)*1000:.1f}")
+
+        t_gen_start = time.perf_counter()
+        response = _GEMINI_CLIENT.models.generate_content(
             model=model,
             contents=[
                 genai_types.Content(
@@ -128,11 +136,30 @@ def _route_with_gemini(prompt: str, model: str) -> Optional[str]:
                 )
             ],
         )
+        t_gen_end = time.perf_counter()
+        
+        print(f"####### timing router.gemini_generate_ms={(t_gen_end - t_gen_start)*1000:.1f}")
+
         text = response.text
         return text
     except Exception as exc:
         print(f"[Router] Gemini routing error: {exc}")
         return None
+
+# Global client storage
+_GEMINI_CLIENT = None
+
+def init_router_client():
+    """Explicitly initialize the Gemini client at startup."""
+    global _GEMINI_CLIENT
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if api_key:
+        print("[Router] Initializing global Gemini client...")
+        import time
+        t_start = time.perf_counter()
+        from google import genai
+        _GEMINI_CLIENT = genai.Client(api_key=api_key)
+        print(f"[Router] Global client ready. Init time: {(time.perf_counter() - t_start)*1000:.1f} ms")
 
 
 def _route_with_openai(prompt: str, model: str) -> Optional[str]:

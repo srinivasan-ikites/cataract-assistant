@@ -35,21 +35,49 @@ def _expand_topics(topics: Optional[List[str]]) -> Optional[set[str]]:
     return expanded or None
 
 
+# Global singleton
+_QDRANT_CLIENT = None
+
+def init_qdrant_client():
+    """Explicitly initialize the Qdrant client at startup."""
+    global _QDRANT_CLIENT
+    if _QDRANT_CLIENT is not None:
+        return
+
+    import time
+    from qdrant_client import QdrantClient
+    
+    t_start = time.perf_counter()
+    url = os.getenv("QDRANT_URL")
+    api_key = os.getenv("QDRANT_API_KEY")
+    
+    if not url or not api_key:
+        print("[Qdrant] Missing credentials, skipping init.")
+        return
+
+    print(f"[Qdrant] Initializing global client connecting to {url}...")
+    _QDRANT_CLIENT = QdrantClient(
+        url=url,
+        api_key=api_key,
+        prefer_grpc=False,
+    )
+    print(f"[Qdrant] Global client ready. Init time: {(time.perf_counter() - t_start)*1000:.1f} ms")
+
+
 class QdrantSearchService:
     """Wrapper around Qdrant client for similarity search."""
 
     def __init__(self) -> None:
-        url = os.getenv("QDRANT_URL")
-        api_key = os.getenv("QDRANT_API_KEY")
-        if not url or not api_key:
-            raise RuntimeError("QDRANT_URL and QDRANT_API_KEY must be set for retrieval tools.")
-        self._client = QdrantClient(
-            url=url,
-            api_key=api_key,
-            prefer_grpc=False,
-        )
+        global _QDRANT_CLIENT
+        
+        # Ensure we have a client
+        if _QDRANT_CLIENT is None:
+            print("[Qdrant] Global client not found, initializing now (lazy load)...")
+            init_qdrant_client()
+        
+        self._client = _QDRANT_CLIENT
         self.collection = os.getenv("QDRANT_COLLECTION", "cataract_general_kb")
-        print(f"[Qdrant] Connected to {url}, collection={self.collection}")
+        # print(f"[Qdrant] Using collection={self.collection}")
 
     def search(
         self,
@@ -57,8 +85,15 @@ class QdrantSearchService:
         limit: int = 5,
         topics: Optional[List[str]] = None,
     ) -> List[dict]:
+        import time
+        t_start = time.perf_counter()
         allowed_topics = _expand_topics(topics)
         request_limit = limit * 3 if allowed_topics else limit
+        
+        if not self._client:
+             print("[Qdrant] Error: Client not initialized.")
+             return []
+
         response = self._client.query_points(
             collection_name=self.collection,
             query=vector,
@@ -66,6 +101,7 @@ class QdrantSearchService:
             with_payload=True,
             with_vectors=False,
         )
+        print(f"####### timing qdrant.search_query_ms={(time.perf_counter() - t_start)*1000:.1f}")
         points = response.points or []
         hits = []
         for idx, point in enumerate(points):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 import os
 import json
 import re
@@ -13,12 +14,41 @@ from pydantic import BaseModel, Field
 from adk_app.config import ModelConfig
 from adk_app.orchestration.pipeline import ContextPackage, prepare_context
 from adk_app.utils.data_loader import get_patient_data, get_all_patients, save_patient_chat_history, save_patient_module_content, get_clinic_data
+from contextlib import asynccontextmanager
+
+# Import initialization functions
+from adk_app.services.qdrant_service import init_qdrant_client
+from adk_app.tools.router_tool import init_router_client
+
 litellm.drop_params = True  # Avoid unsupported parameter errors on certain models
 
 
 @dataclass
 class AgentRuntime:
     config: ModelConfig
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Initialize heavy clients at startup to avoid latency on first request.
+    """
+    print("\n[Startup] Initializing Global Clients...")
+    try:
+        # 1. Warm up Router (Gemini)
+        init_router_client()
+        
+        # 2. Warm up Vector DB (Qdrant)
+        init_qdrant_client()
+        
+        print("[Startup] All clients ready.\n")
+    except Exception as e:
+        print(f"[Startup] Error initializing clients: {e}")
+    
+    yield
+    
+    # Cleanup if needed
+    print("[Shutdown] Cleaning up...")
 
 
 class AskRequest(BaseModel):
@@ -86,7 +116,7 @@ def get_runtime() -> AgentRuntime:
     return AgentRuntime(config=config)
 
 
-app = FastAPI(title="Cataract Counsellor API")
+app = FastAPI(title="Cataract Counsellor API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,10 +165,13 @@ def ask_endpoint(
     payload: AskRequest,
     runtime: AgentRuntime = Depends(get_runtime),
 ) -> AskResponse:
+    t_start = time.perf_counter()
     try:
         patient = get_patient_data(payload.patient_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
+    t_after_patient = time.perf_counter()
+    print(f"####### timing ask.load_patient_ms={(t_after_patient - t_start)*1000:.1f}")
 
     # Extract last 10 chat messages for conversational context
     # This allows the LLM to remember recent conversation history
@@ -148,13 +181,17 @@ def ask_endpoint(
     print(f"[Chat Context] Loaded {len(recent_history)} previous messages (total history: {len(chat_history)})")
 
     clinic_id = patient.get("clinic_id")
+    t_context_start = time.perf_counter()
     context_package: ContextPackage = prepare_context(
         question=payload.question,
         clinic_id=clinic_id,
         patient_id=payload.patient_id,
     )
+    t_after_context = time.perf_counter()
+    print(f"####### timing ask.prepare_context_ms={(t_after_context - t_context_start)*1000:.1f}")
 
     # Generate answer with conversation history for context
+    t_answer_start = time.perf_counter()
     answer, suggestions = _generate_answer_with_history(
         context_prompt=context_package.prompt,
         chat_history=recent_history,
@@ -162,6 +199,8 @@ def ask_endpoint(
         topics=context_package.router_summary.get("topics", []),
         question=payload.question,
     )
+    t_after_answer = time.perf_counter()
+    print(f"####### timing ask.generate_answer_ms={(t_after_answer - t_answer_start)*1000:.1f}")
 
     print(
         "[Answer Summary] patient="
@@ -171,12 +210,16 @@ def ask_endpoint(
     )
 
     # Persist history
+    t_save_start = time.perf_counter()
     save_patient_chat_history(
         payload.patient_id,
         payload.question,
         answer,
         suggestions
     )
+    t_after_save = time.perf_counter()
+    print(f"####### timing ask.save_history_ms={(t_after_save - t_save_start)*1000:.1f}")
+    print(f"####### timing ask.total_ms={(time.perf_counter() - t_start)*1000:.1f}")
 
     return AskResponse(
         answer=answer,
@@ -781,6 +824,7 @@ def _generate_answer_with_history(
     Returns:
         (answer_text, suggestions)
     """
+    t_start = time.perf_counter()
     model_ref = (
         f"{config.provider}/{config.model}" if config.provider != "gemini" else f"gemini/{config.model}"
     )
@@ -842,11 +886,13 @@ JSON only, no prose, no markdown fences.""",
     print(f"[LLM Call] Sending {history_count} conversation messages (including current)")
     
     try:
+        t_llm_start = time.perf_counter()
         response = litellm.completion(
             model=model_ref,
             messages=messages,
             temperature=config.temperature,
         )
+        print(f"####### timing llm.chat_ms={(time.perf_counter() - t_llm_start)*1000:.1f}")
     except Exception as exc:
         print(f"[Answer Error] {exc}")
         raise HTTPException(status_code=500, detail="LLM generation failed") from exc
@@ -854,6 +900,7 @@ JSON only, no prose, no markdown fences.""",
     raw = ""
     parsed = {}
     json_parsed_successfully = False
+    parse_start = time.perf_counter()
     
     def _sanitize_control_chars(text: str) -> str:
         # Replace unescaped control characters that break JSON parsing
@@ -906,9 +953,12 @@ JSON only, no prose, no markdown fences.""",
         answer_text = ""
         suggestions = []
         json_parsed_successfully = False
+    finally:
+        print(f"####### timing llm.parse_ms={(time.perf_counter() - parse_start)*1000:.1f}")
 
     # If JSON parse failed, attempt a regex extraction of answer/suggestions from messy text
     if not json_parsed_successfully and raw:
+        regex_start = time.perf_counter()
         sanitized = _sanitize_control_chars(raw)
         if not answer_text:
             m = re.search(r'"answer"\s*:\s*"(.+?)"', sanitized, flags=re.DOTALL)
@@ -922,6 +972,7 @@ JSON only, no prose, no markdown fences.""",
                 parts = re.findall(r'"(.*?)"', items, flags=re.DOTALL)
                 suggestions = [p.strip() for p in parts if p.strip()]
                 print(f"[Regex Extract] Pulled {len(suggestions)} suggestions from messy JSON")
+        print(f"####### timing llm.regex_extract_ms={(time.perf_counter() - regex_start)*1000:.1f}")
 
     # Fallback for empty answer
     if not isinstance(answer_text, str) or not answer_text.strip():
@@ -968,19 +1019,23 @@ JSON only, no prose, no markdown fences.""",
     # Only use fallbacks if we have fewer than 3 good suggestions
     if len(filtered) < 3:
         print("[Suggestions] Invoking fallback generator")
+        fallback_start = time.perf_counter()
         fallback = _generate_followup_questions(
             question or "",
             answer_text,
             topics or [],
             config,
         )
+        print(f"####### timing llm.fallback_followup_ms={(time.perf_counter() - fallback_start)*1000:.1f}")
         for f in fallback:
             if not is_duplicate(f) and f not in filtered:
                 filtered.append(f)
     
     if len(filtered) < 3:
         print("[Suggestions] Invoking heuristic fallback")
+        heuristic_start = time.perf_counter()
         heuristic = _generate_suggestions(topics or [])
+        print(f"####### timing llm.heuristic_ms={(time.perf_counter() - heuristic_start)*1000:.1f}")
         for h in heuristic:
             if not is_duplicate(h) and h not in filtered:
                 filtered.append(h)
@@ -994,4 +1049,5 @@ JSON only, no prose, no markdown fences.""",
 
     print("[Final Answer]\n", answer_text, "\n")
     print(f"[Suggestions] Final: {final_suggestions}")
+    print(f"####### timing llm.total_ms={(time.perf_counter() - t_start)*1000:.1f}")
     return answer_text, final_suggestions

@@ -23,12 +23,15 @@ def embed_query(
     model: str | None = None,
 ) -> List[float]:
     """Generate an embedding vector for the query."""
+    import time
+    t_start = time.perf_counter()
     model_name = model or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     client = _embedding_client()
     print(f"[EmbeddingService] Embedding text with model={model_name}")
     response = client.embeddings.create(model=model_name, input=text)
     vector = response.data[0].embedding
     print(f"[EmbeddingService] Generated vector of length {len(vector)}")
+    print(f"####### timing embedding.create_ms={(time.perf_counter() - t_start)*1000:.1f}")
     return vector
 
 

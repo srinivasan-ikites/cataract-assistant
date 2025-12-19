@@ -52,12 +52,32 @@ def prepare_context(
             patient_lookup_ms = (perf_counter() - lookup_start) * 1000
     _log_latency("patient_lookup_ms", patient_lookup_ms, executed=bool(patient_id))
 
+    # --- Parallel Execution Start ---
+    # Start Router and Optimistic Embedding in parallel to hide embedding latency.
+    # We use ThreadPoolExecutor because the tools make synchronous API calls.
+    import concurrent.futures
+    from adk_app.services.embedding_service import embed_query
+
     router_start = perf_counter()
-    router_output = router_tool(
-        question=question,
-        clinic_id=derived_clinic_id,
-        patient_id=patient_id,
-    )
+    router_output = None
+    speculative_vector = None
+    speculative_embedding_future = None
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # 1. Start Router LLM
+        router_future = executor.submit(
+            router_tool,
+            question=question,
+            clinic_id=derived_clinic_id,
+            patient_id=patient_id,
+        )
+        # 2. Start Embedding (Speculative) - most queries need KB anyway
+        embedding_future = executor.submit(embed_query, question)
+        
+        # 3. Wait for Router first (it drives the logic)
+        router_output = router_future.result()
+        speculative_embedding_future = embedding_future # keep handle to wait later if needed
+
     router_ms = (perf_counter() - router_start) * 1000
     _log_latency("router_llm_ms", router_ms)
 
@@ -75,7 +95,20 @@ def prepare_context(
     general_ms = 0.0
     if summary.needs_general_kb:
         general_start = perf_counter()
-        result = general_kb_search_tool(query=question, topics=list(summary.topics))
+        
+        # Use the speculative embedding if ready, or wait for it
+        try:
+             speculative_vector = speculative_embedding_future.result()
+             # print(f"[Pipeline] Speculative embedding used. Ready instantly? {speculative_embedding_future.done()}")
+        except Exception as e:
+             print(f"[Pipeline] Speculative embedding failed: {e}")
+             speculative_vector = None
+
+        result = general_kb_search_tool(
+            query=question, 
+            topics=list(summary.topics), 
+            vector=speculative_vector # Pass pre-computed vector
+        )
         if isinstance(result, dict):
             general_context = result.get("context_text")
         media_items = result.get("media", [])

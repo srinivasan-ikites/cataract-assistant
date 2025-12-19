@@ -21,13 +21,17 @@ def general_kb_search_tool(
     query: str,
     topics: Optional[List[str]] = None,
     limit: int = 5,
+    vector: Optional[List[float]] = None,
 ) -> dict:
     """
     Search the General_KB vector store and return the top chunks.
     Returns a dict with context_text (str) and media (list).
     """
-    print(f"[General KB] query='{query}' limit={limit} topics={topics}")
-    vector = embed_query(query)
+    print(f"[General KB] query='{query}' limit={limit} topics={topics} pre_embedded={bool(vector)}")
+    
+    if vector is None:
+        vector = embed_query(query)
+    
     hits = _ensure_qdrant_service().search(vector, limit=limit, topics=topics)
 
     if not hits:
