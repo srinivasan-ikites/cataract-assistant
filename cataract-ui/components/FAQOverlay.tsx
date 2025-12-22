@@ -1,8 +1,179 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, X, Send, Loader2, ChevronRight } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash } from 'lucide-react';
 import { api, Patient, ChatMessage } from '../services/api';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
+
+// BlockRenderer component for elderly-friendly content display
+const BlockRenderer: React.FC<{ blocks: ChatMessage['blocks'] }> = ({ blocks }) => {
+  if (!blocks || blocks.length === 0) return null;
+
+  return (
+    <div className="space-y-5">
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case 'text':
+            return (
+              <div key={idx} className="text-[17px] leading-[1.8] text-slate-700">
+                <ReactMarkdown
+                  components={{
+                    strong: ({ children }) => (
+                      <strong className="font-bold text-slate-900">{children}</strong>
+                    ),
+                  }}
+                >
+                  {block.content || ''}
+                </ReactMarkdown>
+              </div>
+            );
+
+          case 'heading':
+            return (
+              <h3 key={idx} className="text-[19px] font-bold text-slate-900 mt-6 mb-3 flex items-center gap-2">
+                <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
+                {block.content}
+              </h3>
+            );
+
+          case 'list':
+            return (
+              <div key={idx} className="space-y-3">
+                {block.title && (
+                  <p className="font-bold text-[16px] text-slate-900 flex items-center gap-2">
+                    <List size={18} className="text-blue-500" />
+                    {block.title}
+                  </p>
+                )}
+                <ul className="space-y-3 ml-2">
+                  {block.items?.map((item, i) => (
+                    <li key={i} className="flex gap-3 text-[16px] leading-[1.7] text-slate-700">
+                      <div className="mt-2 w-2 h-2 rounded-full bg-blue-400 shrink-0"></div>
+                      <div className="flex-1">
+                        <ReactMarkdown
+                          components={{
+                            strong: ({ children }) => (
+                              <strong className="font-bold text-slate-900">{children}</strong>
+                            ),
+                          }}
+                        >
+                          {item}
+                        </ReactMarkdown>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+
+          case 'numbered_steps':
+            return (
+              <div key={idx} className="space-y-3">
+                {block.title && (
+                  <p className="font-bold text-[16px] text-slate-900 flex items-center gap-2">
+                    <Hash size={18} className="text-blue-500" />
+                    {block.title}
+                  </p>
+                )}
+                <ol className="space-y-4">
+                  {block.steps?.map((step, i) => (
+                    <li key={i} className="flex gap-4 text-[16px] leading-[1.7] text-slate-700">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 pt-0.5">
+                        <ReactMarkdown
+                          components={{
+                            strong: ({ children }) => (
+                              <strong className="font-bold text-slate-900">{children}</strong>
+                            ),
+                          }}
+                        >
+                          {step}
+                        </ReactMarkdown>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+
+          case 'callout':
+            return (
+              <div key={idx} className="p-5 rounded-2xl bg-blue-50/70 border-2 border-blue-100 flex gap-4 shadow-sm">
+                <Info size={22} className="text-blue-600 mt-0.5 shrink-0" />
+                <div className="text-[16px] leading-[1.7] text-blue-900 flex-1">
+                  <ReactMarkdown
+                    components={{
+                      strong: ({ children }) => (
+                        <strong className="font-bold text-blue-950">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {block.content || ''}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            );
+
+          case 'warning':
+            return (
+              <div key={idx} className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-200 flex gap-4 shadow-sm">
+                <AlertTriangle size={22} className="text-amber-600 mt-0.5 shrink-0" />
+                <div className="text-[16px] leading-[1.7] text-amber-900 font-medium flex-1">
+                  <ReactMarkdown
+                    components={{
+                      strong: ({ children }) => (
+                        <strong className="font-bold text-amber-950">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {block.content || ''}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            );
+
+          case 'timeline':
+            return (
+              <div key={idx} className="space-y-4">
+                {block.phases?.map((phase, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-violet-500 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        {i + 1}
+                      </div>
+                      {i < (block.phases?.length || 0) - 1 && (
+                        <div className="w-0.5 h-full bg-violet-200 my-2"></div>
+                      )}
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <p className="font-bold text-[16px] text-slate-900 mb-1">
+                        {phase.phase}
+                      </p>
+                      <p className="text-[16px] leading-[1.7] text-slate-700">
+                        <ReactMarkdown
+                          components={{
+                            strong: ({ children }) => (
+                              <strong className="font-bold text-slate-900">{children}</strong>
+                            ),
+                          }}
+                        >
+                          {phase.description || ''}
+                        </ReactMarkdown>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      })}
+    </div>
+  );
+};
 
 interface FAQOverlayProps {
   patient: Patient;
@@ -76,6 +247,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
       setChatHistory(prev => [...prev, {
         role: 'bot',
         text: response.answer,
+        blocks: response.blocks || [],
         suggestions: response.suggestions,
         media: response.media || [],
         sources: response.sources || []
@@ -103,7 +275,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
         <>
           {/* Backdrop blur */}
           <div className="fixed inset-0 z-[95] bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
-          <div className="fixed inset-0 md:top-auto md:bottom-4 md:right-8 md:left-auto z-[100] w-full md:w-[520px] h-full md:h-[92vh] max-h-full md:max-h-[92vh] bg-white shadow-2xl rounded-none md:rounded-[24px] flex flex-col overflow-hidden animate-[slideUp_0.3s_ease-out] border border-slate-200 ring-1 ring-black/5">
+          <div className="fixed inset-0 md:top-auto md:bottom-4 md:right-8 md:left-auto z-[100] w-full md:w-[640px] h-full md:h-[92vh] max-h-full md:max-h-[92vh] bg-white shadow-2xl rounded-none md:rounded-[24px] flex flex-col overflow-hidden animate-[slideUp_0.3s_ease-out] border border-slate-200 ring-1 ring-black/5">
 
           {/* Header */}
           <div className={`${classes.chatHeader} px-4 py-3 flex justify-between items-center text-white shadow-md`}>
@@ -125,79 +297,97 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
           <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 scroll-smooth">
             {chatHistory.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                    ? `${classes.userBubble} rounded-br-sm`
-                    : `${classes.botBubble} rounded-bl-sm`
-                    }`}
-                >
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
-                  
-                  {/* Display media if present (bot messages only) */}
-                  {msg.role === 'bot' && msg.media && msg.media.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {msg.media.map((item, idx) => (
-                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
-                          {item.type === 'image' && (
-                            <img 
-                              src={item.url} 
-                              alt={item.alt || 'Educational image'} 
-                              className="w-full h-auto"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          {item.type === 'video' && (
-                            <iframe 
-                              src={item.url} 
-                              title={item.caption || item.alt || 'Educational video'}
-                              className="w-full h-64"
-                              allowFullScreen
-                            />
-                          )}
-                          {item.caption && (
-                            <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
-                          )}
+                {msg.role === 'user' ? (
+                  <div
+                    className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${classes.userBubble} rounded-br-sm`}
+                  >
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="max-w-[92%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                    <div className="p-5 space-y-4">
+                      {msg.blocks && msg.blocks.length > 0 ? (
+                        <BlockRenderer blocks={msg.blocks} />
+                      ) : (
+                        <div className="text-[17px] leading-[1.8] text-slate-700">
+                          <ReactMarkdown
+                            components={{
+                              strong: ({ children }) => (
+                                <strong className="font-bold text-slate-900">{children}</strong>
+                              ),
+                            }}
+                          >
+                            {msg.text}
+                          </ReactMarkdown>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      )}
 
-                  {msg.role === 'bot' && msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2 text-xs text-slate-600">
-                      <div className="font-semibold text-slate-700 mb-1">Sources</div>
-                      <div className="flex flex-wrap gap-2">
-                        {msg.sources
-                          .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
-                          .map((src, i) => {
-                          const title = src.section_title || 'Source';
-                          const firstLink = src.links && src.links.length ? src.links[0].url : null;
-                          const href = src.source_url || firstLink;
-                          return (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 border border-slate-200"
-                            >
-                              {href ? (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  {title}
-                                </a>
-                              ) : (
-                                <span>{title}</span>
+                      {msg.media && msg.media.length > 0 && (
+                        <div className="space-y-2">
+                          {msg.media.map((item, idx) => (
+                            <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
+                              {item.type === 'image' && (
+                                <img
+                                  src={item.url}
+                                  alt={item.alt || 'Educational image'}
+                                  className="w-full h-auto"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
                               )}
-                            </span>
-                          );
-                        })}
-                      </div>
+                              {item.type === 'video' && (
+                                <iframe
+                                  src={item.url}
+                                  title={item.caption || item.alt || 'Educational video'}
+                                  className="w-full h-64"
+                                  allowFullScreen
+                                />
+                              )}
+                              {item.caption && (
+                                <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="pt-1">
+                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-2">Sources</div>
+                          <div className="flex flex-wrap gap-2">
+                            {msg.sources
+                              .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
+                              .map((src, i) => {
+                                const title = src.section_title || 'Source';
+                                const firstLink = src.links && src.links.length ? src.links[0].url : null;
+                                const href = src.source_url || firstLink;
+                                return (
+                                  <span
+                                    key={i}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[12px] text-slate-700 shadow-sm"
+                                  >
+                                    {href ? (
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                      >
+                                        {title}
+                                      </a>
+                                    ) : (
+                                      <span>{title}</span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
             <div ref={messagesEndRef} />

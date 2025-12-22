@@ -82,7 +82,7 @@ def get_all_patients() -> List[dict]:
     return list(payload.values())
 
 
-def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None) -> None:
+def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None) -> None:
     """Append a chat turn to the patient's history and save to disk."""
     if not PATIENT_FILE.exists():
         raise ValueError("Patient file not found.")
@@ -101,6 +101,7 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
         target["chat_history"].append({
             "role": "bot",
             "text": bot_msg,
+            "blocks": blocks or [],
             "suggestions": suggestions or [],
             "timestamp": "now"
         })

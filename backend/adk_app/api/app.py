@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Any
 import time
 import os
 import json
 import re
+import traceback
+import shutil
 
 import litellm
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -19,8 +23,47 @@ from contextlib import asynccontextmanager
 # Import initialization functions
 from adk_app.services.qdrant_service import init_qdrant_client
 from adk_app.tools.router_tool import init_router_client
+from google import genai
+from google.genai import types as genai_types
 
 litellm.drop_params = True  # Avoid unsupported parameter errors on certain models
+
+# Upload/extraction config
+UPLOAD_ROOT = Path(__file__).resolve().parents[2] / "data" / "uploads"
+REVIEW_ROOT = Path(__file__).resolve().parents[2] / "data" / "reviewed"
+MAX_UPLOAD_FILES = int(os.getenv("MAX_UPLOAD_FILES", "20"))
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+
+# Standardized controlled vocabularies for extraction consistency
+STANDARD_LENS_OPTIONS = [
+    "Monofocal",
+    "Monofocal Toric",
+    "EDOF (Extended Depth of Focus)",
+    "EDOF Toric",
+    "Multifocal",
+    "Multifocal Toric",
+    "Trifocal",
+    "Trifocal Toric",
+    "LAL (Light Adjustable Lens)",
+    "LAL Toric"
+]
+
+STANDARD_GENDERS = ["Male", "Female", "Other"]
+
+_VISION_CLIENT: genai.Client | None = None
+
+
+def init_vision_client() -> None:
+    """Initialize Google AI Studio client for vision extraction (GOOGLE_API_KEY)."""
+    global _VISION_CLIENT
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("[Vision] Missing GOOGLE_API_KEY; vision extraction will fail until provided.")
+        return
+    if _VISION_CLIENT is None:
+        _VISION_CLIENT = genai.Client(api_key=api_key)
+        print("[Vision] Global vision client ready.")
 
 
 @dataclass
@@ -40,6 +83,9 @@ async def lifespan(app: FastAPI):
         
         # 2. Warm up Vector DB (Qdrant)
         init_qdrant_client()
+
+        # 3. Warm up Vision extraction (Google AI Studio)
+        init_vision_client()
         
         print("[Startup] All clients ready.\n")
     except Exception as e:
@@ -58,6 +104,7 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     answer: str
+    blocks: list[dict] = []
     suggestions: list[str] = []
     router_summary: dict
     context_sources: dict
@@ -87,6 +134,17 @@ class PreGenerateModulesRequest(BaseModel):
     patient_id: str
 
 
+class ReviewedPatientPayload(BaseModel):
+    clinic_id: str
+    patient_id: str
+    data: dict
+
+
+class ReviewedClinicPayload(BaseModel):
+    clinic_id: str
+    data: dict
+
+
 def _normalize_module_title(title: str) -> str:
     return (title or "").strip().lower()
 
@@ -102,6 +160,302 @@ MODULE_TITLES = [
     "After Surgery",
     "Costs & Insurance",
 ]
+
+
+# -------------------------------
+# Doctor upload / extraction helpers
+# -------------------------------
+
+def _ensure_dir(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _load_schema(schema_filename: str) -> dict:
+    # app.py is at backend/adk_app/api/app.py. Repo root is three levels up.
+    schema_path = Path(__file__).resolve().parents[3] / "docs" / "schemas" / schema_filename
+    if not schema_path.exists():
+        raise HTTPException(status_code=500, detail=f"Schema file not found: {schema_filename}")
+    with open(schema_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _fill_from_schema(template: Any, data: Any) -> Any:
+    """
+    Recursively fill missing keys from a schema template while preserving provided data.
+    - For dicts: ensure all template keys exist; keep extra keys from data.
+    - For lists: if data provides a list, use it; otherwise fall back to template list.
+    - For primitives: prefer data when present, else template default.
+    """
+    if isinstance(template, dict):
+        result: dict = {}
+        data_obj = data if isinstance(data, dict) else {}
+        for key, tmpl_val in template.items():
+            result[key] = _fill_from_schema(tmpl_val, data_obj.get(key))
+        # Preserve any extra keys present in data but not in template
+        for key, val in data_obj.items():
+            if key not in result:
+                result[key] = val
+        return result
+
+    if isinstance(template, list):
+        if isinstance(data, list):
+            return data
+        return template
+
+    if data is None:
+        return template
+    return data
+
+
+def _apply_schema_template(schema_name: str, data: dict) -> dict:
+    """Load schema template and fill any missing keys on the provided data."""
+    schema = _load_schema(schema_name)
+    safe_data = data if isinstance(data, dict) else {}
+    return _fill_from_schema(schema, safe_data)
+
+
+def _normalize_extracted_data(data: dict) -> dict:
+    """
+    Post-process extracted data to ensure consistency:
+    - Standardize date formats to ISO 8601 (YYYY-MM-DD)
+    - Normalize capitalization
+    - Validate lens options against standard list
+    - Clean up whitespace
+    """
+    # Helper: normalize date to YYYY-MM-DD
+    def normalize_date(date_str: str) -> str:
+        if not date_str:
+            return ""
+        # Remove extra whitespace
+        date_str = date_str.strip()
+        # Try common formats
+        for fmt in ["%Y-%m-%d", "%m/%d/%Y", "%Y/%m/%d", "%d-%m-%Y", "%m-%d-%Y"]:
+            try:
+                from datetime import datetime
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        return date_str  # Return as-is if no format matches
+
+    # Helper: normalize lens name to standard vocabulary
+    def normalize_lens_name(lens_name: str) -> str:
+        if not lens_name:
+            return ""
+        lens_name = lens_name.strip()
+        # Fuzzy match to standard options
+        lens_lower = lens_name.lower()
+        for std_lens in STANDARD_LENS_OPTIONS:
+            if std_lens.lower() in lens_lower or lens_lower in std_lens.lower():
+                return std_lens
+        return lens_name  # Return as-is if no match (doctor can override in UI)
+
+    # Normalize patient identity
+    if "patient_identity" in data:
+        identity = data["patient_identity"]
+        if "dob" in identity:
+            identity["dob"] = normalize_date(identity["dob"])
+        if "gender" in identity:
+            gender = identity["gender"].strip()
+            # Capitalize first letter
+            identity["gender"] = gender.capitalize() if gender else ""
+    
+    # Normalize lifestyle (capitalize hobbies)
+    if "lifestyle" in data:
+        lifestyle = data["lifestyle"]
+        if "hobbies" in lifestyle and isinstance(lifestyle["hobbies"], list):
+            lifestyle["hobbies"] = [h.strip().capitalize() for h in lifestyle["hobbies"] if h]
+    
+    # Normalize surgical recommendations
+    if "surgical_recommendations_by_doctor" in data:
+        recs = data["surgical_recommendations_by_doctor"]
+        
+        # Normalize recommended lens options
+        if "recommended_lens_options" in recs and isinstance(recs["recommended_lens_options"], list):
+            for lens_option in recs["recommended_lens_options"]:
+                if "name" in lens_option:
+                    lens_option["name"] = normalize_lens_name(lens_option["name"])
+        
+        # Normalize scheduling dates
+        if "scheduling" in recs:
+            schedule = recs["scheduling"]
+            for date_field in ["surgery_date", "pre_op_start_date", "post_op_visit_1", "post_op_visit_2"]:
+                if date_field in schedule and schedule[date_field]:
+                    schedule[date_field] = normalize_date(schedule[date_field])
+    
+    # Normalize document dates
+    if "documents" in data and "signed_consents" in data["documents"]:
+        for consent in data["documents"]["signed_consents"]:
+            if "date" in consent and consent["date"]:
+                consent["date"] = normalize_date(consent["date"])
+    
+    return data
+
+
+def _build_extraction_prompt(schema: dict, scope: str = "cataract_surgery_onboarding") -> str:
+    schema_json = json.dumps(schema, indent=2)
+
+    # Clinic extraction prompt
+    if scope.lower() == "clinic":
+        return f"""
+ROLE:
+You are an operations/data assistant for an ophthalmology clinic. Extract structured data for clinic setup and pricing. Stay within the provided schema and do not add keys.
+
+INSTRUCTIONS:
+- Identify document sections: clinic identity, staff, packages/pricing, SOPs, scheduling, billing, FAQs/forms.
+- Extract ONLY fields present in the target schema. If missing, leave as empty string/null/empty list.
+- Do NOT hallucinate values. If unsure, leave blank.
+- Preserve all arrays; if no items, keep them empty (e.g., [], [{{}}] with empty strings).
+- Dates: use ISO 8601 (YYYY-MM-DD) when available.
+- Currency: keep as shown (e.g., "$", "USD", or the text provided).
+- Lens/package names: keep exact names from the document; do not rename.
+- Phone/URL: copy exactly as shown.
+- Keep the exact key structure of the schema.
+
+OUTPUT:
+Return ONLY valid JSON matching the target schema below.
+
+Target Schema:
+{schema_json}
+"""
+
+    # Patient extraction prompt (default)
+    return f"""
+ROLE:
+You are an expert Surgical Counselor. Your job is to extract *precise* medical data. You must prioritize **specificity** over generic terms.
+
+INPUT CONTEXT:
+1. **EMR Visit Notes:** Look for the "Assessment" or "Impression" section.
+2. **Biometry:** Look for IOL Master / Lenstar reports.
+3. **Questionnaire:** Look for patient-checked boxes.
+4. **Surgical Recommendations:** Look for the "Surgical Recommendations" section.
+
+CRITICAL EXTRACTION RULES (Must Follow):
+
+1. **DIAGNOSIS SPECIFICITY (Patient-Facing Primary Type):**
+   - **DO NOT** return just "Cataract" or "Senile Cataract" if a more specific type is visible.
+   - **DO NOT** return the full bilateral breakdown (OD/OS with multiple components).
+   - **EXTRACT:** The PRIMARY pathology type mentioned in the Plan/Counseling section for patient communication.
+   - **LOOK FOR:** "Nuclear Sclerosis", "NS", "Cortical", "Posterior Subcapsular", "PSC", "Mature" in the counseling/plan text.
+   - **Example:** If counseling says "Combined form of senile cataract... Nuclear Sclerosis 1-2+", extract ONLY "Nuclear Sclerosis (1-2+)".
+   - **NOT:** "Nuclear Sclerosis (1-2+), Cortical (2+) OD; Cortical (1+)..."
+   - If "Phakic" is mentioned under "Lens Status", map it to `anatomical_status`.
+
+2. **LIFESTYLE & HOBBIES (Strict Source Mapping with Context):**
+   - **DO NOT** guess hobbies (e.g., Golf, Tennis) unless they are explicitly circled or written.
+   - **DO NOT** hallucinate scores (e.g., "7/10") from external knowledge. Only extract what is written.
+   - **Visual Priorities:** Look for checkboxes AND associated activities (e.g., "Distance Vision" + "Driving, Golf, TV").
+     - Extract as: "Distance Vision (Driving, Golf, TV)" if activities are listed
+     - Extract as: "Distance Vision" if no specific activities are checked
+   - **Hobbies:** Only include activities written in the "Hobbies" section (e.g., Reading, Music).
+
+3. **MEDICAL HISTORY (Pertinent Negatives):**
+   - You MUST extract "Negative" findings if they are clinically relevant.
+   - **Example:** If EMR says "No Diabetes", "No Glaucoma", include these in `systemic_conditions` as "No diabetes", "No glaucoma". Do not ignore them.
+
+4. **SURGICAL PREFERENCE (Ambiguity Handling):**
+   - If multiple lens options are marked, include ALL of them in `recommended_lens_options`.
+   - Only set `is_selected_preference: true` if there is a distinct indicator (Star, Signature, "Plan A"). If ambiguous, set to `null`.
+
+5. **MEASUREMENTS:**
+   - Extract `axial_length_mm` and `astigmatism_power` as floats.
+
+6. **DATA STANDARDIZATION (Critical for UI Display):**
+   - **Dates:** ALWAYS use ISO 8601 format: YYYY-MM-DD (e.g., "1956-01-20" not "01/20/1956")
+   - **Gender:** Use "Male", "Female", or "Other" (capitalize first letter)
+   - **Hobbies:** Capitalize first letter (e.g., "Reading", "Music", "Walking")
+   - **Lens Options:** Use ONLY these standardized names when extracting recommended_lens_options:
+     • "Monofocal"
+     • "Monofocal Toric"
+     • "EDOF (Extended Depth of Focus)"
+     • "EDOF Toric"
+     • "Multifocal"
+     • "Multifocal Toric"
+     • "Trifocal"
+     • "Trifocal Toric"
+     • "LAL (Light Adjustable Lens)"
+     • "LAL Toric"
+   - If a lens type doesn't exactly match, choose the closest standard name from the list above.
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON object matching the schema.
+
+Target Schema:
+{schema_json}
+"""
+
+def _vision_extract(images: list[dict], prompt: str, model: str) -> dict:
+    """
+    Use Google AI Studio client (same as router_tool.py).
+    images: list of {"bytes": bytes, "mime_type": str, "desc": str}
+    """
+    init_vision_client()
+    if _VISION_CLIENT is None:
+        raise HTTPException(status_code=500, detail="Vision client not initialized (missing GOOGLE_API_KEY)")
+
+    # Normalize model name (defensive)
+    clean_model = (model or "").strip()
+    if not clean_model:
+        raise HTTPException(status_code=400, detail="Vision model is required")
+
+    # Explicit JSON mode + higher token cap to avoid truncation on large extracts
+    gen_config = genai_types.GenerateContentConfig(
+        temperature=0.0,
+        max_output_tokens=8192,
+        response_mime_type="application/json",
+        safety_settings=[
+            genai_types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+            genai_types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+            genai_types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+            genai_types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+        ],
+    )
+
+    parts: list[genai_types.Part] = [genai_types.Part.from_text(text=prompt)]
+    for img in images:
+        parts.append(genai_types.Part.from_bytes(data=img["bytes"], mime_type=img["mime_type"]))
+
+    try:
+        response = _VISION_CLIENT.models.generate_content(
+            model=clean_model,
+            contents=[genai_types.Content(role="user", parts=parts)],
+            config=gen_config,
+        )
+        finish_reason = getattr(response, "finish_reason", None)
+        raw = (response.text or "").strip()
+        print(f"[Vision Extract] model={clean_model} finish_reason={finish_reason} chars={len(raw)}")
+        if not raw:
+            raise ValueError("Empty response from vision model")
+
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.strip("`").strip()
+            if raw.lower().startswith("json"):
+                raw = raw[4:].strip()
+        
+        # Find JSON block
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if match:
+            raw = match.group(0)
+        
+        return json.loads(raw)
+    except Exception as exc:
+        print(f"[Vision Extract Error] model={model} err={exc}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Vision extraction failed: {exc}")
+
+
+def _save_uploaded_files(base_dir: Path, files: List[UploadFile]) -> list[Path]:
+    saved_paths: list[Path] = []
+    for idx, file in enumerate(files):
+        suffix = Path(file.filename or f"upload_{idx}").suffix or ".img"
+        target = base_dir / f"{idx:02d}{suffix}"
+        contents = file.file.read()
+        with open(target, "wb") as f:
+            f.write(contents)
+        saved_paths.append(target)
+    return saved_paths
 
 
 def get_runtime() -> AgentRuntime:
@@ -173,10 +527,10 @@ def ask_endpoint(
     t_after_patient = time.perf_counter()
     print(f"####### timing ask.load_patient_ms={(t_after_patient - t_start)*1000:.1f}")
 
-    # Extract last 10 chat messages for conversational context
+    # Extract last 6 chat messages for conversational context
     # This allows the LLM to remember recent conversation history
     chat_history = patient.get("chat_history", [])
-    recent_history = chat_history[-10:] if len(chat_history) > 10 else chat_history
+    recent_history = chat_history[-6:] if len(chat_history) > 6 else chat_history
     
     print(f"[Chat Context] Loaded {len(recent_history)} previous messages (total history: {len(chat_history)})")
 
@@ -192,7 +546,7 @@ def ask_endpoint(
 
     # Generate answer with conversation history for context
     t_answer_start = time.perf_counter()
-    answer, suggestions = _generate_answer_with_history(
+    answer, suggestions, blocks = _generate_answer_with_history(
         context_prompt=context_package.prompt,
         chat_history=recent_history,
         config=runtime.config,
@@ -215,7 +569,8 @@ def ask_endpoint(
         payload.patient_id,
         payload.question,
         answer,
-        suggestions
+        suggestions,
+        blocks
     )
     t_after_save = time.perf_counter()
     print(f"####### timing ask.save_history_ms={(t_after_save - t_save_start)*1000:.1f}")
@@ -223,6 +578,7 @@ def ask_endpoint(
 
     return AskResponse(
         answer=answer,
+        blocks=blocks,
         suggestions=suggestions,
         router_summary=context_package.router_summary,
         context_sources={
@@ -323,6 +679,222 @@ def pregenerate_modules_endpoint(
     saved = _generate_and_save_missing(payload.patient_id, patient, missing, runtime.config)
     print(f"[ModuleContent] Pregen done patient={payload.patient_id} saved={saved}")
     return {"status": "ok", "generated": len(saved), "missing": missing, "saved": saved}
+
+
+@app.post("/doctor/uploads/patient")
+async def doctor_upload_patient_docs(
+    clinic_id: str = Form(...),
+    patient_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    model: str | None = Form(None),
+    runtime: AgentRuntime = Depends(get_runtime),
+) -> dict:
+    """
+    Upload EMR/biometry images for a patient and extract structured data to patient schema.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+    if len(files) > MAX_UPLOAD_FILES:
+        raise HTTPException(status_code=400, detail=f"Too many files. Max {MAX_UPLOAD_FILES}.")
+
+    _ = runtime  # currently unused; kept for symmetry/config logging
+    env_model = os.getenv("VISION_MODEL", "gemini-1.5-pro-latest")
+    vision_model = model if model and model != "string" else env_model
+    print(f"[Doctor Upload Patient] clinic={clinic_id} patient={patient_id} model={vision_model} env_model={env_model} files={len(files)}")
+    base_dir = _ensure_dir(UPLOAD_ROOT / clinic_id / patient_id)
+
+    images: list[dict] = []
+    saved_files: list[str] = []
+    for idx, file in enumerate(files):
+        content = await file.read()
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File {file.filename} exceeds {MAX_UPLOAD_MB}MB limit",
+            )
+        content_type = file.content_type or "image/png"
+        images.append({"bytes": content, "mime_type": content_type, "desc": file.filename or f"file_{idx}"})
+
+        suffix = Path(file.filename or f"upload_{idx}").suffix or ".img"
+        target = base_dir / f"{idx:02d}{suffix}"
+        with open(target, "wb") as f:
+            f.write(content)
+        saved_files.append(str(target))
+
+    try:
+        schema = _load_schema("patient_schema.json")
+        prompt = _build_extraction_prompt(schema, scope="Patient")
+        extraction = _vision_extract(images, prompt, vision_model)
+        # Normalize extracted data for consistency and fill any missing keys using schema template
+        extraction = _normalize_extracted_data(extraction)
+        extraction = _apply_schema_template("patient_schema.json", extraction)
+
+        extracted_path = base_dir / "extracted_patient.json"
+        with open(extracted_path, "w", encoding="utf-8") as f:
+            json.dump(extraction, f, ensure_ascii=False, indent=2)
+
+        return {
+            "status": "ok",
+            "model_used": vision_model,
+            "files_saved": len(saved_files),
+            "upload_dir": str(base_dir),
+            "extracted_path": str(extracted_path),
+            "extracted": extraction,
+        }
+    except Exception as exc:
+        print(f"[Doctor Upload Patient Error] model={vision_model} err={exc}")
+        traceback.print_exc()
+        raise
+
+
+@app.post("/doctor/uploads/clinic")
+async def doctor_upload_clinic_docs(
+    clinic_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    model: str | None = Form(None),
+    runtime: AgentRuntime = Depends(get_runtime),
+) -> dict:
+    """
+    Upload clinic-level documents (one-time) and extract structured data to clinic schema.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+    if len(files) > MAX_UPLOAD_FILES:
+        raise HTTPException(status_code=400, detail=f"Too many files. Max {MAX_UPLOAD_FILES}.")
+
+    _ = runtime  # currently unused; kept for symmetry/config logging
+    env_model = os.getenv("VISION_MODEL", "gemini-1.5-pro-latest")
+    vision_model = model if model and model != "string" else env_model
+    print(f"[Doctor Upload Clinic] clinic={clinic_id} model={vision_model} env_model={env_model} files={len(files)}")
+    base_dir = _ensure_dir(UPLOAD_ROOT / clinic_id / "clinic")
+
+    images: list[dict] = []
+    saved_files: list[str] = []
+    for idx, file in enumerate(files):
+        content = await file.read()
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File {file.filename} exceeds {MAX_UPLOAD_MB}MB limit",
+            )
+        content_type = file.content_type or "image/png"
+        images.append({"bytes": content, "mime_type": content_type, "desc": file.filename or f"file_{idx}"})
+
+        suffix = Path(file.filename or f"upload_{idx}").suffix or ".img"
+        target = base_dir / f"{idx:02d}{suffix}"
+        with open(target, "wb") as f:
+            f.write(content)
+        saved_files.append(str(target))
+
+    try:
+        schema = _load_schema("clinic_schema.json")
+        prompt = _build_extraction_prompt(schema, scope="Clinic")
+        extraction = _vision_extract(images, prompt, vision_model)
+        # Normalize extracted data for consistency and fill any missing keys using schema template
+        extraction = _normalize_extracted_data(extraction)
+        extraction = _apply_schema_template("clinic_schema.json", extraction)
+
+        extracted_path = base_dir / "extracted_clinic.json"
+        with open(extracted_path, "w", encoding="utf-8") as f:
+            json.dump(extraction, f, ensure_ascii=False, indent=2)
+
+        return {
+            "status": "ok",
+            "model_used": vision_model,
+            "files_saved": len(saved_files),
+            "upload_dir": str(base_dir),
+            "extracted_path": str(extracted_path),
+            "extracted": extraction,
+        }
+    except Exception as exc:
+        print(f"[Doctor Upload Clinic Error] model={vision_model} err={exc}")
+        traceback.print_exc()
+        raise
+
+
+# -------------------------------
+# Doctor extraction retrieval + reviewed save endpoints
+# -------------------------------
+
+
+def _read_json_or_404(path: Path, label: str) -> dict:
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.get("/doctor/extractions/patient")
+async def get_extracted_patient(clinic_id: str, patient_id: str) -> dict:
+    path = UPLOAD_ROOT / clinic_id / patient_id / "extracted_patient.json"
+    data = _read_json_or_404(path, "Extracted patient JSON")
+    return {"status": "ok", "extracted_path": str(path), "extracted": data}
+
+
+@app.get("/doctor/extractions/clinic")
+async def get_extracted_clinic(clinic_id: str) -> dict:
+    path = UPLOAD_ROOT / clinic_id / "clinic" / "extracted_clinic.json"
+    data = _read_json_or_404(path, "Extracted clinic JSON")
+    return {"status": "ok", "extracted_path": str(path), "extracted": data}
+
+
+@app.get("/doctor/reviewed/patient")
+async def get_reviewed_patient(clinic_id: str, patient_id: str) -> dict:
+    path = REVIEW_ROOT / clinic_id / patient_id / "reviewed_patient.json"
+    data = _read_json_or_404(path, "Reviewed patient JSON")
+    return {"status": "ok", "reviewed_path": str(path), "reviewed": data}
+
+
+@app.get("/doctor/reviewed/clinic")
+async def get_reviewed_clinic(clinic_id: str) -> dict:
+    path = REVIEW_ROOT / clinic_id / "reviewed_clinic.json"
+    data = _read_json_or_404(path, "Reviewed clinic JSON")
+    return {"status": "ok", "reviewed_path": str(path), "reviewed": data}
+
+
+@app.post("/doctor/review/patient")
+async def save_reviewed_patient(payload: ReviewedPatientPayload) -> dict:
+    base_dir = _ensure_dir(REVIEW_ROOT / payload.clinic_id / payload.patient_id)
+    payload_data = payload.data if isinstance(payload.data, dict) else {}
+    reviewed = _normalize_extracted_data(payload_data)
+    reviewed = _apply_schema_template("patient_schema.json", reviewed)
+    target = base_dir / "reviewed_patient.json"
+    with open(target, "w", encoding="utf-8") as f:
+        json.dump(reviewed, f, ensure_ascii=False, indent=2)
+    return {"status": "ok", "reviewed_path": str(target), "reviewed": reviewed}
+
+
+@app.delete("/doctor/patient")
+async def delete_patient_data(clinic_id: str, patient_id: str) -> dict:
+    """
+    Delete all stored data for a patient (uploads and reviewed).
+    """
+    upload_dir = UPLOAD_ROOT / clinic_id / patient_id
+    reviewed_dir = REVIEW_ROOT / clinic_id / patient_id
+    removed: list[str] = []
+
+    for path in (upload_dir, reviewed_dir):
+        if path.exists():
+            try:
+                shutil.rmtree(path, ignore_errors=False)
+            except Exception as exc:
+                print(f"[Delete Patient] Failed to remove {path}: {exc}")
+                raise HTTPException(status_code=500, detail=f"Failed to remove {path.name}: {exc}") from exc
+            removed.append(str(path))
+
+    return {"status": "ok", "removed": removed}
+
+
+@app.post("/doctor/review/clinic")
+async def save_reviewed_clinic(payload: ReviewedClinicPayload) -> dict:
+    base_dir = _ensure_dir(REVIEW_ROOT / payload.clinic_id)
+    payload_data = payload.data if isinstance(payload.data, dict) else {}
+    reviewed = _normalize_extracted_data(payload_data)
+    reviewed = _apply_schema_template("clinic_schema.json", reviewed)
+    target = base_dir / "reviewed_clinic.json"
+    with open(target, "w", encoding="utf-8") as f:
+        json.dump(reviewed, f, ensure_ascii=False, indent=2)
+    return {"status": "ok", "reviewed_path": str(target), "reviewed": reviewed}
 
 
 def _generate_suggestions(topics: list[str]) -> list[str]:
@@ -862,20 +1434,81 @@ Be honest about information gaps, but don't offer unrequested tasks like draftin
             messages.append({"role": "assistant", "content": entry["text"]})
     
     # Add current question with RAG context
-    # Ask for structured JSON so we can return suggestions alongside the answer
+    # Ask for structured JSON with blocks for elderly-friendly formatting
     messages.append(
         {
             "role": "user",
             "content": f"""{context_prompt}
 
 Return a strict JSON object with:
-- answer: the final patient-friendly reply (string)
-- suggestions: an array of 3 short follow-up questions the patient is likely to ask next.
-  CRITICAL:
-  - Do NOT repeat the question just asked.
-  - Suggest logical next steps (e.g., if asked about surgery, suggest recovery or risks).
-  - Keep them short (5-10 words).
-  - Avoid generic "Tell me more".
+- blocks: an array of content blocks. Each block must have a "type" field.
+  
+  BLOCK TYPES (choose the best fit for your answer):
+  
+  1. "text" - Standard paragraph (2-3 sentences max per block)
+     Fields: "content" (string with **bold** for key medical terms)
+     Use for: Explanations, definitions, background info
+  
+  2. "heading" - Section title to break up long answers
+     Fields: "content" (string, keep short)
+     Use for: When answer has multiple parts
+  
+  3. "list" - Bulleted list of items
+     Fields: "title" (optional string), "items" (array of strings)
+     Use for: Symptoms, benefits, risks, features, options
+  
+  4. "numbered_steps" - Step-by-step instructions
+     Fields: "title" (optional string), "steps" (array of strings)
+     Use for: Procedures, pre-op instructions, "how to" questions
+  
+  5. "callout" - Important information box
+     Fields: "content" (string)
+     Use for: Key takeaways, tips, things to remember
+  
+  6. "warning" - Alert/caution box
+     Fields: "content" (string)
+     Use for: Things to avoid, when to call doctor, urgent concerns
+  
+  7. "timeline" - Before/During/After flow
+     Fields: "phases" (array of objects with "phase" and "description")
+     Use for: Surgery timeline, recovery stages
+
+FORMATTING RULES:
+- Start with "text" block for context (1-2 sentences)
+- Use "list" or "numbered_steps" for any items/steps (makes scanning easier)
+- End with "callout" or "warning" if there's a key takeaway
+- Keep text blocks SHORT (2-3 sentences max) - patients are 50+ years old
+- Use **bold** for all medical terms and important phrases
+
+EXAMPLE for "What are cataract symptoms?":
+{{
+  "blocks": [
+    {{
+      "type": "text",
+      "content": "When you have a **cataract**, the clear lens inside your eye becomes cloudy. This causes several changes in your vision."
+    }},
+    {{
+      "type": "list",
+      "title": "Common Symptoms",
+      "items": [
+        "**Blurry or hazy vision**, especially for reading",
+        "**Faded colors** that look yellowish or brownish",
+        "**Difficulty seeing at night** or in dim light",
+        "**Sensitivity to glare** from headlights or sunlight",
+        "Seeing **halos** around lights"
+      ]
+    }},
+    {{
+      "type": "warning",
+      "content": "If you notice **sudden vision loss** or **eye pain**, contact your eye doctor immediately. These may indicate other serious conditions."
+    }}
+  ],
+  "suggestions": ["How is cataract surgery performed?", "What causes cataracts?", "How long is recovery?"]
+}}
+
+- suggestions: array of 3 short follow-up questions (5-10 words each)
+  - Do NOT repeat the current question
+  - Suggest logical next topics
 
 JSON only, no prose, no markdown fences.""",
         }
@@ -901,6 +1534,9 @@ JSON only, no prose, no markdown fences.""",
     parsed = {}
     json_parsed_successfully = False
     parse_start = time.perf_counter()
+    blocks = []
+    answer_text = ""
+    suggestions = []
     
     def _sanitize_control_chars(text: str) -> str:
         # Replace unescaped control characters that break JSON parsing
@@ -943,10 +1579,40 @@ JSON only, no prose, no markdown fences.""",
                     parsed = {}
                     print("[JSON Parse] Failed - no valid JSON found")
                 
-        answer_text = parsed.get("answer") or parsed.get("response") or parsed.get("text") or ""
+        # Extract blocks and suggestions from parsed JSON
+        blocks = parsed.get("blocks", [])
         suggestions = parsed.get("suggestions") or parsed.get("followups") or []
         
-        print(f"[Extraction] answer_text length: {len(answer_text)}, suggestions count: {len(suggestions)}")
+        # For backward compatibility and logging, create answer_text from blocks
+        answer_text = ""
+        if blocks:
+            parts = []
+            for b in blocks:
+                b_type = b.get("type", "")
+                if b_type in ["text", "callout", "warning"]:
+                    parts.append(b.get("content", ""))
+                elif b_type == "heading":
+                    parts.append(f"## {b.get('content', '')}")
+                elif b_type == "list":
+                    if b.get("title"):
+                        parts.append(b.get("title"))
+                    items = b.get("items", [])
+                    parts.append("\n".join([f"- {item}" for item in items]))
+                elif b_type == "numbered_steps":
+                    if b.get("title"):
+                        parts.append(b.get("title"))
+                    steps = b.get("steps", [])
+                    parts.append("\n".join([f"{i+1}. {step}" for i, step in enumerate(steps)]))
+                elif b_type == "timeline":
+                    phases = b.get("phases", [])
+                    for phase in phases:
+                        parts.append(f"{phase.get('phase', '')}: {phase.get('description', '')}")
+            answer_text = "\n\n".join(filter(None, parts))
+        else:
+            # Fallback to old format if blocks not present
+            answer_text = parsed.get("answer") or parsed.get("response") or parsed.get("text") or ""
+        
+        print(f"[Extraction] blocks count: {len(blocks)}, answer_text length: {len(answer_text)}, suggestions count: {len(suggestions)}")
         
     except Exception as exc:
         print(f"[Answer Parse Error] {exc}")
@@ -974,12 +1640,17 @@ JSON only, no prose, no markdown fences.""",
                 print(f"[Regex Extract] Pulled {len(suggestions)} suggestions from messy JSON")
         print(f"####### timing llm.regex_extract_ms={(time.perf_counter() - regex_start)*1000:.1f}")
 
+    # Ensure we have at least one block if we have answer_text
+    if not blocks and answer_text:
+        blocks = [{"type": "text", "content": answer_text}]
+        print("[Fallback] Created text block from answer_text")
+    
     # Fallback for empty answer
-    if not isinstance(answer_text, str) or not answer_text.strip():
+    if not blocks:
         if json_parsed_successfully:
-            # JSON parsed but answer field was empty/missing - don't show raw JSON to user
+            # JSON parsed but blocks field was empty/missing
             answer_text = "I'm sorry, I couldn't format my response properly. Please try asking again."
-            print("[Fallback] JSON parsed but answer empty - using error message")
+            print("[Fallback] JSON parsed but blocks empty - using error message")
         else:
             # JSON parsing failed completely - try to use raw text if it looks like prose
             if raw and not raw.startswith("{"):
@@ -988,6 +1659,7 @@ JSON only, no prose, no markdown fences.""",
             else:
                 answer_text = "I'm sorry, I couldn't compose a full answer just now. Please try again."
                 print("[Fallback] Complete failure - using generic error")
+        blocks = [{"type": "text", "content": answer_text}]
     # Remove any embedded suggestions JSON that might have leaked into answer_text
     answer_text = _strip_embedded_suggestions(answer_text)
     if not isinstance(suggestions, list):
@@ -1048,6 +1720,7 @@ JSON only, no prose, no markdown fences.""",
     final_suggestions = dedup[:3]
 
     print("[Final Answer]\n", answer_text, "\n")
+    print(f"[Blocks] Count: {len(blocks)}")
     print(f"[Suggestions] Final: {final_suggestions}")
     print(f"####### timing llm.total_ms={(time.perf_counter() - t_start)*1000:.1f}")
-    return answer_text, final_suggestions
+    return answer_text, final_suggestions, blocks

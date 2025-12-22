@@ -13,6 +13,7 @@ import PatientSidebar from './components/PatientSidebar';
 import { ModuleItem } from './types';
 import { ThemeProvider, useTheme } from './theme';
 import { Patient, Clinic, api } from './services/api';
+import DoctorPortal from './doctor/DoctorPortal';
 
 // The 9 main modules as requested
 // We define a helper to get modules dynamically based on patient data
@@ -90,6 +91,7 @@ const getModules = (patient: Patient | null): ModuleItem[] => {
 };
 
 const AppContent: React.FC = () => {
+  const [view, setView] = useState<'patient' | 'doctor'>('patient');
   const [selectedModule, setSelectedModule] = useState<ModuleItem | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -99,6 +101,23 @@ const AppContent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentTheme, classes } = useTheme();
+
+  // Simple Hash Routing
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/doctor') || hash === '#doctor') {
+        setView('doctor');
+      } else {
+        setView('patient');
+      }
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Check on initial load
+    
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Generate modules based on loaded patient data
   const modules = getModules(currentPatient);
@@ -153,6 +172,10 @@ const AppContent: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  if (view === 'doctor') {
+    return <DoctorPortal />;
+  }
 
   if (loading) {
     return (
