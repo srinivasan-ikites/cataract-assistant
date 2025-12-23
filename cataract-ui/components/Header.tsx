@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({
           </div>
           <div className={`flex items-center gap-2 ${accent.badge} ${accent.badgeIcon} rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm`}>
             <ShieldCheck size={14} className={accent.badgeIcon} />
-            <span>Patient Education Portal</span>
+            <span>Education Portal</span>
           </div>
         </div>
       </div>

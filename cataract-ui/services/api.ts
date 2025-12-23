@@ -1,6 +1,7 @@
 import { ModuleItem } from '../types';
 
-// const API_BASE = 'http://localhost:8000'; // Adjust if your backend port differs
+// const API_BASE = 'http://localhost:8000'; // align with backend
+// const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
 const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
 export interface Patient {

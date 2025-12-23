@@ -191,6 +191,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
   const [isTyping, setIsTyping] = useState(false);
   const { classes } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -227,10 +228,46 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
     }
   }, [isOpen, chatHistory, scrollToBottom]);
 
+  // Auto-resize textarea (ChatGPT-style)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const maxHeight = 112; // max-h-28 = 7rem = 112px
+      textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+    }
+  }, [question]);
+
+  // Generate initial suggestions when there's no chat history
+  const getInitialSuggestions = (): string[] => {
+    const generalQuestion = "What is cataract surgery?";
+    
+    // Patient-related question based on available data
+    const diagnosis = patient?.clinical_context?.primary_diagnosis?.pathology ||
+                     patient?.clinical_context?.primary_diagnosis?.type ||
+                     null;
+    const lensType = patient?.surgical_selection?.lens_configuration?.lens_type || null;
+    
+    let patientQuestion = "What should I expect during recovery?";
+    if (diagnosis) {
+      patientQuestion = `Tell me about ${diagnosis}`;
+    } else if (lensType) {
+      patientQuestion = `What is ${lensType}?`;
+    }
+    
+    return [generalQuestion, patientQuestion];
+  };
+
   const lastBotMessage = [...chatHistory].reverse().find(m => m.role === 'bot');
   // Only show suggestions if the very last message is from the bot
   const showSuggestions = chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'bot';
-  const currentSuggestions = showSuggestions ? lastBotMessage?.suggestions : [];
+  
+  // Use initial suggestions if no history (only initial greeting), otherwise use bot's suggestions
+  const hasOnlyInitialGreeting = chatHistory.length === 1 && chatHistory[0].role === 'bot' && !chatHistory[0].suggestions;
+  const currentSuggestions = hasOnlyInitialGreeting 
+    ? getInitialSuggestions() 
+    : (showSuggestions ? lastBotMessage?.suggestions || [] : []);
 
   const handleSend = async (q: string) => {
     if (!q.trim()) return;
@@ -261,6 +298,15 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
 
   return (
     <>
+      <style>{`
+        .no-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
       {/* Extended FAB Button */}
       <button
         onClick={onOpen}
@@ -298,13 +344,21 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
             {chatHistory.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'user' ? (
-                  <div
+                <div
                     className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${classes.userBubble} rounded-br-sm`}
-                  >
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                >
+                  <div className="text-sm">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="text-sm m-0">{children}</p>,
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  </div>
                   </div>
                 ) : (
-                  <div className="max-w-[92%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="max-w-[100%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
                     <div className="p-5 space-y-4">
                       {msg.blocks && msg.blocks.length > 0 ? (
                         <BlockRenderer blocks={msg.blocks} />
@@ -324,68 +378,68 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
 
                       {msg.media && msg.media.length > 0 && (
                         <div className="space-y-2">
-                          {msg.media.map((item, idx) => (
-                            <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
-                              {item.type === 'image' && (
-                                <img
-                                  src={item.url}
-                                  alt={item.alt || 'Educational image'}
-                                  className="w-full h-auto"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              {item.type === 'video' && (
-                                <iframe
-                                  src={item.url}
-                                  title={item.caption || item.alt || 'Educational video'}
-                                  className="w-full h-64"
-                                  allowFullScreen
-                                />
-                              )}
-                              {item.caption && (
-                                <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
-                              )}
-                            </div>
-                          ))}
+                      {msg.media.map((item, idx) => (
+                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
+                          {item.type === 'image' && (
+                            <img 
+                              src={item.url} 
+                              alt={item.alt || 'Educational image'} 
+                              className="w-full h-auto"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          {item.type === 'video' && (
+                            <iframe 
+                              src={item.url} 
+                              title={item.caption || item.alt || 'Educational video'}
+                              className="w-full h-64"
+                              allowFullScreen
+                            />
+                          )}
+                          {item.caption && (
+                            <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
+                          )}
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  )}
 
                       {msg.sources && msg.sources.length > 0 && (
                         <div className="pt-1">
                           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-2">Sources</div>
-                          <div className="flex flex-wrap gap-2">
-                            {msg.sources
-                              .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
-                              .map((src, i) => {
-                                const title = src.section_title || 'Source';
-                                const firstLink = src.links && src.links.length ? src.links[0].url : null;
-                                const href = src.source_url || firstLink;
-                                return (
-                                  <span
-                                    key={i}
+                      <div className="flex flex-wrap gap-2">
+                        {msg.sources
+                          .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
+                          .map((src, i) => {
+                          const title = src.section_title || 'Source';
+                          const firstLink = src.links && src.links.length ? src.links[0].url : null;
+                          const href = src.source_url || firstLink;
+                          return (
+                            <span
+                              key={i}
                                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[12px] text-slate-700 shadow-sm"
-                                  >
-                                    {href ? (
-                                      <a
-                                        href={href}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-blue-600 hover:underline"
-                                      >
-                                        {title}
-                                      </a>
-                                    ) : (
-                                      <span>{title}</span>
-                                    )}
-                                  </span>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      )}
+                            >
+                              {href ? (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  {title}
+                                </a>
+                              ) : (
+                                <span>{title}</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
+                  )}
+                </div>
                   </div>
                 )}
               </div>
@@ -404,13 +458,13 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
 
           {/* Suggestions - always visible to keep the flow going */}
           {currentSuggestions && currentSuggestions.length > 0 && (
-            <div className="px-4 py-2 bg-slate-50">
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <div className="px-4 py-3 bg-slate-50">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar">
                 {currentSuggestions.map((sq, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(sq)}
-                    className={`whitespace-nowrap text-xs font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-1 shadow-sm ${classes.suggestionChip}`}
+                    className={`whitespace-nowrap text-xs font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-1 shadow-sm shrink-0 ${classes.suggestionChip}`}
                   >
                     {sq}
                   </button>
@@ -423,6 +477,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
           <div className="p-4 bg-white border-t border-slate-100">
             <div className="flex gap-2 items-end bg-slate-100 rounded-2xl px-3 py-2">
               <textarea
+                ref={textareaRef}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={(e) => {
@@ -433,7 +488,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                 }}
                 placeholder="Ask a question..."
                 rows={1}
-                className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-2 text-slate-700 placeholder-slate-400 text-sm outline-none resize-none leading-relaxed max-h-28 overflow-y-auto"
+                className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-2 text-slate-700 placeholder-slate-400 text-sm outline-none resize-none leading-relaxed overflow-hidden"
               />
               <button
                 onClick={() => handleSend(question)}

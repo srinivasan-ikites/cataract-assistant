@@ -138,36 +138,6 @@
       "alerts": [
         "Has mild seasonal allergies \u2013 avoid preserved drops",
         "Prefers phone calls over email"
-      ],
-      "chat_history": [
-        {
-          "role": "user",
-          "text": "\"What Do Cataracts Look Like?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "A cataract isn't something you can usually see from the outside of your eye. Instead, it's a clouding of your eye's natural lens, which is normally clear [General Knowledge]. Think of your lens as a clear window that helps you see clearly. When a cataract forms, it's like that window becomes foggy or dusty.\n\nBecause your lens becomes cloudy, things might start to look blurry, hazy, or less colorful [General Knowledge]. It can be a bit like looking through a foggy or dusty car windshield [General Knowledge]. This cloudiness usually develops very slowly over time, much like how day gradually turns into night [General Knowledge].",
-          "suggestions": [
-            "What are the risks?",
-            "Tell me more."
-          ],
-          "timestamp": "now"
-        },
-        {
-          "role": "user",
-          "text": "What Are Cataracts?",
-          "timestamp": "now"
-        },
-        {
-          "role": "bot",
-          "text": "A cataract is when the natural lens inside your eye becomes cloudy [General Knowledge]. Normally, this lens is clear, like a perfect window, and it helps focus light so you can see clearly. When a cataract develops, it's like that clear window becomes foggy or dusty, making it harder for light to pass through properly [General Knowledge].\n\nThis cloudiness happens because proteins in your lens break down over time [General Knowledge]. As a result, your vision might start to look blurry, hazy, or less colorful [General Knowledge]. It's a bit like looking through a smudged camera lens. Cataracts usually develop very slowly, so changes to your vision might happen gradually [General Knowledge].",
-          "suggestions": [
-            "What are the risks?",
-            "Tell me more."
-          ],
-          "timestamp": "now"
-        }
       ]
     },
     {

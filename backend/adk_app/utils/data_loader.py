@@ -119,6 +119,7 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
                 _append_history(p)
                 break
         else:
+            # Only executed if no break occurred in the for-loop
             raise ValueError(f"Patient {patient_id} not found for saving history.")
     else:
         # Single patient structure

@@ -67,10 +67,10 @@ def prepare_context(
         # 1. Start Router LLM
         router_future = executor.submit(
             router_tool,
-            question=question,
-            clinic_id=derived_clinic_id,
-            patient_id=patient_id,
-        )
+        question=question,
+        clinic_id=derived_clinic_id,
+        patient_id=patient_id,
+    )
         # 2. Start Embedding (Speculative) - most queries need KB anyway
         embedding_future = executor.submit(embed_query, question)
         
