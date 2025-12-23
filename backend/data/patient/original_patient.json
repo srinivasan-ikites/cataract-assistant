@@ -342,5 +342,6 @@
       "videoScriptSuggestion": "Lata, let's talk about the costs for your **cataract surgery**. While you haven't chosen a package yet, the **Standard Care** package, which includes a **Monofocal IOL**, has an estimated physician fee of $3626 out of pocket. The facility fee and standard lens are usually covered by private insurance. We'll help you understand your specific insurance benefits.",
       "botStarterPrompt": "Tell me about the costs and insurance for **cataract surgery**."
     }
-  }
+  },
+  "chat_history": []
 }

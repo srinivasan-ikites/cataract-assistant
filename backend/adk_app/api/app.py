@@ -17,7 +17,14 @@ from pydantic import BaseModel, Field
 
 from adk_app.config import ModelConfig
 from adk_app.orchestration.pipeline import ContextPackage, prepare_context
-from adk_app.utils.data_loader import get_patient_data, get_all_patients, save_patient_chat_history, save_patient_module_content, get_clinic_data
+from adk_app.utils.data_loader import (
+    get_patient_data,
+    get_all_patients,
+    save_patient_chat_history,
+    save_patient_module_content,
+    get_clinic_data,
+    clear_patient_chat_history,
+)
 from contextlib import asynccontextmanager
 
 # Import initialization functions
@@ -507,6 +514,19 @@ def get_patient(patient_id: str) -> dict:
         return get_patient_data(patient_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
+
+
+@app.post("/patients/{patient_id}/chat/clear")
+def clear_patient_chat(patient_id: str) -> dict:
+    """
+    Clear stored chat history for a patient in the JSON file.
+    Does not remove any other patient data.
+    """
+    try:
+        clear_patient_chat_history(patient_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err))
+    return {"status": "ok"}
 
 
 @app.get("/clinics/{clinic_id}")

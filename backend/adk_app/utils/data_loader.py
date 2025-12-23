@@ -137,6 +137,49 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
     _load_patient_cache.cache_clear()
 
 
+def clear_patient_chat_history(patient_id: str) -> None:
+    """
+    Remove all stored chat history for the given patient and persist to disk.
+    Does NOT delete any other patient data.
+    """
+    if not PATIENT_FILE.exists():
+        raise ValueError("Patient file not found.")
+
+    with PATIENT_FILE.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    def _clear_history(target: dict) -> None:
+        # Either remove the key or reset to empty list
+        if "chat_history" in target:
+            target["chat_history"] = []
+
+    # Legacy multi-patient structure
+    is_multi = isinstance(payload, dict) and isinstance(payload.get("patients"), list)
+    if is_multi:
+        patients = payload.get("patients") or []
+        for p in patients:
+            if not isinstance(p, dict):
+                continue
+            if p.get("patient_id") == patient_id:
+                _clear_history(p)
+                break
+        else:
+            raise ValueError(f"Patient {patient_id} not found for clearing history.")
+    else:
+        # Single patient structure
+        if not isinstance(payload, dict):
+            raise ValueError("Patient file is not a JSON object.")
+        pid = payload.get("patient_identity", {}).get("patient_id")
+        if pid != patient_id:
+            raise ValueError(f"Patient {patient_id} not found for clearing history.")
+        _clear_history(payload)
+
+    with PATIENT_FILE.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+    # Invalidate cache so next read gets fresh data
+    _load_patient_cache.cache_clear()
+
 def save_patient_module_content(patient_id: str, module_title: str, content: Dict[str, Any]) -> None:
     """
     Persist generated module content for a patient so we can reuse without re-calling the LLM.

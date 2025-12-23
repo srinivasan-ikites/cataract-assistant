@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash, Trash2 } from 'lucide-react';
 import { api, Patient, ChatMessage } from '../services/api';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
@@ -199,6 +199,16 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
     }
   }, []);
 
+  // Helper to build the initial greeting message
+  const buildInitialChatHistory = useCallback((): ChatMessage[] => {
+    return [
+      {
+        role: 'bot',
+        text: `Hi ${patient.name.first}. I'm here to help answer your questions about cataracts and your upcoming surgery. What would you like to know?`
+      }
+    ];
+  }, [patient.name.first]);
+
   // Prefill (do not auto-send) initial question when opening
   useEffect(() => {
     if (isOpen && initialQuestion) {
@@ -215,11 +225,9 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
       setChatHistory(patient.chat_history);
     } else {
       // Initial greeting if no history
-      setChatHistory([
-        { role: 'bot', text: `Hi ${patient.name.first}. I'm here to help answer your questions about cataracts and your upcoming surgery. What would you like to know?` }
-      ]);
+      setChatHistory(buildInitialChatHistory());
     }
-  }, [patient]);
+  }, [patient, buildInitialChatHistory]);
 
   // Auto-scroll when chat opens or new messages arrive
   useEffect(() => {
@@ -238,6 +246,18 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
       textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [question]);
+
+  const handleClearChat = async () => {
+    // Optimistically clear UI
+    setChatHistory(buildInitialChatHistory());
+    setQuestion("");
+    // Also clear on backend (fire-and-forget)
+    try {
+      await api.clearPatientChat(patient.patient_id);
+    } catch {
+      // Swallow errors; UI is already cleared
+    }
+  };
 
   // Generate initial suggestions when there's no chat history
   const getInitialSuggestions = (): string[] => {
@@ -334,9 +354,19 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                 <p className="text-[11px] opacity-80">Always here to help</p>
               </div>
             </div>
-            <button onClick={() => onClose()} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="hover:bg-white/20 px-2 py-1 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
+              >
+                <Trash2 size={18} />
+                {/* <span>Clear</span> */}
+              </button>
+              <button onClick={() => onClose()} className="hover:bg-white/20 p-2 rounded-full transition-colors" type="button">
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Chat Area */}

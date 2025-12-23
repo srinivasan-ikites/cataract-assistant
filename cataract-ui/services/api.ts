@@ -213,4 +213,15 @@ export const api = {
         }
         return res.json();
     },
+
+    async clearPatientChat(patientId: string): Promise<void> {
+        const res = await fetch(`${API_BASE}/patients/${patientId}/chat/clear`, {
+            method: 'POST',
+        });
+        if (!res.ok) {
+            // We don't want to break the UI on failure, but log for debugging
+            // eslint-disable-next-line no-console
+            console.error('Failed to clear patient chat history');
+        }
+    },
 };
