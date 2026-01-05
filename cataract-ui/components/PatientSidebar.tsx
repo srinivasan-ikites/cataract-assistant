@@ -1,36 +1,33 @@
 import React from 'react';
 import { X, User, CheckCircle2, Circle, Clock, AlertCircle, Eye, FileText, ArrowRight } from 'lucide-react';
 import { useTheme } from '../theme';
+import { Patient } from '../services/api';
 
 interface PatientSidebarProps {
     isOpen: boolean;
     onClose: () => void;
+    patient: Patient | null;
 }
 
-const PatientSidebar: React.FC<PatientSidebarProps> = ({ isOpen, onClose }) => {
+const PatientSidebar: React.FC<PatientSidebarProps> = ({ isOpen, onClose, patient }) => {
     const { classes } = useTheme();
 
-    // Hardcoded Patient Data
-    const patient = {
-        name: "Jane Doe",
-        dob: "Jan 15, 1954",
-        id: "MRN-882401",
-        img: "https://i.pravatar.cc/150?u=jane_doe_cataract"
-    };
+    if (!patient) return null;
 
-    const history = [
-        "Glare & Halos at night",
-        "Difficulty reading fine print",
-        "Mild Astigmatism (Left Eye)",
-        "Previous LASIK (2005)"
+    const history = patient?.medical_history?.ocular_history?.split(',').map((s: string) => s.trim()) || [
+        "No ocular history available"
     ];
 
+    const selectedLens = patient?.surgical_recommendations_by_doctor?.recommended_lens_options?.find(opt => opt.is_selected_preference);
+
+    // Progress steps - mapping some logic (this is still mostly placeholder but can be more dynamic)
+    const surgeryDate = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date || 'Upcoming';
     const progressSteps = [
         { label: 'Registration', status: 'completed', date: 'Oct 10' },
         { label: 'Consultation', status: 'completed', date: 'Oct 12' },
         { label: 'Counseling', status: 'current', date: 'Now' },
         { label: 'Pre-Op Assessment', status: 'pending', date: 'Oct 25' },
-        { label: 'Surgery Day', status: 'pending', date: 'Nov 01' },
+        { label: 'Surgery Day', status: 'pending', date: surgeryDate },
     ];
 
     return (
@@ -52,15 +49,15 @@ const PatientSidebar: React.FC<PatientSidebarProps> = ({ isOpen, onClose }) => {
                         <div className="relative group">
                             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md">
                                 {/* Placeholder Avatar */}
-                                <div className={`w-full h-full ${classes.headerIconContainer} flex items-center justify-center bg-slate-200`}>
-                                    <User size={32} className="opacity-50" />
+                                <div className={`w-full h-full ${classes.headerIconContainer} flex items-center justify-center bg-slate-200 text-slate-400 capitalize font-bold text-xl`}>
+                                    {patient.name.first[0]}
                                 </div>
                             </div>
                             <div className={`absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm`}></div>
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800 tracking-tight">{patient.name}</h2>
-                            <p className="text-xs font-mono text-slate-500 mb-1">ID: {patient.id}</p>
+                            <h2 className="text-xl font-bold text-slate-800 tracking-tight">{patient.name.first} {patient.name.last}</h2>
+                            <p className="text-xs font-mono text-slate-500 mb-1">ID: {patient.patient_id}</p>
                             <span className="inline-block px-2 py-0.5 rounded-full bg-white/50 border border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wide">
                                 Verified Patient
                             </span>
@@ -156,15 +153,15 @@ const PatientSidebar: React.FC<PatientSidebarProps> = ({ isOpen, onClose }) => {
                                 </div>
 
                                 <div className={`absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide ${classes.primaryText} shadow-sm`}>
-                                    Premium IOL
+                                    {selectedLens?.name || 'IOL Options'}
                                 </div>
                             </div>
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-bold text-slate-800 text-lg">PanOptix® Trifocal</h4>
+                                    <h4 className="font-bold text-slate-800 text-lg">{selectedLens?.name || 'Cataract Care'}</h4>
                                 </div>
                                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                                    First and only trifocal lens available in the US. Delivers an exceptional combination of near, intermediate, and distance vision.
+                                    {selectedLens?.description || 'Personalized vision correction plan based on your recent eye measurements and lifestyle goals.'}
                                 </p>
                                 <button className={`w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-slate-50 transition-colors ${classes.primaryText} flex items-center justify-center gap-2`}>
                                     View Lens Details <ArrowRight size={14} />

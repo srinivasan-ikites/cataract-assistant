@@ -11,7 +11,8 @@ import traceback
 import shutil
 
 import litellm
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
+from litellm.utils import trim_messages
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -24,6 +25,7 @@ from adk_app.utils.data_loader import (
     save_patient_module_content,
     get_clinic_data,
     clear_patient_chat_history,
+    clear_patient_cache,
 )
 from contextlib import asynccontextmanager
 
@@ -258,6 +260,35 @@ def _normalize_extracted_data(data: dict) -> dict:
                 return std_lens
         return lens_name  # Return as-is if no match (doctor can override in UI)
 
+    # Helper: normalize cataract type to exact IDs expected by UI
+    def normalize_cataract_type(cataract_type: str) -> str:
+        """
+        Convert extracted cataract type text to exact IDs expected by UI:
+        - "nuclear_sclerosis", "cortical", "posterior_subcapsular", "combined", "congenital"
+        """
+        if not cataract_type:
+            return ""
+        cataract_lower = cataract_type.lower().strip()
+        
+        # Check for combined first (multiple types mentioned)
+        if ("nuclear" in cataract_lower or "sclerosis" in cataract_lower) and "cortical" in cataract_lower:
+            return "combined"
+        if "combined" in cataract_lower:
+            return "combined"
+        
+        # Check individual types
+        if "nuclear" in cataract_lower or "sclerosis" in cataract_lower:
+            return "nuclear_sclerosis"
+        if "cortical" in cataract_lower:
+            return "cortical"
+        if "posterior" in cataract_lower or "subcapsular" in cataract_lower or "psc" in cataract_lower:
+            return "posterior_subcapsular"
+        if "congenital" in cataract_lower:
+            return "congenital"
+        
+        # Return as-is if no match (doctor can override in UI)
+        return cataract_type
+
     # Normalize patient identity
     if "patient_identity" in data:
         identity = data["patient_identity"]
@@ -267,6 +298,12 @@ def _normalize_extracted_data(data: dict) -> dict:
             gender = identity["gender"].strip()
             # Capitalize first letter
             identity["gender"] = gender.capitalize() if gender else ""
+    
+    # Normalize diagnosis (cataract type)
+    if "clinical_context" in data and "diagnosis" in data["clinical_context"]:
+        diagnosis = data["clinical_context"]["diagnosis"]
+        if "primary_cataract_type" in diagnosis:
+            diagnosis["primary_cataract_type"] = normalize_cataract_type(diagnosis["primary_cataract_type"])
     
     # Normalize lifestyle (capitalize hobbies)
     if "lifestyle" in data:
@@ -345,9 +382,6 @@ CRITICAL EXTRACTION RULES (Must Follow):
    - **DO NOT** return the full bilateral breakdown (OD/OS with multiple components).
    - **EXTRACT:** The PRIMARY pathology type mentioned in the Plan/Counseling section for patient communication.
    - **LOOK FOR:** "Nuclear Sclerosis", "NS", "Cortical", "Posterior Subcapsular", "PSC", "Mature" in the counseling/plan text.
-   - **Example:** If counseling says "Combined form of senile cataract... Nuclear Sclerosis 1-2+", extract ONLY "Nuclear Sclerosis (1-2+)".
-   - **NOT:** "Nuclear Sclerosis (1-2+), Cortical (2+) OD; Cortical (1+)..."
-   - If "Phakic" is mentioned under "Lens Status", map it to `anatomical_status`.
 
 2. **LIFESTYLE & HOBBIES (Strict Source Mapping with Context):**
    - **DO NOT** guess hobbies (e.g., Golf, Tennis) unless they are explicitly circled or written.
@@ -357,18 +391,18 @@ CRITICAL EXTRACTION RULES (Must Follow):
      - Extract as: "Distance Vision" if no specific activities are checked
    - **Hobbies:** Only include activities written in the "Hobbies" section (e.g., Reading, Music).
 
-3. **MEDICAL HISTORY (Pertinent Negatives):**
+4. **MEDICAL HISTORY (Pertinent Negatives):**
    - You MUST extract "Negative" findings if they are clinically relevant.
    - **Example:** If EMR says "No Diabetes", "No Glaucoma", include these in `systemic_conditions` as "No diabetes", "No glaucoma". Do not ignore them.
 
-4. **SURGICAL PREFERENCE (Ambiguity Handling):**
+5. **SURGICAL PREFERENCE (Ambiguity Handling):**
    - If multiple lens options are marked, include ALL of them in `recommended_lens_options`.
    - Only set `is_selected_preference: true` if there is a distinct indicator (Star, Signature, "Plan A"). If ambiguous, set to `null`.
 
-5. **MEASUREMENTS:**
+6. **MEASUREMENTS:**
    - Extract `axial_length_mm` and `astigmatism_power` as floats.
 
-6. **DATA STANDARDIZATION (Critical for UI Display):**
+7. **DATA STANDARDIZATION (Critical for UI Display):**
    - **Dates:** ALWAYS use ISO 8601 format: YYYY-MM-DD (e.g., "1956-01-20" not "01/20/1956")
    - **Gender:** Use "Male", "Female", or "Other" (capitalize first letter)
    - **Hobbies:** Capitalize first letter (e.g., "Reading", "Music", "Walking")
@@ -479,17 +513,25 @@ def get_runtime() -> AgentRuntime:
 
 app = FastAPI(title="Cataract Counsellor API", lifespan=lifespan)
 
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://35.244.44.106:3000",
+    "https://cataract-p9pks1uzc-srinivas831s-projects.vercel.app",
+    "https://cataract-8p61yr28h-srinivas831s-projects.vercel.app",
+    "https://cataract-ui.vercel.app",
+    "https://cataract-ebkhf3zpw-srinivas831s-projects.vercel.app",
+]
+
+# Allow overriding via env to avoid code changes for each hostname/IP
+env_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+allow_origins = env_origins or _DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://172.16.0.158:3000",
-        "https://cataract-p9pks1uzc-srinivas831s-projects.vercel.app",
-        "https://cataract-8p61yr28h-srinivas831s-projects.vercel.app",
-        "https://cataract-ui.vercel.app",
-        "https://cataract-ebkhf3zpw-srinivas831s-projects.vercel.app",
-    ],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -852,7 +894,19 @@ def _read_json_or_404(path: Path, label: str) -> dict:
 
 @app.get("/doctor/extractions/patient")
 async def get_extracted_patient(clinic_id: str, patient_id: str) -> dict:
+    # First try direct path
     path = UPLOAD_ROOT / clinic_id / patient_id / "extracted_patient.json"
+    
+    if not path.exists():
+        # Fallback: find actual folder name from reviewed cache
+        try:
+            patient = get_patient_data(patient_id)
+            if patient.get("_file_path"):
+                actual_pid_folder = Path(patient["_file_path"]).parent.name
+                path = UPLOAD_ROOT / clinic_id / actual_pid_folder / "extracted_patient.json"
+        except Exception:
+            pass
+
     data = _read_json_or_404(path, "Extracted patient JSON")
     return {"status": "ok", "extracted_path": str(path), "extracted": data}
 
@@ -866,7 +920,18 @@ async def get_extracted_clinic(clinic_id: str) -> dict:
 
 @app.get("/doctor/reviewed/patient")
 async def get_reviewed_patient(clinic_id: str, patient_id: str) -> dict:
+    # First try direct path
     path = REVIEW_ROOT / clinic_id / patient_id / "reviewed_patient.json"
+    
+    if not path.exists():
+        # Fallback: find actual folder name from reviewed cache
+        try:
+            patient = get_patient_data(patient_id)
+            if patient.get("_file_path"):
+                path = Path(patient["_file_path"])
+        except Exception:
+            pass
+
     data = _read_json_or_404(path, "Reviewed patient JSON")
     return {"status": "ok", "reviewed_path": str(path), "reviewed": data}
 
@@ -879,15 +944,33 @@ async def get_reviewed_clinic(clinic_id: str) -> dict:
 
 
 @app.post("/doctor/review/patient")
-async def save_reviewed_patient(payload: ReviewedPatientPayload) -> dict:
+async def save_reviewed_patient(
+    payload: ReviewedPatientPayload, 
+    background_tasks: BackgroundTasks,
+    runtime: AgentRuntime = Depends(get_runtime)
+) -> dict:
     base_dir = _ensure_dir(REVIEW_ROOT / payload.clinic_id / payload.patient_id)
     payload_data = payload.data if isinstance(payload.data, dict) else {}
+    
+    # Apply normalization and schema templates
     reviewed = _normalize_extracted_data(payload_data)
     reviewed = _apply_schema_template("patient_schema.json", reviewed)
+    
+    # Ensure legacy/convenience fields are populated (using the adapter)
+    from adk_app.utils.data_adapter import normalize_patient, denormalize_patient
+    full_normalized = normalize_patient(reviewed)
+
+    # Denormalize to strip legacy convenience fields and 'extra' duplication for storage
+    to_save = denormalize_patient(full_normalized)
+
     target = base_dir / "reviewed_patient.json"
     with open(target, "w", encoding="utf-8") as f:
-        json.dump(reviewed, f, ensure_ascii=False, indent=2)
-    return {"status": "ok", "reviewed_path": str(target), "reviewed": reviewed}
+        json.dump(to_save, f, ensure_ascii=False, indent=2)
+    
+    # Invalidate cache
+    clear_patient_cache()
+
+    return {"status": "ok", "reviewed_path": str(target), "reviewed": full_normalized}
 
 
 @app.delete("/doctor/patient")
@@ -897,6 +980,17 @@ async def delete_patient_data(clinic_id: str, patient_id: str) -> dict:
     """
     upload_dir = UPLOAD_ROOT / clinic_id / patient_id
     reviewed_dir = REVIEW_ROOT / clinic_id / patient_id
+    
+    # Fallback to resolve correct folders if direct ones don't exist
+    try:
+        patient = get_patient_data(patient_id)
+        if patient.get("_file_path"):
+            rev_path = Path(patient["_file_path"])
+            reviewed_dir = rev_path.parent
+            upload_dir = UPLOAD_ROOT / clinic_id / reviewed_dir.name
+    except Exception:
+        pass
+
     removed: list[str] = []
 
     for path in (upload_dir, reviewed_dir):

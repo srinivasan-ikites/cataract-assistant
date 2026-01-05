@@ -15,11 +15,11 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
   const staff = clinic?.staff_directory || [];
 
   const surgeonId =
-    (patient as any)?.surgical_selection?.surgeon_ref_id ||
-    (patient as any)?.extra?.surgical_selection?.surgeon_ref_id;
+    (patient as any)?.surgical_recommendations_by_doctor?.doctor_ref_id ||
+    (patient as any)?.extra?.surgical_recommendations_by_doctor?.doctor_ref_id;
   const counselorId =
-    (patient as any)?.surgical_selection?.counselor_ref_id ||
-    (patient as any)?.extra?.surgical_selection?.counselor_ref_id;
+    (patient as any)?.surgical_recommendations_by_doctor?.counselor_ref_id ||
+    (patient as any)?.extra?.surgical_recommendations_by_doctor?.counselor_ref_id;
 
   const surgeon =
     (surgeonId && staff.find((s) => s.provider_id === surgeonId)) ||
@@ -40,7 +40,7 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
     <footer className="w-full bg-slate-950 text-slate-200 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-sm">
-          
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-white shadow-sm">
               <Building2 size={18} />

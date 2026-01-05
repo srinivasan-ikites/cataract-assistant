@@ -1,0 +1,433 @@
+{
+  "patient_identity": {
+    "patient_id": "1245583",
+    "clinic_ref_id": "VIC-MCLEAN-001",
+    "first_name": "Lata",
+    "last_name": "Bhagia",
+    "dob": "1956-01-20",
+    "age": 68,
+    "gender": "Female",
+    "occupation": "Teacherr"
+  },
+  "medical_history": {
+    "source": "Visit Note - September 18, 2024",
+    "systemic_conditions": [
+      "No diabetes",
+      "No glaucoma",
+      "Dry Eye Syndrome"
+    ],
+    "allergies": [
+      "codeine - Anaphylaxis"
+    ],
+    "ocular_history": "Cataract of right eye, Cataract of left eye, Myopia OU, Wears glasses"
+  },
+  "clinical_context": {
+    "diagnosis": {
+      "icd_10_code": "H25.813",
+      "type": "Combined form of senile cataract",
+      "pathology": "Nuclear sclerosis and cortical",
+      "primary_cataract_type": "combined",
+      "anatomical_status": "Phakic"
+    },
+    "comorbidities": [
+      "Dry Eye Syndrome",
+      "Myopia"
+    ],
+    "symptoms_reported_by_patient": [
+      "Night vision worsen",
+      "Blurred Vision",
+      "Glare from headlights",
+      "Difficulty driving at night"
+    ],
+    "measurements": {
+      "od_right_eye": {
+        "axial_length_mm": 25.32,
+        "astigmatism_power": 2.72,
+        "astigmatism_axis": 102,
+        "biometric_insight": "High astigmatism indicated (2.72D)"
+      },
+      "os_left_eye": {
+        "axial_length_mm": 25.23,
+        "astigmatism_power": 0.9,
+        "astigmatism_axis": 51,
+        "biometric_insight": "Moderate astigmatism indicated (0.90D)"
+      }
+    },
+    "triggered_alerts": [
+      {
+        "id": "",
+        "type": "",
+        "message": ""
+      }
+    ]
+  },
+  "lifestyle": {
+    "hobbies": [
+      "Reading",
+      "Walking",
+      "Music"
+    ],
+    "visual_priorities": "Distance Vision (Golf, Driving, Tennis, Other Sports, Watching TV)",
+    "attitude_toward_glasses": "Perfectionist (7/10)"
+  },
+  "surgical_recommendations_by_doctor": {
+    "doctor_ref_id": "Gitanjali Baveja",
+    "counselor_ref_id": "AM",
+    "decision_date": "2024-10-04",
+    "candidate_for_laser": "TRUE",
+    "recommended_lens_options": [
+      {
+        "package_id": "TORIC",
+        "name": "Monofocal",
+        "description": "Toric option circled in recommendations",
+        "reason": "Astigmatism correction"
+      },
+      {
+        "package_id": "PRESBYOPIC_TORIC",
+        "name": "Trifocal",
+        "description": "Presbyopic (w/toric) circled; PanOptix ordered",
+        "reason": "Presbyopia and Astigmatism correction",
+        "is_selected_preference": true
+      },
+      {
+        "package_id": "LAL",
+        "name": "LAL (Light Adjustable Lens)",
+        "description": "LAL circled in recommendations",
+        "reason": "Adjustability"
+      }
+    ],
+    "selected_implants": {
+      "od_right": {
+        "model": "CNWTT6",
+        "power": "+15.0",
+        "cylinder": "Toric",
+        "alignment_axis": "11",
+        "incision": "160"
+      },
+      "os_left": {
+        "model": "CNWTT3",
+        "power": "+15.5",
+        "cylinder": "Toric",
+        "alignment_axis": "135",
+        "incision": "020"
+      }
+    },
+    "scheduling": {
+      "surgery_date": "2026-01-05",
+      "arrival_time": "",
+      "pre_op_start_date": "",
+      "post_op_visit_1": "",
+      "post_op_visit_2": ""
+    }
+  },
+  "medications": {
+    "pre_op": {
+      "antibiotic_id": 2,
+      "antibiotic_name": "Besifloxacin (Besivance)",
+      "frequency_id": 2,
+      "frequency": "3 times a day",
+      "progress": {}
+    },
+    "day_of_surgery": {},
+    "post_op": {
+      "is_dropless": false,
+      "is_combination": false,
+      "combination_name": "",
+      "antibiotic": {
+        "name": "Ciprofloxacin",
+        "frequency": 3,
+        "frequency_label": "3x Daily",
+        "weeks": 1
+      },
+      "nsaid": {
+        "name": "Bromfenac (Prolensa, Bromday, Bromsite)",
+        "frequency": 1,
+        "frequency_label": "1x Daily",
+        "weeks": 4
+      },
+      "steroid": {
+        "name": "Dexamethasone",
+        "taper_schedule": [
+          2,
+          1,
+          0,
+          0
+        ],
+        "weeks": 4
+      },
+      "glaucoma": {
+        "resume": true,
+        "medications": [
+          "Timolol (Timoptic, Istalol, Betimol)"
+        ]
+      },
+      "progress": {
+        "2026-01-02": {
+          "antibiotic_0": true,
+          "antibiotic_1": true,
+          "nsaid_0": true,
+          "steroid_0": true,
+          "antibiotic_2": true
+        }
+      }
+    }
+  },
+  "documents": {
+    "signed_consents": [
+      {
+        "name": "",
+        "date": ""
+      }
+    ]
+  },
+  "chat_history": [],
+  "module_content": {
+    "my diagnosis": {
+      "title": "My Diagnosis",
+      "summary": "You have **Combined form of senile cataract**, specifically **Nuclear sclerosis and cortical** cataracts in both eyes, Lata. This means the natural lenses in your eyes have become cloudy, making it harder to see clearly. You've mentioned experiencing **blurred vision**, **glare from headlights**, and **difficulty driving at night**, which are all very common symptoms of **cataracts**. We also noted that your right eye has significant **astigmatism** (2.72D), which is a common vision condition where your eye isn't perfectly round, causing blurry or distorted vision at all distances.",
+      "faqs": [
+        {
+          "question": "What exactly is a **cataract**?",
+          "answer": "A **cataract** is when the clear lens inside your eye becomes cloudy, much like looking through a foggy window. This cloudiness can make your vision blurry, colors seem dull, and cause glare from lights."
+        },
+        {
+          "question": "What is **Nuclear sclerosis**?",
+          "answer": "**Nuclear sclerosis** is a type of **cataract** where the center of your eye's lens, called the nucleus, gradually hardens and yellows. This often leads to a progressive blurring of distance vision and can sometimes even temporarily improve near vision."
+        },
+        {
+          "question": "What is a **cortical cataract**?",
+          "answer": "A **cortical cataract** affects the outer edge of your eye's lens, forming wedge-shaped opacities that point towards the center. These can cause glare, especially at night, and make your vision hazy."
+        },
+        {
+          "question": "What is **astigmatism**?",
+          "answer": "**Astigmatism** is a common vision condition where the front surface of your eye, the cornea, or the lens inside your eye, has an irregular curve. Instead of being perfectly round like a basketball, it's shaped more like a football. This causes light to focus unevenly on your retina, leading to blurry or distorted vision at all distances."
+        }
+      ],
+      "videoScriptSuggestion": "Learn more about your **cataract** diagnosis, including **Nuclear sclerosis** and **cortical** types, and how **astigmatism** affects your vision.",
+      "botStarterPrompt": "Can you tell me more about my **cataract** diagnosis?"
+    },
+    "what is cataract surgery?": {
+      "title": "What is Cataract Surgery?",
+      "summary": "Lata, **cataract surgery** is a very common and safe procedure designed to restore your clear vision. During the surgery, your doctor will gently remove the cloudy natural lens in your eye, which is causing your **Nuclear sclerosis and cortical** cataracts, and replace it with a new, clear artificial lens called an **Intraocular Lens**, or **IOL**. This will help you see the world clearly again!",
+      "faqs": [
+        {
+          "question": "How long does **cataract surgery** take?",
+          "answer": "The actual surgery itself is quite quick, usually lasting about 15 to 30 minutes per eye. You'll be at the clinic for a few hours in total for preparation and recovery."
+        },
+        {
+          "question": "Is **cataract surgery** painful?",
+          "answer": "No, you shouldn't feel any pain during the surgery. We use numbing eye drops and sometimes a mild sedative to help you relax and ensure you're comfortable throughout the procedure."
+        },
+        {
+          "question": "What kind of anesthesia is used for **cataract surgery**?",
+          "answer": "We typically use a local anesthetic, which means your eye will be numbed with drops or an injection around the eye. You'll be awake but very relaxed, and you won't see what's happening during the surgery."
+        }
+      ],
+      "videoScriptSuggestion": "Watch an animation explaining the **cataract surgery** process and how it will remove your cloudy lens.",
+      "botStarterPrompt": "How does **cataract surgery** work?"
+    },
+    "what is an iol?": {
+      "title": "What is an IOL?",
+      "summary": "An **IOL**, or **Intraocular Lens**, is a tiny, artificial lens that replaces your eye's natural lens after it's removed during **cataract surgery**. It's designed to stay in your eye permanently and help you see clearly. For you, Lata, we'll be using a **Trifocal IOL**, which is a special type of lens that can help you see well at many different distances.",
+      "faqs": [
+        {
+          "question": "What exactly is an **IOL**?",
+          "answer": "An **IOL** is a small, clear, artificial lens that is implanted into your eye during **cataract surgery** to replace your eye's natural lens. It helps to focus light onto your retina, allowing you to see clearly."
+        },
+        {
+          "question": "What is a **Trifocal IOL**?",
+          "answer": "A **Trifocal IOL** is an advanced type of **IOL** designed to provide clear vision at three main distances: near (for reading), intermediate (for computer work), and far (for driving or watching TV). It's a wonderful option for reducing your dependence on glasses for most activities."
+        }
+      ],
+      "videoScriptSuggestion": "Discover what an **Intraocular Lens (IOL)** is and how your chosen **Trifocal IOL** will help you see.",
+      "botStarterPrompt": "What is an **IOL** and what does it do?"
+    },
+    "my iol options": {
+      "title": "My IOL Options",
+      "summary": "Lata, you've made a wonderful choice by selecting the **Trifocal IOL** package! This advanced lens is specifically designed to address both your **cataracts** and your **astigmatism** in your right eye, while also giving you clear vision at near, intermediate, and far distances. This means you'll likely be able to enjoy activities like reading, walking, and watching TV with much less reliance on glasses. While a standard **Monofocal IOL** would give you clear distance vision (but you'd still need glasses for reading and intermediate tasks), and a **Monofocal Toric IOL** would correct your **astigmatism** for distance vision, your chosen **Trifocal IOL** offers the most comprehensive vision correction, aiming for excellent vision across all ranges.",
+      "faqs": [
+        {
+          "question": "Why is the **Trifocal IOL** a good choice for me?",
+          "answer": "The **Trifocal IOL** is an excellent choice for you, Lata, because it's designed to correct your **astigmatism** and provide clear vision at distance, intermediate, and near ranges. This aligns well with your desire for good vision for activities like reading and driving, significantly reducing your need for glasses."
+        },
+        {
+          "question": "Will I still need glasses after getting a **Trifocal IOL**?",
+          "answer": "While the goal of a **Trifocal IOL** is to significantly reduce your dependence on glasses for most activities, some people may still prefer to wear glasses for very fine print, in dim lighting, or for specific tasks. It's about achieving the best possible vision without constant reliance on glasses."
+        },
+        {
+          "question": "How does the **Trifocal IOL** help with my **astigmatism**?",
+          "answer": "The **Trifocal IOL** you've chosen is also a **Toric IOL**, meaning it has special features built into the lens to correct your **astigmatism**. This helps to ensure that light focuses properly on your retina, giving you sharper, clearer vision without the distortion caused by **astigmatism**."
+        }
+      ],
+      "videoScriptSuggestion": "Understand why your **Trifocal IOL** choice is perfect for your lifestyle and vision goals, including **astigmatism** correction.",
+      "botStarterPrompt": "Why did I choose the **Trifocal IOL**?"
+    },
+    "risks & complications": {
+      "title": "Risks & Complications",
+      "summary": "Lata, it's completely normal to have questions about the safety of **cataract surgery**. I want to reassure you that **cataract surgery** is one of the safest and most commonly performed surgeries in the world, with a very high success rate. However, like any medical procedure, there are always some potential risks and complications, even if they are rare. We want you to be fully informed.",
+      "faqs": [
+        {
+          "question": "How common are serious complications from **cataract surgery**?",
+          "answer": "Serious complications are very rare, occurring in less than 1% of cases. Most people experience excellent results with minimal issues."
+        },
+        {
+          "question": "What should I do if I experience a complication after surgery?",
+          "answer": "If you experience any sudden pain, significant vision loss, or unusual symptoms after your surgery, please contact our clinic immediately. We have an on-call team available to assist you."
+        }
+      ],
+      "risks": [
+        {
+          "category": "Common Minor Risks",
+          "items": [
+            "Temporary blurred vision",
+            "Mild discomfort or irritation",
+            "Dry eye",
+            "Light sensitivity",
+            "Bruising around the eye"
+          ]
+        },
+        {
+          "category": "Rare Serious Complications",
+          "items": [
+            "Infection (**endophthalmitis**)",
+            "**Retinal detachment**",
+            "Significant vision loss",
+            "**Posterior capsular opacification (PCO)**",
+            "**IOL dislocation**",
+            "Bleeding",
+            "Swelling of the retina (**cystoid macular edema**)"
+          ]
+        }
+      ],
+      "videoScriptSuggestion": "A quick overview of the rare risks and common minor side effects associated with **cataract surgery**.",
+      "botStarterPrompt": "What are the risks of **cataract surgery**?"
+    },
+    "before surgery": {
+      "title": "Before Surgery",
+      "summary": "Getting ready for your **cataract surgery** is a simple process, Lata. Following these steps will help ensure everything goes smoothly for your big day. Here is your checklist:",
+      "faqs": [
+        {
+          "question": "What medications should I stop before surgery?",
+          "answer": "Your doctor will provide specific instructions regarding your medications. Generally, you may be asked to stop blood thinners a few days before surgery, but always follow your doctor's personalized advice."
+        },
+        {
+          "question": "Can I eat or drink anything the morning of my surgery?",
+          "answer": "No, it's very important not to eat or drink anything after midnight the night before your surgery. This includes water, gum, and candy."
+        }
+      ],
+      "checklist": [
+        "Complete pre-operative measurements and tests.",
+        "Discuss medication instructions with your doctor.",
+        "Arrange for a ride home after surgery.",
+        "Avoid alcohol 24 hours before surgery.",
+        "Do not eat or drink anything after midnight the night before surgery."
+      ],
+      "videoScriptSuggestion": "A helpful guide to preparing for your **cataract surgery**, including important do's and don'ts.",
+      "botStarterPrompt": "What do I need to do before my surgery?"
+    },
+    "day of surgery": {
+      "title": "Day of Surgery",
+      "summary": "Lata, the day of your **cataract surgery** will be a smooth and well-organized experience. Our team will be there to guide you every step of the way. Here is your journey for the big day:",
+      "faqs": [
+        {
+          "question": "How long will I be at the clinic on the day of surgery?",
+          "answer": "You can expect to be at the clinic for approximately 2-3 hours in total, including preparation, the surgery itself, and a short recovery period."
+        },
+        {
+          "question": "Do I need someone to drive me home after surgery?",
+          "answer": "Yes, it is mandatory to have a responsible adult drive you home after your surgery. You will not be able to drive yourself due to the effects of the sedative and eye drops."
+        }
+      ],
+      "timeline": [
+        {
+          "step": "Arrival & Check-in",
+          "description": "Arrive at the clinic, complete final paperwork, and prepare for surgery."
+        },
+        {
+          "step": "Pre-operative Prep",
+          "description": "Nurses will administer eye drops, review your medical history, and prepare you for the operating room."
+        },
+        {
+          "step": "Surgery",
+          "description": "The surgeon will perform the **cataract removal** and **IOL implantation**, typically lasting 15-30 minutes per eye."
+        },
+        {
+          "step": "Recovery",
+          "description": "You'll rest in a recovery area for a short period while the anesthesia wears off and nurses monitor your initial recovery."
+        },
+        {
+          "step": "Discharge",
+          "description": "Once cleared, you'll receive post-operative instructions and be discharged to go home with your arranged ride."
+        }
+      ],
+      "videoScriptSuggestion": "Walk through your surgery day step-by-step, from arrival to discharge, so you know what to expect.",
+      "botStarterPrompt": "What happens on the day of surgery?"
+    },
+    "after surgery": {
+      "title": "After Surgery",
+      "summary": "Lata, your recovery after **cataract surgery** is just as important as the surgery itself. To ensure a quick and smooth healing process and the best possible visual outcome, please follow these steps carefully:",
+      "faqs": [
+        {
+          "question": "What can I expect immediately after surgery?",
+          "answer": "You might experience some mild discomfort, grittiness, or blurry vision immediately after surgery. This is normal and usually improves quickly. Your eye may also be sensitive to light."
+        },
+        {
+          "question": "When can I resume normal activities like reading or watching TV?",
+          "answer": "You can usually resume light activities like reading and watching TV within a day or two, as long as you feel comfortable. However, avoid strenuous activities, heavy lifting, and bending over for at least a week."
+        }
+      ],
+      "checklist": [
+        "Use prescribed eye drops as directed.",
+        "Avoid rubbing or pressing on your eye.",
+        "Wear the protective eye shield while sleeping for the first week.",
+        "Avoid strenuous activities and heavy lifting for at least a week.",
+        "Keep water out of your eye for the first week (no swimming or hot tubs).",
+        "Attend all scheduled post-operative appointments."
+      ],
+      "videoScriptSuggestion": "Tips for a smooth recovery after **cataract surgery**, including eye drop instructions and activity restrictions.",
+      "botStarterPrompt": "What should I do after my surgery?"
+    },
+    "costs & insurance": {
+      "title": "Costs & Insurance",
+      "summary": "Lata, we understand that understanding the financial aspects of your **cataract surgery** is important. You've chosen the **Trifocal IOL** package, which offers advanced vision correction. Here's a breakdown of the costs associated with your chosen package. Please remember that this is an estimate, and we encourage you to contact your insurance provider directly for the most accurate information regarding your specific coverage.",
+      "faqs": [
+        {
+          "question": "What parts of the **cataract surgery** are typically covered by insurance?",
+          "answer": "Generally, the 'Facility Fee' and 'Anesthesia Fee' for **cataract surgery** are covered by most insurance plans. However, the 'Physician Fee' and the 'Trifocal Lens Upgrade' are typically considered out-of-pocket expenses for advanced **IOLs**. It's always best to confirm with your specific insurance provider."
+        },
+        {
+          "question": "How do I pay for the out-of-pocket costs?",
+          "answer": "We offer various payment options, including payment plans, to help make your surgery affordable. Our financial counselor can discuss these options with you and help you understand your benefits."
+        }
+      ],
+      "costBreakdown": [
+        {
+          "category": "Physician Fee",
+          "amount": "$6200",
+          "covered": false,
+          "note": "Out of pocket"
+        },
+        {
+          "category": "Facility Fee",
+          "amount": "$1200",
+          "covered": true,
+          "note": "Covered by most insurance"
+        },
+        {
+          "category": "Anesthesia Fee",
+          "amount": "$400",
+          "covered": true,
+          "note": "Covered by most insurance"
+        },
+        {
+          "category": "Trifocal Lens Upgrade",
+          "amount": "$3500",
+          "covered": false,
+          "note": "Out of pocket"
+        }
+      ],
+      "videoScriptSuggestion": "A clear explanation of the costs for your **Trifocal IOL** package and what your insurance may cover.",
+      "botStarterPrompt": "Can you explain the costs for my surgery?"
+    }
+  }
+}

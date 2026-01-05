@@ -5,6 +5,11 @@ import { Patient } from '../services/api';
 import { X, Loader2, ChevronDown, CheckCircle2, AlertTriangle, DollarSign } from 'lucide-react';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
+import DiagnosisModal from './DiagnosisModal';
+import SurgeryModal from './SurgeryModal';
+import IOLModal from './IOLModal';
+import BeforeSurgeryModal from './BeforeSurgeryModal';
+import AfterSurgeryModal from './AfterSurgeryModal';
 
 interface DetailModalProps {
   item: ModuleItem | null;
@@ -14,12 +19,13 @@ interface DetailModalProps {
 }
 
 const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpenChat }) => {
+  // ... existing hooks ...
   const [content, setContent] = useState<GeminiContentResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const { classes } = useTheme();
 
-  // Strip basic markdown (bold/italic/code) and collapse whitespace for prefilled chat prompt
+  // ... sanitizeQuestion function ...
   const sanitizeQuestion = (q?: string) =>
     (q || "")
       .replace(/\*\*/g, "")
@@ -29,6 +35,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
       .trim();
 
   useEffect(() => {
+    // ... existing useEffect ...
     if (item) {
       setLoading(true);
       const pid = patient?.patient_id;
@@ -45,10 +52,77 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
 
   if (!item) return null;
 
+  // Route "My Diagnosis" to the specialized DiagnosisModal
+  const isDiagnosisModule = item.title.toLowerCase().includes('diagnosis');
+  if (isDiagnosisModule && !loading) {
+    return (
+      <DiagnosisModal
+        patient={patient}
+        moduleContent={content}
+        onClose={onClose}
+        onOpenChat={onOpenChat}
+      />
+    );
+  }
+
+  // Route "Before Surgery" to the new BeforeSurgeryModal
+  // Note: the tile title is "Before Surgery"
+  const isBeforeSurgery = item.title.toLowerCase().includes('before surgery');
+  if (isBeforeSurgery && !loading) {
+    return (
+      <BeforeSurgeryModal
+        onClose={onClose}
+        patient={patient}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+      />
+    );
+  }
+
+  // Route "IOL" or "Lens Options" to the new IOLModal
+  const isIOLModule = item.title.toLowerCase().includes('iol') || item.title.toLowerCase().includes('lens options');
+  if (isIOLModule && !loading) {
+    return (
+      <IOLModal
+        onClose={onClose}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+      />
+    );
+  }
+
+  // Route "After Surgery" or "Recovery" to the new AfterSurgeryModal
+  const isPostOpModule = item.title.toLowerCase().includes('after surgery') || item.title.toLowerCase().includes('recovery');
+  if (isPostOpModule && !loading) {
+    return (
+      <AfterSurgeryModal
+        patient={patient}
+        onClose={onClose}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+      />
+    );
+  }
+
+  // Route "Surgery" related modules to the new SurgeryModal
+  const isSurgeryModule = item.title.toLowerCase().includes('surgery');
+  if (isSurgeryModule && !loading) {
+    const isDayOfSurgery = item.title.toLowerCase().includes('day of');
+    return (
+      <SurgeryModal
+        patient={patient}
+        onClose={onClose}
+        isDayOfSurgery={isDayOfSurgery}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+      />
+    );
+  }
+
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]`}>
       {/* Scrim / Backdrop */}
-      <div 
+      <div
         className={`absolute inset-0 ${classes.dialogOverlay} backdrop-blur-sm transition-opacity`}
         onClick={onClose}
       ></div>
@@ -56,7 +130,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
       {/* Material Dialog Container */}
       <div className={`relative w-full max-w-4xl max-h-[88vh] ${classes.dialogPanel} rounded-[28px] shadow-2xl overflow-hidden flex flex-col transform transition-all animate-[scaleIn_0.2s_ease-out]`}>
         {/* Close Button - Absolute */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors text-slate-700"
         >
@@ -64,30 +138,30 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
         </button>
 
         {/* Content */}
-        <div 
+        <div
           className="w-full p-6 md:p-8 overflow-y-auto bg-white space-y-8"
           style={{ scrollbarGutter: 'stable' }}
         >
           {loading ? (
-             <div className="space-y-6 animate-pulse mt-8">
-               <div className="h-10 bg-slate-100 rounded-lg w-3/4"></div>
-               <div className="h-4 bg-slate-50 rounded w-full"></div>
-               <div className="h-4 bg-slate-50 rounded w-full"></div>
-               <div className="h-32 bg-slate-50 rounded-2xl w-full mt-8"></div>
-             </div>
+            <div className="space-y-6 animate-pulse mt-8">
+              <div className="h-10 bg-slate-100 rounded-lg w-3/4"></div>
+              <div className="h-4 bg-slate-50 rounded w-full"></div>
+              <div className="h-4 bg-slate-50 rounded w-full"></div>
+              <div className="h-32 bg-slate-50 rounded-2xl w-full mt-8"></div>
+            </div>
           ) : (
             <>
               <div className="space-y-8">
                 <div className="space-y-3">
                   <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight">{content?.title || item.title}</h2>
                   <div className={`h-1.5 w-24 ${classes.dialogHighlight} rounded-full`}></div>
-                    <div className="text-lg text-slate-700 leading-relaxed font-normal [&>p]:mb-2 last:[&>p]:mb-0">
-                      <ReactMarkdown>{content?.summary || ""}</ReactMarkdown>
-                    </div>
+                  <div className="text-lg text-slate-700 leading-relaxed font-normal [&>p]:mb-2 last:[&>p]:mb-0">
+                    <ReactMarkdown>{content?.summary || ""}</ReactMarkdown>
+                  </div>
                 </div>
 
                 {/* Specialized Content Sections */}
-                
+
                 {/* CHECKLIST (Before/After Surgery) */}
                 {content?.checklist && content.checklist.length > 0 && (
                   <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
@@ -98,8 +172,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
                     <div className="space-y-3">
                       {content.checklist.map((item, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-emerald-100/50 shadow-sm">
-                           <div className="w-5 h-5 rounded border-2 border-emerald-200 mt-0.5 flex-shrink-0" />
-                           <span className="text-slate-700 font-medium">{item}</span>
+                          <div className="w-5 h-5 rounded border-2 border-emerald-200 mt-0.5 flex-shrink-0" />
+                          <span className="text-slate-700 font-medium">{item}</span>
                         </div>
                       ))}
                     </div>
@@ -123,19 +197,19 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
                 {/* RISKS (Risks & Complications) */}
                 {content?.risks && content.risks.length > 0 && (
                   <div className="space-y-6">
-                     {content.risks.map((cat, i) => (
-                       <div key={i} className="border border-slate-200 rounded-2xl overflow-hidden">
-                         <div className="bg-slate-50 p-4 border-b border-slate-200 font-bold text-slate-700 flex items-center gap-2">
-                           <AlertTriangle size={18} className="text-amber-500" />
-                           {cat.category}
-                         </div>
-                         <ul className="divide-y divide-slate-100">
-                           {cat.items.map((risk, j) => (
-                             <li key={j} className="p-4 text-slate-600 hover:bg-slate-50/50">{risk}</li>
-                           ))}
-                         </ul>
-                       </div>
-                     ))}
+                    {content.risks.map((cat, i) => (
+                      <div key={i} className="border border-slate-200 rounded-2xl overflow-hidden">
+                        <div className="bg-slate-50 p-4 border-b border-slate-200 font-bold text-slate-700 flex items-center gap-2">
+                          <AlertTriangle size={18} className="text-amber-500" />
+                          {cat.category}
+                        </div>
+                        <ul className="divide-y divide-slate-100">
+                          {cat.items.map((risk, j) => (
+                            <li key={j} className="p-4 text-slate-600 hover:bg-slate-50/50">{risk}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -168,78 +242,77 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
                 {/* FAQs Section */}
                 {content?.faqs && content.faqs.length > 0 ? (
                   <div>
-                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Frequently Asked Questions</h3>
-                      <div className="space-y-3">
-                        {content.faqs.map((faq, index) => {
-                           const isOpen = openFaqIndex === index;
-                           return (
-                           <div key={index} className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'}`}>
-                             <button 
-                                onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                                className="w-full text-left p-5 flex justify-between items-start gap-4 transition-colors"
-                             >
-                                <div className={`font-medium text-base transition-colors ${isOpen ? 'text-blue-800' : 'text-slate-700'}`}>
-                                  <ReactMarkdown components={{ p: Fragment }}>{faq.question}</ReactMarkdown>
-                                </div>
-                                <span className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-300 ${isOpen ? 'rotate-180 bg-blue-200 text-blue-700' : 'bg-white text-slate-400 shadow-sm'}`}>
-                                   <ChevronDown size={18} />
-                                </span>
-                             </button>
-                             
-                             <div 
-                               className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                                 isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-                               }`}
-                             >
-                               <div className="p-5 pt-0 text-slate-600 leading-relaxed text-sm">
-                                 <div className="h-px w-full bg-slate-200/60 mb-4"></div>
-                                 <ReactMarkdown>{faq.answer || ""}</ReactMarkdown>
-                               </div>
-                             </div>
-                           </div>
-                           );
-                        })}
-                      </div>
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Frequently Asked Questions</h3>
+                    <div className="space-y-3">
+                      {content.faqs.map((faq, index) => {
+                        const isOpen = openFaqIndex === index;
+                        return (
+                          <div key={index} className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-slate-50 border-slate-100 hover:border-slate-300'}`}>
+                            <button
+                              onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                              className="w-full text-left p-5 flex justify-between items-start gap-4 transition-colors"
+                            >
+                              <div className={`font-medium text-base transition-colors ${isOpen ? 'text-blue-800' : 'text-slate-700'}`}>
+                                <ReactMarkdown components={{ p: Fragment }}>{faq.question}</ReactMarkdown>
+                              </div>
+                              <span className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-300 ${isOpen ? 'rotate-180 bg-blue-200 text-blue-700' : 'bg-white text-slate-400 shadow-sm'}`}>
+                                <ChevronDown size={18} />
+                              </span>
+                            </button>
+
+                            <div
+                              className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                                }`}
+                            >
+                              <div className="p-5 pt-0 text-slate-600 leading-relaxed text-sm">
+                                <div className="h-px w-full bg-slate-200/60 mb-4"></div>
+                                <ReactMarkdown>{faq.answer || ""}</ReactMarkdown>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ) : (
                   /* Fallback to Details if no FAQs yet */
-                <div>
+                  <div>
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Key Details</h3>
                     <ul className="space-y-4">
-                    {content?.details.map((detail, index) => (
+                      {content?.details.map((detail, index) => (
                         <li key={index} className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                            <span className={`flex-shrink-0 w-8 h-8 rounded-full ${classes.dialogHighlight} ${classes.primaryText} flex items-center justify-center text-sm font-bold`}>
-                                {index + 1}
-                            </span>
-                            <div className="text-slate-700 leading-snug">
-                              <ReactMarkdown components={{ p: Fragment }}>{detail}</ReactMarkdown>
-                            </div>
+                          <span className={`flex-shrink-0 w-8 h-8 rounded-full ${classes.dialogHighlight} ${classes.primaryText} flex items-center justify-center text-sm font-bold`}>
+                            {index + 1}
+                          </span>
+                          <div className="text-slate-700 leading-snug">
+                            <ReactMarkdown components={{ p: Fragment }}>{detail}</ReactMarkdown>
+                          </div>
                         </li>
-                    ))}
+                      ))}
                     </ul>
-                </div>
+                  </div>
                 )}
 
                 {/* Bot Action Section */}
-                 <div className={`mt-8 p-6 rounded-2xl ${classes.surfaceVariant} border border-slate-200 text-center`}>
-                   <h3 className={`text-lg font-semibold ${classes.primaryText} mb-2`}>
-                     Still have questions?
-                   </h3>
-                   <p className="text-slate-600 mb-4">
-                     Our AI assistant can explain {item.title} in more detail based on your personal medical records.
-                   </p>
-                   <button
+                <div className={`mt-8 p-6 rounded-2xl ${classes.surfaceVariant} border border-slate-200 text-center`}>
+                  <h3 className={`text-lg font-semibold ${classes.primaryText} mb-2`}>
+                    Still have questions?
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    Our AI assistant can explain {item.title} in more detail based on your personal medical records.
+                  </p>
+                  <button
                     onClick={() =>
                       onOpenChat(
                         sanitizeQuestion(content?.botStarterPrompt) ||
                         `Tell me more about ${item.title}`
                       )
                     }
-                     className={`inline-flex items-center gap-2 px-6 py-3 rounded-full ${classes.fabBg} text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all`}
-                   >
-                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                     Chat with Assistant
-                   </button>
+                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-full ${classes.fabBg} text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all`}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    Chat with Assistant
+                  </button>
                 </div>
               </div>
             </>

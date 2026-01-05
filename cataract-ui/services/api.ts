@@ -1,8 +1,9 @@
 import { ModuleItem } from '../types';
 
 // const API_BASE = 'http://localhost:8000'; // align with backend
+const API_BASE = 'http://35.244.44.106:8000';
 // const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
-const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
+// const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
 export interface Patient {
     patient_id: string;
@@ -11,9 +12,86 @@ export interface Patient {
     dob: string;
     chat_history?: ChatMessage[];
     module_content?: Record<string, any>;
-    clinical_context?: any;
-    surgical_selection?: any;
-    lifestyle_preferences?: any;
+    clinical_context?: {
+        diagnosis?: {
+            icd_10_code?: string;
+            type?: string;
+            pathology?: string;
+            anatomical_status?: string;
+            primary_cataract_type?: string;
+        };
+        measurements?: any;
+        comorbidities?: string[];
+        symptoms_reported_by_patient?: string[];
+    };
+    surgical_recommendations_by_doctor?: {
+        doctor_ref_id?: string;
+        decision_date?: string;
+        candidate_for_laser?: boolean;
+        recommended_lens_options?: Array<{
+            name: string;
+            description?: string;
+            reason?: string;
+            is_selected_preference: boolean;
+        }>;
+        scheduling?: {
+            surgery_date?: string;
+            arrival_time?: string;
+            pre_op_start_date?: string;
+            post_op_visit_1?: string;
+            post_op_visit_2?: string;
+        };
+        selected_implants?: any;
+        // Legacy, keeping for type safety during migration but deprecated
+        pre_op_instructions?: {
+            antibiotic_name?: string;
+            frequency?: string;
+        };
+    };
+    medications?: {
+        pre_op?: {
+            antibiotic_id?: number;
+            antibiotic_name?: string;
+            frequency_id?: number;
+            frequency?: string;
+            progress?: { [date: string]: string[] };
+        };
+        day_of_surgery?: any;
+        post_op?: {
+            is_dropless: boolean;
+            is_combination: boolean;
+            combination_name?: string;
+            antibiotic?: {
+                name: string;
+                frequency: number;
+                frequency_label: string;
+                weeks: number;
+            };
+            nsaid?: {
+                name: string;
+                frequency: number;
+                frequency_label: string;
+                weeks: number;
+            };
+            steroid?: {
+                name: string;
+                taper_schedule: number[];
+                weeks: number;
+            };
+            glaucoma?: {
+                resume: boolean;
+                medications: string[];
+            };
+            progress?: { [date: string]: { [medKey: string]: boolean } };
+        };
+    };
+    lifestyle?: {
+        hobbies?: string[];
+        visual_priorities?: string;
+        attitude_toward_glasses?: string;
+    };
+    medical_history?: any;
+    documents?: any;
     extra?: any;
     // Add other fields as needed from your JSON
 }
@@ -116,7 +194,7 @@ export const api = {
         formData.append('clinic_id', clinicId);
         formData.append('patient_id', patientId);
         files.forEach(file => formData.append('files', file));
-        
+
         const res = await fetch(`${API_BASE}/doctor/uploads/patient`, {
             method: 'POST',
             body: formData,
@@ -130,7 +208,7 @@ export const api = {
             } catch {
                 try {
                     msg = await res.text();
-                } catch {/* ignore */}
+                } catch {/* ignore */ }
             }
             throw new Error(msg);
         }
@@ -142,7 +220,7 @@ export const api = {
         const formData = new FormData();
         formData.append('clinic_id', clinicId);
         files.forEach(file => formData.append('files', file));
-        
+
         const res = await fetch(`${API_BASE}/doctor/uploads/clinic`, {
             method: 'POST',
             body: formData,
@@ -207,7 +285,7 @@ export const api = {
             } catch {
                 try {
                     msg = await res.text();
-                } catch {/* ignore */}
+                } catch {/* ignore */ }
             }
             throw new Error(msg);
         }

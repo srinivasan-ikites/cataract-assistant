@@ -262,31 +262,31 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
   // Generate initial suggestions when there's no chat history
   const getInitialSuggestions = (): string[] => {
     const generalQuestion = "What is cataract surgery?";
-    
+
     // Patient-related question based on available data
-    const diagnosis = patient?.clinical_context?.primary_diagnosis?.pathology ||
-                     patient?.clinical_context?.primary_diagnosis?.type ||
-                     null;
-    const lensType = patient?.surgical_selection?.lens_configuration?.lens_type || null;
-    
+    const diagnosis = patient?.clinical_context?.diagnosis?.pathology ||
+      patient?.clinical_context?.diagnosis?.type ||
+      null;
+    const lensType = patient?.surgical_recommendations_by_doctor?.recommended_lens_options?.find(opt => opt.is_selected_preference)?.name || null;
+
     let patientQuestion = "What should I expect during recovery?";
     if (diagnosis) {
       patientQuestion = `Tell me about ${diagnosis}`;
     } else if (lensType) {
       patientQuestion = `What is ${lensType}?`;
     }
-    
+
     return [generalQuestion, patientQuestion];
   };
 
   const lastBotMessage = [...chatHistory].reverse().find(m => m.role === 'bot');
   // Only show suggestions if the very last message is from the bot
   const showSuggestions = chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'bot';
-  
+
   // Use initial suggestions if no history (only initial greeting), otherwise use bot's suggestions
   const hasOnlyInitialGreeting = chatHistory.length === 1 && chatHistory[0].role === 'bot' && !chatHistory[0].suggestions;
-  const currentSuggestions = hasOnlyInitialGreeting 
-    ? getInitialSuggestions() 
+  const currentSuggestions = hasOnlyInitialGreeting
+    ? getInitialSuggestions()
     : (showSuggestions ? lastBotMessage?.suggestions || [] : []);
 
   const handleSend = async (q: string) => {
@@ -343,193 +343,193 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
           <div className="fixed inset-0 z-[95] bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
           <div className="fixed inset-0 md:top-auto md:bottom-4 md:right-8 md:left-auto z-[100] w-full md:w-[640px] h-full md:h-[92vh] max-h-full md:max-h-[92vh] bg-white shadow-2xl rounded-none md:rounded-[24px] flex flex-col overflow-hidden animate-[slideUp_0.3s_ease-out] border border-slate-200 ring-1 ring-black/5">
 
-          {/* Header */}
-          <div className={`${classes.chatHeader} px-4 py-3 flex justify-between items-center text-white shadow-md`}>
-            <div className="flex items-center gap-2.5">
-              <div className="bg-white/20 p-1.5 rounded-full">
-                <MessageCircle size={18} />
+            {/* Header */}
+            <div className={`${classes.chatHeader} px-4 py-3 flex justify-between items-center text-white shadow-md`}>
+              <div className="flex items-center gap-2.5">
+                <div className="bg-white/20 p-1.5 rounded-full">
+                  <MessageCircle size={18} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base leading-tight">Assistant</h3>
+                  <p className="text-[11px] opacity-80">Always here to help</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-base leading-tight">Assistant</h3>
-                <p className="text-[11px] opacity-80">Always here to help</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleClearChat}
-                className="hover:bg-white/20 px-2 py-1 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
-              >
-                <Trash2 size={18} />
-                {/* <span>Clear</span> */}
-              </button>
-              <button onClick={() => onClose()} className="hover:bg-white/20 p-2 rounded-full transition-colors" type="button">
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Chat Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 scroll-smooth">
-            {chatHistory.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'user' ? (
-                <div
-                    className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${classes.userBubble} rounded-br-sm`}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleClearChat}
+                  className="hover:bg-white/20 px-2 py-1 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
                 >
-                  <div className="text-sm">
-                    <ReactMarkdown
-                      components={{
-                        p: ({ children }) => <p className="text-sm m-0">{children}</p>,
-                      }}
+                  <Trash2 size={18} />
+                  {/* <span>Clear</span> */}
+                </button>
+                <button onClick={() => onClose()} className="hover:bg-white/20 p-2 rounded-full transition-colors" type="button">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 scroll-smooth">
+              {chatHistory.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.role === 'user' ? (
+                    <div
+                      className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${classes.userBubble} rounded-br-sm`}
                     >
-                      {msg.text}
-                    </ReactMarkdown>
-                  </div>
-                  </div>
-                ) : (
-                  <div className="max-w-[100%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                    <div className="p-5 space-y-4">
-                      {msg.blocks && msg.blocks.length > 0 ? (
-                        <BlockRenderer blocks={msg.blocks} />
-                      ) : (
-                        <div className="text-[17px] leading-[1.8] text-slate-700">
-                          <ReactMarkdown
-                            components={{
-                              strong: ({ children }) => (
-                                <strong className="font-bold text-slate-900">{children}</strong>
-                              ),
-                            }}
-                          >
-                            {msg.text}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-
-                      {msg.media && msg.media.length > 0 && (
-                        <div className="space-y-2">
-                      {msg.media.map((item, idx) => (
-                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
-                          {item.type === 'image' && (
-                            <img 
-                              src={item.url} 
-                              alt={item.alt || 'Educational image'} 
-                              className="w-full h-auto"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          {item.type === 'video' && (
-                            <iframe 
-                              src={item.url} 
-                              title={item.caption || item.alt || 'Educational video'}
-                              className="w-full h-64"
-                              allowFullScreen
-                            />
-                          )}
-                          {item.caption && (
-                            <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
-                          )}
-                        </div>
-                      ))}
+                      <div className="text-sm">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="text-sm m-0">{children}</p>,
+                          }}
+                        >
+                          {msg.text}
+                        </ReactMarkdown>
+                      </div>
                     </div>
-                  )}
-
-                      {msg.sources && msg.sources.length > 0 && (
-                        <div className="pt-1">
-                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-2">Sources</div>
-                      <div className="flex flex-wrap gap-2">
-                        {msg.sources
-                          .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
-                          .map((src, i) => {
-                          const title = src.section_title || 'Source';
-                          const firstLink = src.links && src.links.length ? src.links[0].url : null;
-                          const href = src.source_url || firstLink;
-                          return (
-                            <span
-                              key={i}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[12px] text-slate-700 shadow-sm"
+                  ) : (
+                    <div className="max-w-[100%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                      <div className="p-5 space-y-4">
+                        {msg.blocks && msg.blocks.length > 0 ? (
+                          <BlockRenderer blocks={msg.blocks} />
+                        ) : (
+                          <div className="text-[17px] leading-[1.8] text-slate-700">
+                            <ReactMarkdown
+                              components={{
+                                strong: ({ children }) => (
+                                  <strong className="font-bold text-slate-900">{children}</strong>
+                                ),
+                              }}
                             >
-                              {href ? (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  {title}
-                                </a>
-                              ) : (
-                                <span>{title}</span>
-                              )}
-                            </span>
-                          );
-                        })}
+                              {msg.text}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+
+                        {msg.media && msg.media.length > 0 && (
+                          <div className="space-y-2">
+                            {msg.media.map((item, idx) => (
+                              <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
+                                {item.type === 'image' && (
+                                  <img
+                                    src={item.url}
+                                    alt={item.alt || 'Educational image'}
+                                    className="w-full h-auto"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                                {item.type === 'video' && (
+                                  <iframe
+                                    src={item.url}
+                                    title={item.caption || item.alt || 'Educational video'}
+                                    className="w-full h-64"
+                                    allowFullScreen
+                                  />
+                                )}
+                                {item.caption && (
+                                  <p className="text-xs text-slate-600 p-2 bg-slate-50">{item.caption}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {msg.sources && msg.sources.length > 0 && (
+                          <div className="pt-1">
+                            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-2">Sources</div>
+                            <div className="flex flex-wrap gap-2">
+                              {msg.sources
+                                .filter(src => (src.section_title && src.section_title !== 'Unknown section') || src.source_url)
+                                .map((src, i) => {
+                                  const title = src.section_title || 'Source';
+                                  const firstLink = src.links && src.links.length ? src.links[0].url : null;
+                                  const href = src.source_url || firstLink;
+                                  return (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-[12px] text-slate-700 shadow-sm"
+                                    >
+                                      {href ? (
+                                        <a
+                                          href={href}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="text-blue-600 hover:underline"
+                                        >
+                                          {title}
+                                        </a>
+                                      ) : (
+                                        <span>{title}</span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
+              ))}
+              <div ref={messagesEndRef} />
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-100 p-4 rounded-[20px] rounded-bl-sm shadow-sm flex gap-1.5 items-center">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></span>
                   </div>
-                )}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white border border-slate-100 p-4 rounded-[20px] rounded-bl-sm shadow-sm flex gap-1.5 items-center">
-                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></span>
-                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></span>
+                </div>
+              )}
+            </div>
+
+            {/* Suggestions - always visible to keep the flow going */}
+            {currentSuggestions && currentSuggestions.length > 0 && (
+              <div className="px-4 py-3 bg-slate-50">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                  {currentSuggestions.map((sq, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(sq)}
+                      className={`whitespace-nowrap text-xs font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-1 shadow-sm shrink-0 ${classes.suggestionChip}`}
+                    >
+                      {sq}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Suggestions - always visible to keep the flow going */}
-          {currentSuggestions && currentSuggestions.length > 0 && (
-            <div className="px-4 py-3 bg-slate-50">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {currentSuggestions.map((sq, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(sq)}
-                    className={`whitespace-nowrap text-xs font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-1 shadow-sm shrink-0 ${classes.suggestionChip}`}
-                  >
-                    {sq}
-                  </button>
-                ))}
+            {/* Input Area */}
+            <div className="p-4 bg-white border-t border-slate-100">
+              <div className="flex gap-2 items-end bg-slate-100 rounded-2xl px-3 py-2">
+                <textarea
+                  ref={textareaRef}
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend(question);
+                    }
+                  }}
+                  placeholder="Ask a question..."
+                  rows={1}
+                  className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-2 text-slate-700 placeholder-slate-400 text-sm outline-none resize-none leading-relaxed overflow-hidden"
+                />
+                <button
+                  onClick={() => handleSend(question)}
+                  disabled={isTyping || !question.trim()}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${classes.fabBg} text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0`}
+                >
+                  {isTyping ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} className="ml-0.5" />}
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Input Area */}
-          <div className="p-4 bg-white border-t border-slate-100">
-            <div className="flex gap-2 items-end bg-slate-100 rounded-2xl px-3 py-2">
-              <textarea
-                ref={textareaRef}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend(question);
-                  }
-                }}
-                placeholder="Ask a question..."
-                rows={1}
-                className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-2 text-slate-700 placeholder-slate-400 text-sm outline-none resize-none leading-relaxed overflow-hidden"
-              />
-              <button
-                onClick={() => handleSend(question)}
-                disabled={isTyping || !question.trim()}
-                className={`w-10 h-10 rounded-full flex items-center justify-center ${classes.fabBg} text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0`}
-              >
-                {isTyping ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} className="ml-0.5" />}
-              </button>
-            </div>
           </div>
-        </div>
         </>
       )}
     </>

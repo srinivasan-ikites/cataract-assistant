@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Plus,
+  MoreHorizontal,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   FileText,
   Filter,
@@ -32,7 +32,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
     const fetchPatients = async () => {
       try {
         const rawPatients = await api.getPatients();
-        
+
         // Transform and add dummy patients for demo
         const list: PatientListItem[] = [
           ...rawPatients.map(p => ({
@@ -67,6 +67,13 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
             dob: '1963-05-12', // 61 years
             status: 'new', // Critical in demo
             lastUpdated: 'Oct 22'
+          } as PatientListItem,
+          {
+            patient_id: '1245583',
+            name: { first: 'Lata', last: 'Bhagia' },
+            dob: '1956-01-20', // 68 years
+            status: 'new',
+            lastUpdated: 'Just now'
           } as PatientListItem
         ];
 
@@ -90,7 +97,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
         </span>
       );
     }
-    
+
     switch (status) {
       case 'new':
         return (
@@ -133,11 +140,10 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeFilter === filter 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-50' 
+              className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeFilter === filter
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-50'
                 : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               {filter}
             </button>
@@ -167,8 +173,8 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                 </td>
               </tr>
             ) : patients.map((patient) => (
-              <tr 
-                key={patient.patient_id} 
+              <tr
+                key={patient.patient_id}
                 className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                 onClick={() => onSelectPatient(patient.patient_id)}
               >
@@ -213,7 +219,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
           </tbody>
         </table>
       </div>
-      
+
       <div className="px-10 py-6 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
           Showing 4 of 128 patients

@@ -20,6 +20,7 @@
       "icd_10_code": "",
       "type": "",
       "pathology": "",
+      "primary_cataract_type": "",
       "anatomical_status": ""
     },
     "comorbidities": [],
@@ -89,6 +90,48 @@
       "post_op_visit_2": ""
     }
   },
+  "medications": {
+    "pre_op": {
+      "antibiotic_id": null,
+      "antibiotic_name": "",
+      "frequency_id": null,
+      "frequency": "",
+      "progress": {}
+    },
+    "day_of_surgery": {},
+    "post_op": {
+      "is_dropless": false,
+      "is_combination": false,
+      "combination_name": "",
+      "antibiotic": {
+        "name": "",
+        "frequency": 3,
+        "frequency_label": "3x Daily",
+        "weeks": 1
+      },
+      "nsaid": {
+        "name": "",
+        "frequency": 0,
+        "frequency_label": "",
+        "weeks": 4
+      },
+      "steroid": {
+        "name": "",
+        "taper_schedule": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "weeks": 4
+      },
+      "glaucoma": {
+        "resume": false,
+        "medications": []
+      },
+      "progress": {}
+    }
+  },
   "documents": {
     "signed_consents": [
       {
@@ -98,4 +141,3 @@
     ]
   }
 }
-

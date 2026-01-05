@@ -31,11 +31,11 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
     data = deepcopy(raw)
 
     identity = data.get("patient_identity", {}) or {}
-    patient_id = identity.get("patient_id")
-    clinic_id = identity.get("clinic_ref_id")
-    first_name = identity.get("first_name")
-    last_name = identity.get("last_name")
-    dob = identity.get("dob")
+    patient_id = identity.get("patient_id") or data.get("patient_id")
+    clinic_id = identity.get("clinic_ref_id") or data.get("clinic_id")
+    first_name = identity.get("first_name") or (data.get("name", {}).get("first") if isinstance(data.get("name"), dict) else None)
+    last_name = identity.get("last_name") or (data.get("name", {}).get("last") if isinstance(data.get("name"), dict) else None)
+    dob = identity.get("dob") or data.get("dob")
 
     # Ensure chat history exists and is a list
     chat_history = data.get("chat_history") or []
@@ -57,7 +57,24 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
         existing_extra = {}
 
     # Keep the remaining patient record under extra (so the API/UI can access the full record)
-    reserved_top_level = {"patient_identity", "chat_history", "module_content", "extra"}
+    reserved_top_level = {
+        "patient_identity", 
+        "chat_history", 
+        "module_content", 
+        "extra", 
+        "medications",
+        "clinical_context",
+        "surgical_recommendations_by_doctor",
+        "lifestyle",
+        "medical_history",
+        "documents",
+        # Legacy/Internal keys that shouldn't leak into 'extra'
+        "patient_id",
+        "clinic_id",
+        "name",
+        "dob",
+        "_file_path"
+    }
     remaining = {k: v for k, v in data.items() if k not in reserved_top_level}
     merged_extra = {**existing_extra, **remaining}
 
@@ -67,16 +84,67 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
         "name": {"first": first_name, "last": last_name},
         "dob": dob,
         "chat_history": chat_history,
-        # Keep module content at top-level to avoid confusion
         "module_content": module_content,
-        # Convenience: expose common domains at top-level (UI expects these)
+        # New reviewed schema fields
         "clinical_context": data.get("clinical_context"),
-        "surgical_selection": data.get("surgical_selection"),
-        "lifestyle_preferences": data.get("lifestyle_preferences"),
+        "surgical_recommendations_by_doctor": data.get("surgical_recommendations_by_doctor"),
+        "lifestyle": data.get("lifestyle"),
+        "medical_history": data.get("medical_history"),
+        "documents": data.get("documents"),
+        "medications": data.get("medications"),
+        # Reconstruct identity object for the schema
+        "patient_identity": {
+            **identity,
+            "patient_id": patient_id,
+            "clinic_ref_id": clinic_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "dob": dob
+        },
         # Preserve other fields under extra for transparency
         "extra": merged_extra,
     }
     return normalized
+
+
+def denormalize_patient(normalized: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Remove legacy convenience fields and 'extra' debris before saving to disk.
+    Ensures the JSON file stays aligned with the intended schema and keeps keys ordered.
+    """
+    if not normalized:
+        return {}
+    
+    data = deepcopy(normalized)
+    
+    # Standard schema top-level keys in preferred order
+    schema_keys = [
+        "patient_identity",
+        "medical_history",
+        "clinical_context",
+        "lifestyle",
+        "surgical_recommendations_by_doctor",
+        "medications",
+        "documents",
+        "chat_history",
+        "module_content"
+    ]
+    
+    # Build clean output
+    clean_data = {}
+    for key in schema_keys:
+        if key in data:
+            clean_data[key] = data[key]
+            
+    # Include anything truly 'extra' that isn't a schema key or a legacy convenience field
+    legacy_keys = {"patient_id", "clinic_id", "name", "dob", "extra", "_file_path"}
+    schema_keys_set = set(schema_keys)
+    if "extra" in data and isinstance(data["extra"], dict):
+        for k, v in data["extra"].items():
+            if k not in schema_keys_set and k not in legacy_keys:
+                clean_data[k] = v
+                
+    return clean_data
 
 
 def normalize_clinic(raw: Dict[str, Any]) -> Dict[str, Any]:

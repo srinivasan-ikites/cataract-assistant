@@ -177,83 +177,90 @@ def _clinic_surgeons(clinic: dict) -> str:
 
 
 def _patient_summary(patient: dict) -> str:
-    surgery = patient.get("surgery", {})
+    clinical = patient.get("clinical_context", {})
+    diagnosis = clinical.get("diagnosis", {})
+    surgery = patient.get("surgical_recommendations_by_doctor", {})
     return (
         f"Patient: {patient.get('name', {}).get('first')} {patient.get('name', {}).get('last')}\n"
-        f"Eye: {patient.get('diagnosis', {}).get('eye')} | "
-        f"Cataract type: {patient.get('diagnosis', {}).get('condition')}\n"
-        f"Surgery date: {surgery.get('date')} with surgeon {surgery.get('surgeon_id')}"
+        f"Cataract type: {diagnosis.get('type','N/A')} ({diagnosis.get('pathology','N/A')})\n"
+        f"Surgery date: {surgery.get('scheduling', {}).get('surgery_date', 'Upcoming')}"
     )
 
 
 def _patient_medications(patient: dict) -> str:
-    lines = ["Current medication plan:"]
-    for med in patient.get("medications", []):
-        lines.append(
-            f"- {med.get('name')} {med.get('dose')} {med.get('frequency')} "
-            f"({med.get('start_date')} to {med.get('end_date')})"
-        )
+    # Reviewed record might not have high-level medications list yet, check medical_history
+    history = patient.get("medical_history", {})
+    conditions = history.get("systemic_conditions", [])
+    allergies = history.get("allergies", [])
+    lines = ["Medical History & Medications:"]
+    if conditions:
+        lines.append(f"- Conditions: {', '.join(conditions)}")
+    if allergies:
+        lines.append(f"- Allergies: {', '.join(allergies)}")
     return "\n".join(lines)
 
 
 def _patient_follow_up(patient: dict) -> str:
+    scheduling = patient.get("surgical_recommendations_by_doctor", {}).get("scheduling", {})
     lines = ["Scheduled follow-ups:"]
-    for visit in patient.get("follow_up_schedule", []):
-        lines.append(
-            f"- {visit.get('visit')}: {visit.get('date')} ({visit.get('status')})"
-        )
-    return "\n".join(lines)
+    if scheduling.get("post_op_visit_1"):
+        lines.append(f"- Post-Op Visit 1: {scheduling.get('post_op_visit_1')}")
+    if scheduling.get("post_op_visit_2"):
+        lines.append(f"- Post-Op Visit 2: {scheduling.get('post_op_visit_2')}")
+    return "\n".join(lines) if len(lines) > 1 else "No specific follow-up dates scheduled yet."
 
 
 def _patient_surgery(patient: dict) -> str:
-    surgery = patient.get("surgery", {})
-    iols = surgery.get("iol_plan", [])
+    surgery = patient.get("surgical_recommendations_by_doctor", {})
+    implants = surgery.get("selected_implants", {})
     lines = [
-        f"Surgery status: {surgery.get('status')} on {surgery.get('date')} with {surgery.get('surgeon_id')}",
-        f"Anesthesia: {surgery.get('anesthesia')}",
-        "Lens considerations:",
+        f"Surgeon ID: {surgery.get('doctor_ref_id')}",
+        "Lens Selection:",
     ]
-    for plan in iols:
-        lines.append(
-            f"- {plan.get('type')} ({plan.get('model')}), {plan.get('priority')} choice"
-        )
-    if surgery.get("special_considerations"):
-        lines.append(
-            "Special notes: " + "; ".join(surgery.get("special_considerations"))
-        )
+    for eye, plan in implants.items():
+        if isinstance(plan, dict) and plan.get("model"):
+            lines.append(
+                f"- {eye.upper()}: {plan.get('model')} ({plan.get('cylinder', 'Non-toric')}), Power: {plan.get('power')}"
+            )
     return "\n".join(lines)
 
 
 def _patient_alerts(patient: dict) -> str:
-    alerts = patient.get("alerts") or []
-    return "Alerts:\n" + ("\n".join(f"- {alert}" for alert in alerts) or "None.")
+    clinical = patient.get("clinical_context", {})
+    comorbidities = clinical.get("comorbidities") or []
+    alerts = clinical.get("triggered_alerts") or []
+    lines = ["Patient Alerts & Comorbidities:"]
+    if comorbidities:
+        lines.append("- " + ", ".join(comorbidities))
+    for alert in alerts:
+        if isinstance(alert, dict) and alert.get("message"):
+            lines.append(f"- {alert.get('message')}")
+    return "\n".join(lines) if len(lines) > 1 else "No alerts or comorbidities found."
 
 
 def _patient_lens_plan(patient: dict) -> str:
-    surgery = patient.get("surgery", {})
-    plans = surgery.get("iol_plan") or []
-    if not plans:
-        return "No custom lens plan recorded for this patient."
-    lines = ["Lens plan:"]
-    for plan in plans:
+    surgery = patient.get("surgical_recommendations_by_doctor", {})
+    options = surgery.get("recommended_lens_options") or []
+    if not options:
+        return "No specific lens options discussed with the patient yet."
+    lines = ["Recommended Lens Options:"]
+    for opt in options:
+        status = " (SELECTED)" if opt.get("is_selected_preference") else ""
         lines.append(
-            f"- {plan.get('model','Unknown model')} ({plan.get('type','Unknown type')}), "
-            f"{plan.get('priority','priority not set')} choice. "
-            f"Coverage: {plan.get('coverage','unspecified')}."
+            f"- {opt.get('name')}{status}: {opt.get('description','')} - Reason: {opt.get('reason','')}"
         )
     return "\n".join(lines)
 
 
 def _patient_insurance(patient: dict) -> str:
-    insurance = patient.get("insurance") or {}
-    if not insurance:
-        return "No patient-specific insurance record."
-    lines = [
-        "Patient insurance:",
-        f"- Provider: {insurance.get('provider','N/A')}",
-        f"- Policy #: {insurance.get('policy_number','N/A')}",
-        f"- Notes: {insurance.get('coverage_notes','No notes available.')}",
-    ]
-    return "\n".join(lines)
+    # Reviewed record might have insurance info in extra or documents
+    docs = patient.get("documents", {}).get("signed_consents", [])
+    lines = ["Patient Documents & Insurance:"]
+    if docs:
+        for doc in docs:
+            name = doc.get("name")
+            date = doc.get("date", "N/A")
+            lines.append(f"- Signed {name} on {date}")
+    return "\n".join(lines) if len(lines) > 1 else "No specific insurance or document records."
 
 

@@ -20,74 +20,74 @@ import DoctorPortal from './doctor/DoctorPortal';
 const getModules = (patient: Patient | null): ModuleItem[] => {
   // Extract dynamic fields or fallbacks
   const diagnosis =
-    patient?.clinical_context?.primary_diagnosis?.pathology ||
-    patient?.clinical_context?.primary_diagnosis?.type ||
+    patient?.clinical_context?.diagnosis?.pathology ||
+    patient?.clinical_context?.diagnosis?.type ||
     'Cataract Type';
-  const myIOL = patient?.surgical_selection?.lens_configuration?.lens_type || 'Selected Lens';
-  const surgeryDate = patient?.surgical_selection?.decision_date || 'Upcoming';
-  const packageOption = patient?.surgical_selection?.selected_package_name?.split(':')[0] || 'Standard';
+  const selectedLens = patient?.surgical_recommendations_by_doctor?.recommended_lens_options?.find(opt => opt.is_selected_preference)?.name || 'Selected Lens';
+  const surgeryDate = patient?.surgical_recommendations_by_doctor?.decision_date || 'Upcoming';
+  const packageOption = selectedLens; // Using selected lens as the package/option name for now
 
   return [
-  // Row 1: Learn
-  { 
-    id: '1', 
-    title: 'My Diagnosis', 
-    iconName: 'type', 
-    shortDescription: diagnosis // e.g. "Nuclear Sclerosis"
-  },
-  { 
-    id: '2', 
-    title: 'What is Cataract Surgery?', 
-    iconName: 'surgery', 
-    shortDescription: 'Lens Replacement Procedure' 
-  },
-  { 
-    id: '3', 
-    title: 'What is an IOL?', 
-    iconName: 'iol', 
-    shortDescription: 'Artificial Lens Implant' 
-  },
+    // Row 1: Learn
+    {
+      id: '1',
+      title: 'My Diagnosis',
+      iconName: 'type',
+      shortDescription: diagnosis // e.g. "Nuclear Sclerosis"
+    },
+    {
+      id: '2',
+      title: 'What is Cataract Surgery?',
+      iconName: 'surgery',
+      shortDescription: 'Lens Replacement Procedure'
+    },
+    {
+      id: '3',
+      title: 'What is an IOL?',
+      iconName: 'iol',
+      shortDescription: 'Artificial Lens Implant'
+    },
 
-  // Row 2: Decide & Prepare
-  { 
-    id: '4', 
-    title: 'My IOL Options', 
-    iconName: 'options', 
-    shortDescription: myIOL // e.g. "Monofocal Toric"
-  },
-  { 
-    id: '5', 
-    title: 'Risks & Complications', 
-    iconName: 'risk', 
-    shortDescription: 'Standard Medical Risks' 
-  },
-  { 
-    id: '6', 
-    title: 'Before Surgery', 
-    iconName: 'preop', 
-    shortDescription: `Date: ${surgeryDate}` 
-  },
+    // Row 2: Decide & Prepare
+    {
+      id: '4',
+      title: 'My IOL Options',
+      iconName: 'options',
+      shortDescription: selectedLens // e.g. "Monofocal Toric"
+    },
+    {
+      id: '5',
+      title: 'Risks & Complications',
+      iconName: 'risk',
+      shortDescription: 'Standard Medical Risks'
+    },
+    {
+      id: '6',
+      title: 'Before Surgery',
+      iconName: 'preop',
+      shortDescription: `Date: ${surgeryDate}`
+    },
 
-  // Row 3: Act & Recover
-  { 
-    id: '7', 
-    title: 'Day of Surgery', 
-    iconName: 'day', 
-    shortDescription: 'Duration: ~15-20 Mins' 
-  },
-  { 
-    id: '8', 
-    title: 'After Surgery', 
-    iconName: 'postop', 
-    shortDescription: 'Drops & Recovery Timeline' 
-  },
-  { 
-    id: '9', 
-    title: 'Costs & Insurance', 
-    iconName: 'forms', 
-    shortDescription: `Status: ${packageOption} Selected` 
-  },
-];
+    // Row 3: Act & Recover
+    {
+      id: '7',
+      title: 'Day of Surgery',
+      iconName: 'day',
+      shortDescription: 'Duration: ~15-20 Mins'
+    },
+    {
+      id: '8',
+      title: 'After Surgery',
+      iconName: 'postop',
+      shortDescription: 'Drops & Recovery Timeline'
+    },
+    {
+      id: '9',
+      title: 'Costs & Insurance',
+      iconName: 'forms',
+      shortDescription: `Status: ${packageOption} Selected`
+    },
+  ];
 };
 
 const AppContent: React.FC = () => {
@@ -112,10 +112,10 @@ const AppContent: React.FC = () => {
         setView('patient');
       }
     };
-    
+
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange(); // Check on initial load
-    
+
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
@@ -371,8 +371,8 @@ const AppContent: React.FC = () => {
         patient={currentPatient}
         onClose={() => setSelectedModule(null)}
         onOpenChat={(question) => {
-             setChatInitialQuestion(question);
-             setIsChatOpen(true);
+          setChatInitialQuestion(question);
+          setIsChatOpen(true);
         }}
       />
 
@@ -382,10 +382,10 @@ const AppContent: React.FC = () => {
         patient={currentPatient}
       />
 
-      <FAQOverlay 
-        patient={currentPatient} 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)} 
+      <FAQOverlay
+        patient={currentPatient}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
         onOpen={() => setIsChatOpen(true)}
         initialQuestion={chatInitialQuestion}
         onClearInitialQuestion={() => setChatInitialQuestion(undefined)}

@@ -9,7 +9,7 @@ from adk_app.utils.data_adapter import normalize_clinic, normalize_patient
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 CLINIC_DIR = BASE_DIR / "data" / "clinic"
-PATIENT_FILE = BASE_DIR / "data" / "patient" / "original_patient.json"
+REVIEW_ROOT = BASE_DIR / "data" / "reviewed"
 
 
 @lru_cache(maxsize=1)
@@ -40,30 +40,27 @@ def get_clinic_data(clinic_id: str) -> dict:
 @lru_cache(maxsize=1)
 def _load_patient_cache() -> Dict[str, dict]:
     """
-    Load and normalize patient records. Supports:
-    - New single-patient JSON (no 'patients' array)
-    - Legacy multi-patient JSON with 'patients' array
+    Load and normalize patient records from the reviewed directory.
+    Scans REVIEW_ROOT/{clinic_id}/{patient_id}/reviewed_patient.json
     """
-    if not PATIENT_FILE.exists():
-        return {}
-    with PATIENT_FILE.open("r", encoding="utf-8") as f:
-        payload = json.load(f)
-
     cache: Dict[str, dict] = {}
+    if not REVIEW_ROOT.exists():
+        return cache
 
-    if isinstance(payload, dict) and "patients" in payload:
-        # Legacy multi-patient file
-        for patient in payload.get("patients", []):
-            normalized = normalize_patient(patient)
-            pid = normalized.get("patient_id")
-            if pid:
-                cache[pid] = normalized
-    else:
-        # New single-patient file
-        normalized = normalize_patient(payload if isinstance(payload, dict) else {})
-        pid = normalized.get("patient_id")
-        if pid:
-            cache[pid] = normalized
+    # Scan for all reviewed_patient.json files
+    # Structure: REVIEW_ROOT / {clinic_id} / {patient_id} / reviewed_patient.json
+    for path in REVIEW_ROOT.glob("**/reviewed_patient.json"):
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                payload = json.load(f)
+                normalized = normalize_patient(payload)
+                pid = normalized.get("patient_id")
+                if pid:
+                    # Store the path so we can write back to it
+                    normalized["_file_path"] = str(path)
+                    cache[pid] = normalized
+        except Exception as exc:
+            print(f"[DataLoader] Failed to load {path}: {exc}")
 
     return cache
 
@@ -71,7 +68,7 @@ def _load_patient_cache() -> Dict[str, dict]:
 def get_patient_data(patient_id: str) -> dict:
     patient = _load_patient_cache().get(patient_id)
     if not patient:
-        raise ValueError(f"Patient '{patient_id}' not found in {PATIENT_FILE}")
+        raise ValueError(f"Patient '{patient_id}' not found in {REVIEW_ROOT}")
     return patient
 
 
@@ -82,21 +79,50 @@ def get_all_patients() -> List[dict]:
     return list(payload.values())
 
 
-def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None) -> None:
-    """Append a chat turn to the patient's history and save to disk."""
-    if not PATIENT_FILE.exists():
-        raise ValueError("Patient file not found.")
-
-    with PATIENT_FILE.open("r", encoding="utf-8") as f:
+def _save_patient_data(patient_id: str, updater_func) -> None:
+    """Generic helper to load, update, and save patient data to its source file."""
+    # Try to get from cache first
+    cache = _load_patient_cache()
+    patient = cache.get(patient_id)
+    
+    if patient and patient.get("_file_path"):
+        # Use cached file path
+        file_path = patient["_file_path"]
+    else:
+        # Cache miss - scan for the file directly
+        if not REVIEW_ROOT.exists():
+            raise ValueError(f"Patient '{patient_id}' not found - review directory doesn't exist")
+        
+        # Find the patient file by scanning
+        found_files = list(REVIEW_ROOT.glob(f"*/{patient_id}/reviewed_patient.json"))
+        if not found_files:
+            raise ValueError(f"Patient '{patient_id}' not found in {REVIEW_ROOT}")
+        
+        file_path = str(found_files[0])
+    
+    path = Path(file_path)
+    with path.open("r", encoding="utf-8") as f:
         payload = json.load(f)
 
+    updater_func(payload)
+
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    # Invalidate cache
+    _load_patient_cache.cache_clear()
+
+
+def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None) -> None:
+    """Append a chat turn to the patient's history and save to disk."""
+    
     def _append_history(target: dict) -> None:
         if "chat_history" not in target or not isinstance(target.get("chat_history"), list):
             target["chat_history"] = []
         target["chat_history"].append({
             "role": "user",
             "text": user_msg,
-            "timestamp": "now"  # In production, use datetime.utcnow().isoformat()
+            "timestamp": "now"
         })
         target["chat_history"].append({
             "role": "bot",
@@ -106,121 +132,35 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
             "timestamp": "now"
         })
 
-    # Legacy multi-patient structure (only if patients is a list)
-    is_multi = isinstance(payload, dict) and isinstance(payload.get("patients"), list)
-    if is_multi:
-        if "sources" in payload:
-            payload.pop("sources", None)
-        patients = payload.get("patients") or []
-        for p in patients:
-            if not isinstance(p, dict):
-                continue
-            if p.get("patient_id") == patient_id:
-                _append_history(p)
-                break
-        else:
-            # Only executed if no break occurred in the for-loop
-            raise ValueError(f"Patient {patient_id} not found for saving history.")
-    else:
-        # Single patient structure
-        if not isinstance(payload, dict):
-            raise ValueError("Patient file is not a JSON object.")
-        pid = payload.get("patient_identity", {}).get("patient_id")
-        if pid != patient_id:
-            raise ValueError(f"Patient {patient_id} not found for saving history.")
-        _append_history(payload)
-
-    with PATIENT_FILE.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-
-    # Invalidate cache so next read gets fresh data
-    _load_patient_cache.cache_clear()
+    _save_patient_data(patient_id, _append_history)
 
 
 def clear_patient_chat_history(patient_id: str) -> None:
-    """
-    Remove all stored chat history for the given patient and persist to disk.
-    Does NOT delete any other patient data.
-    """
-    if not PATIENT_FILE.exists():
-        raise ValueError("Patient file not found.")
-
-    with PATIENT_FILE.open("r", encoding="utf-8") as f:
-        payload = json.load(f)
-
+    """Remove all stored chat history for the given patient."""
+    
     def _clear_history(target: dict) -> None:
-        # Either remove the key or reset to empty list
-        if "chat_history" in target:
-            target["chat_history"] = []
+        target["chat_history"] = []
 
-    # Legacy multi-patient structure
-    is_multi = isinstance(payload, dict) and isinstance(payload.get("patients"), list)
-    if is_multi:
-        patients = payload.get("patients") or []
-        for p in patients:
-            if not isinstance(p, dict):
-                continue
-            if p.get("patient_id") == patient_id:
-                _clear_history(p)
-                break
-        else:
-            raise ValueError(f"Patient {patient_id} not found for clearing history.")
-    else:
-        # Single patient structure
-        if not isinstance(payload, dict):
-            raise ValueError("Patient file is not a JSON object.")
-        pid = payload.get("patient_identity", {}).get("patient_id")
-        if pid != patient_id:
-            raise ValueError(f"Patient {patient_id} not found for clearing history.")
-        _clear_history(payload)
+    _save_patient_data(patient_id, _clear_history)
 
-    with PATIENT_FILE.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-
-    # Invalidate cache so next read gets fresh data
-    _load_patient_cache.cache_clear()
 
 def save_patient_module_content(patient_id: str, module_title: str, content: Dict[str, Any]) -> None:
-    """
-    Persist generated module content for a patient so we can reuse without re-calling the LLM.
-    Content is stored under patient["module_content"][module_title].
-    """
-    if not PATIENT_FILE.exists():
-        raise ValueError("Patient file not found.")
-
-    with PATIENT_FILE.open("r", encoding="utf-8") as f:
-        payload = json.load(f)
-
+    """Persist generated module content for a patient."""
+    
     def _write_content(target: dict) -> None:
         module_map = target.get("module_content")
         if not isinstance(module_map, dict):
             module_map = {}
             target["module_content"] = module_map
         module_map[module_title] = content
-        # Clean any legacy nested storage to avoid confusion
+        # Clean any legacy nested storage
         extra = target.get("extra")
         if isinstance(extra, dict) and "module_content" in extra:
             extra.pop("module_content", None)
 
-    if isinstance(payload, dict) and "patients" in payload:
-        # Legacy multi-patient structure
-        patients = payload.get("patients", [])
-        target_patient = None
-        for p in patients:
-            if p.get("patient_id") == patient_id:
-                target_patient = p
-                break
-        if not target_patient:
-            raise ValueError(f"Patient {patient_id} not found for saving module content.")
-        _write_content(target_patient)
-    else:
-        # Single patient structure
-        if not isinstance(payload, dict) or payload.get("patient_identity", {}).get("patient_id") != patient_id:
-            raise ValueError(f"Patient {patient_id} not found for saving module content.")
-        _write_content(payload)
+    _save_patient_data(patient_id, _write_content)
 
-    with PATIENT_FILE.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
 
-    # Invalidate cache so next read gets fresh data
+def clear_patient_cache() -> None:
+    """Invalidate the patient data cache."""
     _load_patient_cache.cache_clear()

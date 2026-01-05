@@ -15,6 +15,17 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../services/api';
+import {
+  ANTIBIOTIC_OPTIONS,
+  FREQUENCY_OPTIONS,
+  getAntibioticName,
+  getFrequencyName,
+  POST_OP_ANTIBIOTICS,
+  POST_OP_NSAIDS,
+  POST_OP_STEROIDS,
+  GLAUCOMA_DROPS,
+  COMBO_DROP_EXAMPLES
+} from '../constants/medications';
 import CollapsibleCard from './components/CollapsibleCard';
 import UploadPanel from './components/UploadPanel';
 
@@ -38,6 +49,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
     clinical: true,
     lifestyle: true,
     surgical: true,
+    postop_meds: true,
     documents: true,
   });
   const [showUploads, setShowUploads] = useState(true);
@@ -62,7 +74,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
         }
         setRecentUploads((reviewed?.files as string[]) || []);
       } catch (err) {
-        console.log('No existing data for this patient');
+        console.log('No existing data for this patient - starting fresh');
+        // Initialize empty structure so the form renders
+        setData({
+          patient_identity: { patient_id: patientId },
+          medications: { pre_op: {} },
+          surgical_recommendations_by_doctor: { scheduling: {}, pre_op_instructions: {} },
+          documents: { signed_consents: [] }
+        });
       } finally {
         setLoading(false);
       }
@@ -148,6 +167,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
   };
 
   const updateNestedField = (path: string, value: any) => {
+    // Reset status so save button is re-enabled
+    setStatus('idle');
     setData((prev: any) => {
       const newData = JSON.parse(JSON.stringify(prev));
       const parts = path.split('.');
@@ -289,9 +310,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className={`p-3 rounded-xl shadow-sm transition-all ${
-              deleting ? 'bg-rose-100 text-rose-300 cursor-not-allowed' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-            }`}
+            className={`p-3 rounded-xl shadow-sm transition-all ${deleting ? 'bg-rose-100 text-rose-300 cursor-not-allowed' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+              }`}
             title="Delete patient data"
             aria-label="Delete patient data"
           >
@@ -308,11 +328,10 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
           <button
             onClick={handleSave}
             disabled={!data || status === 'saved'}
-            className={`p-3 rounded-xl shadow-sm transition-all ${
-              !data || status === 'saved'
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
+            className={`p-3 rounded-xl shadow-sm transition-all ${!data || status === 'saved'
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             title="Save Changes"
             aria-label="Save Changes"
           >
@@ -532,6 +551,355 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
               {renderField('surgical_recommendations_by_doctor.scheduling.post_op_visit_1', 'Post-Op Visit 1', 'date')}
               {renderField('surgical_recommendations_by_doctor.scheduling.post_op_visit_2', 'Post-Op Visit 2', 'date')}
             </div>
+
+            {/* Pre-op Medication Orders */}
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Pre-op Medication Orders</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Antibiotic</label>
+                  <div className="relative">
+                    <select
+                      value={data.medications?.pre_op?.antibiotic_id || ''}
+                      onChange={(e) => {
+                        const id = parseInt(e.target.value);
+                        updateNestedField('medications.pre_op.antibiotic_id', id);
+                        updateNestedField('medications.pre_op.antibiotic_name', getAntibioticName(id));
+                      }}
+                      className="w-full text-sm font-bold text-slate-700 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
+                    >
+                      <option value="">Select Antibiotic</option>
+                      {ANTIBIOTIC_OPTIONS.map(opt => (
+                        <option key={opt.id} value={opt.id}>{opt.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Frequency</label>
+                  <div className="relative">
+                    <select
+                      value={data.medications?.pre_op?.frequency_id || ''}
+                      onChange={(e) => {
+                        const id = parseInt(e.target.value);
+                        updateNestedField('medications.pre_op.frequency_id', id);
+                        updateNestedField('medications.pre_op.frequency', getFrequencyName(id));
+                      }}
+                      className="w-full text-sm font-bold text-slate-700 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
+                    >
+                      <option value="">Select Frequency</option>
+                      {FREQUENCY_OPTIONS.map(opt => (
+                        <option key={opt.id} value={opt.id}>{opt.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleCard>
+
+          {/* After Surgery Medications */}
+          <CollapsibleCard
+            title="After Surgery Medications"
+            subtitle="Tapering, Dropless, and Multi-Drug Regimens"
+            icon={<Activity size={16} />}
+            iconClassName="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"
+            expanded={expanded.postop_meds}
+            onToggle={() => setExpanded((p) => ({ ...p, postop_meds: !p.postop_meds }))}
+            maxHeight="2500px"
+          >
+            <div className="space-y-6">
+              {/* Global Post-Op Toggles */}
+              <div className="grid grid-cols-2 gap-4 h-full">
+                <div
+                  onClick={() => {
+                    const val = !data.medications?.post_op?.is_dropless;
+                    updateNestedField('medications.post_op.is_dropless', val);
+                    if (val) {
+                      updateNestedField('medications.post_op.is_combination', false);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center h-full ${data.medications?.post_op?.is_dropless
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
+                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                    }`}
+                >
+                  <PanelRightClose size={24} className={data.medications?.post_op?.is_dropless ? 'text-white' : 'text-slate-300'} />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider">Dropless Surgery</p>
+                    <p className={`text-[10px] mt-1 ${data.medications?.post_op?.is_dropless ? 'text-blue-100' : 'text-slate-400'}`}>No daily routine drops required</p>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => {
+                    const val = !data.medications?.post_op?.is_combination;
+                    updateNestedField('medications.post_op.is_combination', val);
+                    if (val) {
+                      updateNestedField('medications.post_op.is_dropless', false);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center h-full ${data.medications?.post_op?.is_combination
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                    }`}
+                >
+                  <Activity size={24} className={data.medications?.post_op?.is_combination ? 'text-white' : 'text-slate-300'} />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider">Combination Drop</p>
+                    <p className={`text-[10px] mt-1 ${data.medications?.post_op?.is_combination ? 'text-indigo-100' : 'text-slate-400'}`}>3-in-1 medication regimen</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conditional Warning */}
+              {data.medications?.post_op?.is_dropless && (
+                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-700">
+                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">
+                    <strong>Dropless Surgery selected.</strong> Standard antibiotic, NSAID, and steroid requirements will be hidden from the patient. They will only see an instruction to resume their usual glaucoma or long-term eye drops.
+                  </p>
+                </div>
+              )}
+
+              {/* Medication Inputs */}
+              {!data.medications?.post_op?.is_dropless && (
+                <div className="space-y-6 animate-fadeIn">
+
+                  {/* Combination Name Selection (Visible only if is_combination) */}
+                  {data.medications?.post_op?.is_combination && (
+                    <div className="space-y-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                      <label className="text-[11px] font-bold text-indigo-500 uppercase tracking-tight">Bottle Name (Combo)</label>
+                      {renderField('medications.post_op.combination_name', 'Select or Enter Combination Name', 'select', COMBO_DROP_EXAMPLES)}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* A. Antibiotic */}
+                    {!data.medications?.post_op?.is_combination && (
+                      <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">A. Antibiotic</label>
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">1 Week</span>
+                        </div>
+                        {renderField('medications.post_op.antibiotic.name', 'Select Antibiotic', 'select', POST_OP_ANTIBIOTICS)}
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 px-1">
+                          <Activity size={14} />
+                          <span>Fixed: 3x Daily (7 Days)</span>
+                        </div>
+                        {/* Sulfa Warning */}
+                        {data.medications?.post_op?.antibiotic?.name === 'Neomycin-Polymyxin' &&
+                          data.medical_history?.allergies?.includes('Sulfa') && (
+                            <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex gap-2 text-[11px] text-rose-700">
+                              <AlertCircle size={14} className="shrink-0" />
+                              <p>Warning: Sulfa allergy detected. Neomycin may be contraindicated.</p>
+                            </div>
+                          )}
+                      </div>
+                    )}
+
+                    {/* B. Anti-Inflammatory (NSAID) */}
+                    {!data.medications?.post_op?.is_combination && (
+                      <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">B. Anti-Inflammatory (NSAID)</label>
+                        <div className="relative">
+                          <select
+                            value={data.medications?.post_op?.nsaid?.name || ''}
+                            onChange={(e) => {
+                              const name = e.target.value;
+                              const ref = POST_OP_NSAIDS.find(n => n.name === name);
+                              updateNestedField('medications.post_op.nsaid.name', name);
+                              if (ref) {
+                                updateNestedField('medications.post_op.nsaid.frequency', ref.defaultFrequency);
+                                updateNestedField('medications.post_op.nsaid.frequency_label', ref.label);
+                              }
+                            }}
+                            className="w-full text-sm font-medium text-slate-700 p-3 bg-white border border-slate-200 rounded-xl outline-none appearance-none"
+                          >
+                            <option value="">Select Drug</option>
+                            {POST_OP_NSAIDS.map(n => <option key={n.name} value={n.name}>{n.name}</option>)}
+                          </select>
+                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                        </div>
+
+                        {data.medications?.post_op?.nsaid?.name && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-2">Frequency</p>
+                              {POST_OP_NSAIDS.find(n => n.name === data.medications?.post_op?.nsaid?.name)?.variableFrequency ? (
+                                <div className="relative">
+                                  <select
+                                    value={data.medications?.post_op?.nsaid?.frequency || ''}
+                                    onChange={(e) => {
+                                      const freq = parseInt(e.target.value);
+                                      updateNestedField('medications.post_op.nsaid.frequency', freq);
+                                      updateNestedField('medications.post_op.nsaid.frequency_label', `${freq}x Daily`);
+                                    }}
+                                    className="w-full text-xs font-bold p-2.5 bg-white border border-slate-200 rounded-lg outline-none appearance-none"
+                                  >
+                                    <option value="1">1x Daily</option>
+                                    <option value="3">3x Daily</option>
+                                    <option value="4">4x Daily</option>
+                                  </select>
+                                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                                </div>
+                              ) : (
+                                <div className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600">
+                                  {data.medications?.post_op?.nsaid?.frequency_label}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-2">Duration</p>
+                              <div className="relative">
+                                <select
+                                  value={data.medications?.post_op?.nsaid?.weeks || 4}
+                                  onChange={(e) => updateNestedField('medications.post_op.nsaid.weeks', parseInt(e.target.value))}
+                                  className="w-full text-xs font-bold p-2.5 bg-white border border-slate-200 rounded-lg outline-none appearance-none"
+                                >
+                                  <option value="1">1 Week</option>
+                                  <option value="2">2 Weeks</option>
+                                  <option value="4">4 Weeks</option>
+                                </select>
+                                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* C. Steroid (or Combined Drop) Tapering Section */}
+                  <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                          <Activity size={18} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-extrabold text-slate-800 uppercase tracking-widest">
+                            {data.medications?.post_op?.is_combination ? 'C. Combination Regimen' : 'C. Steroid Taper Regimen'}
+                          </label>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Automated Weekly Schedule</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateNestedField('medications.post_op.steroid.taper_schedule', [4, 3, 2, 1])}
+                          className="px-3 py-1 bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition-all shadow-sm"
+                        >
+                          Standard Taper
+                        </button>
+                        <button
+                          onClick={() => updateNestedField('medications.post_op.steroid.taper_schedule', [2, 1, 0, 0])}
+                          className="px-3 py-1 bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition-all shadow-sm"
+                        >
+                          Short Taper
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Drop Selection */}
+                      <div className="space-y-4">
+                        {!data.medications?.post_op?.is_combination && (
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Select Medication</p>
+                            {renderField('medications.post_op.steroid.name', 'Steroid Name', 'select', POST_OP_STEROIDS)}
+                          </div>
+                        )}
+                        <div className="p-4 bg-white/60 border border-slate-100 rounded-2xl shadow-sm">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-3">Taper Schedule Visualizer</p>
+                          <div className="flex items-center justify-between gap-1">
+                            {(data.medications?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                                <div className={`w-full h-8 rounded-lg flex items-center justify-center font-black text-xs transition-all ${freq > 0 ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-300'}`}>
+                                  {freq}x
+                                </div>
+                                <span className="text-[9px] font-black text-slate-400 uppercase">Wk {i + 1}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Manual Weekly Adjustments */}
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Manual Frequency Adjustment</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[0, 1, 2, 3].map((week) => (
+                            <div key={week} className="flex items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+                              <span className="text-xs font-extrabold text-slate-500">Week {week + 1}</span>
+                              <div className="relative">
+                                <select
+                                  value={data.medications?.post_op?.steroid?.taper_schedule?.[week] || 0}
+                                  onChange={(e) => {
+                                    const next = [...(data.medications?.post_op?.steroid?.taper_schedule || [0, 0, 0, 0])];
+                                    next[week] = parseInt(e.target.value);
+                                    updateNestedField('medications.post_op.steroid.taper_schedule', next);
+                                  }}
+                                  className="bg-transparent text-sm font-black text-indigo-600 outline-none appearance-none pr-4"
+                                >
+                                  {[4, 3, 2, 1, 0].map(v => <option key={v} value={v}>{v}x</option>)}
+                                </select>
+                                <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* D. Glaucoma Section */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                          <AlertCircle size={18} />
+                        </div>
+                        <label className="text-xs font-extrabold text-slate-800 uppercase tracking-widest">D. Glaucoma / Long-Term</label>
+                      </div>
+                      <div
+                        onClick={() => updateNestedField('medications.post_op.glaucoma.resume', !data.medications?.post_op?.glaucoma?.resume)}
+                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-all ${data.medications?.post_op?.glaucoma?.resume ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${data.medications?.post_op?.glaucoma?.resume ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    {data.medications?.post_op?.glaucoma?.resume && (
+                      <div className="animate-fadeIn space-y-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Medications to Resume</p>
+                        {renderTagList('medications.post_op.glaucoma.medications', 'Select Medications')}
+                        <div className="relative">
+                          <select
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const current = data.medications?.post_op?.glaucoma?.medications || [];
+                              if (val && !current.includes(val)) {
+                                updateNestedField('medications.post_op.glaucoma.medications', [...current, val]);
+                              }
+                            }}
+                            className="w-full text-xs font-bold p-3 bg-white border border-slate-200 rounded-xl outline-none appearance-none"
+                          >
+                            <option value="">Quick Add Medication...</option>
+                            {GLAUCOMA_DROPS.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </CollapsibleCard>
 
           {/* Documents */}
@@ -574,22 +942,24 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
         </div>
 
         {/* Right: upload + quick info */}
-        {showUploads && (
-          <div className="col-span-12 lg:col-span-4">
-            <UploadPanel
-              fileInputRef={fileInputRef}
-              files={files}
-              setFiles={setFiles}
-              startExtraction={startExtraction}
-              extracting={extracting}
-              handleFileChange={handleFileChange}
-              recentUploads={recentUploads}
-              showAllUploads={showAllUploads}
-              setShowAllUploads={setShowAllUploads}
-            />
-          </div>
-        )}
-      </div>
+        {
+          showUploads && (
+            <div className="col-span-12 lg:col-span-4">
+              <UploadPanel
+                fileInputRef={fileInputRef}
+                files={files}
+                setFiles={setFiles}
+                startExtraction={startExtraction}
+                extracting={extracting}
+                handleFileChange={handleFileChange}
+                recentUploads={recentUploads}
+                showAllUploads={showAllUploads}
+                setShowAllUploads={setShowAllUploads}
+              />
+            </div>
+          )
+        }
+      </div >
 
       {error && (
         <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
@@ -605,7 +975,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
           display: none;
         }
       `}</style>
-    </div>
+    </div >
   );
 };
 

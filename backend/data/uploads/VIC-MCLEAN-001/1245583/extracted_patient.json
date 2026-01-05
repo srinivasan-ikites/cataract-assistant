@@ -1,0 +1,169 @@
+{
+  "patient_identity": {
+    "patient_id": "1245583",
+    "clinic_ref_id": "VIC-MCLEAN-001",
+    "first_name": "Lata",
+    "last_name": "Bhagia",
+    "dob": "1956-01-20",
+    "age": 68,
+    "gender": "Female",
+    "occupation": "Teacher"
+  },
+  "medical_history": {
+    "source": "Visit Note - September 18, 2024",
+    "systemic_conditions": [
+      "No diabetes",
+      "No glaucoma",
+      "Dry Eye Syndrome"
+    ],
+    "allergies": [
+      "codeine - Anaphylaxis"
+    ],
+    "ocular_history": "Cataract of right eye, Cataract of left eye, Myopia OU, Wears glasses"
+  },
+  "clinical_context": {
+    "diagnosis": {
+      "icd_10_code": "H25.813",
+      "type": "Combined form of senile cataract",
+      "pathology": "Nuclear sclerosis and cortical",
+      "primary_cataract_type": "combined",
+      "anatomical_status": "Phakic"
+    },
+    "comorbidities": [
+      "Dry Eye Syndrome",
+      "Myopia"
+    ],
+    "symptoms_reported_by_patient": [
+      "Night vision worsen",
+      "Blurred Vision",
+      "Glare from headlights",
+      "Difficulty driving at night"
+    ],
+    "measurements": {
+      "od_right_eye": {
+        "axial_length_mm": 25.32,
+        "astigmatism_power": 2.72,
+        "astigmatism_axis": 102,
+        "biometric_insight": "High astigmatism indicated (2.72D)"
+      },
+      "os_left_eye": {
+        "axial_length_mm": 25.23,
+        "astigmatism_power": 0.9,
+        "astigmatism_axis": 51,
+        "biometric_insight": "Moderate astigmatism indicated (0.90D)"
+      }
+    },
+    "triggered_alerts": []
+  },
+  "lifestyle": {
+    "hobbies": [
+      "Reading",
+      "Walking",
+      "Music"
+    ],
+    "visual_priorities": "Distance Vision (Golf, Driving, Tennis, Other Sports, Watching TV)",
+    "attitude_toward_glasses": "Perfectionist (7/10)"
+  },
+  "surgical_recommendations_by_doctor": {
+    "doctor_ref_id": "Gitanjali Baveja",
+    "counselor_ref_id": "AM",
+    "decision_date": "2024-10-04",
+    "candidate_for_laser": null,
+    "recommended_lens_options": [
+      {
+        "package_id": "TORIC",
+        "name": "Monofocal",
+        "description": "Toric option circled in recommendations",
+        "reason": "Astigmatism correction",
+        "is_selected_preference": null
+      },
+      {
+        "package_id": "PRESBYOPIC_TORIC",
+        "name": "Trifocal",
+        "description": "Presbyopic (w/toric) circled; PanOptix ordered",
+        "reason": "Presbyopia and Astigmatism correction",
+        "is_selected_preference": true
+      },
+      {
+        "package_id": "LAL",
+        "name": "LAL (Light Adjustable Lens)",
+        "description": "LAL circled in recommendations",
+        "reason": "Adjustability",
+        "is_selected_preference": null
+      }
+    ],
+    "selected_implants": {
+      "od_right": {
+        "model": "CNWTT6",
+        "power": "+15.0",
+        "cylinder": "Toric",
+        "alignment_axis": "11",
+        "incision": "160"
+      },
+      "os_left": {
+        "model": "CNWTT3",
+        "power": "+15.5",
+        "cylinder": "Toric",
+        "alignment_axis": "135",
+        "incision": "020"
+      }
+    },
+    "scheduling": {
+      "surgery_date": "",
+      "arrival_time": "",
+      "pre_op_start_date": "",
+      "post_op_visit_1": "",
+      "post_op_visit_2": ""
+    }
+  },
+  "medications": {
+    "pre_op": {
+      "antibiotic_id": null,
+      "antibiotic_name": "",
+      "frequency_id": null,
+      "frequency": "",
+      "progress": {}
+    },
+    "day_of_surgery": {},
+    "post_op": {
+      "is_dropless": false,
+      "is_combination": false,
+      "combination_name": "",
+      "antibiotic": {
+        "name": "",
+        "frequency": 3,
+        "frequency_label": "3x Daily",
+        "weeks": 1
+      },
+      "nsaid": {
+        "name": "",
+        "frequency": 0,
+        "frequency_label": "",
+        "weeks": 4
+      },
+      "steroid": {
+        "name": "",
+        "taper_schedule": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "weeks": 4
+      },
+      "glaucoma": {
+        "resume": false,
+        "medications": []
+      },
+      "progress": {}
+    }
+  },
+  "documents": {
+    "signed_consents": [
+      {
+        "name": "Lifestyle Questionnaire Visual Assessment",
+        "date": "2024-10-04"
+      }
+    ]
+  }
+}
