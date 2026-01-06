@@ -376,11 +376,11 @@ const AppContent: React.FC = () => {
         }}
       />
 
-      <PatientSidebar
+      {/* <PatientSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         patient={currentPatient}
-      />
+      /> */}
 
       <FAQOverlay
         patient={currentPatient}

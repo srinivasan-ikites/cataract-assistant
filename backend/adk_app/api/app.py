@@ -519,10 +519,11 @@ _DEFAULT_CORS_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
     "http://35.244.44.106:3000",
+    "http://cataract-assistant.ikites.ai",  # <--- ADD THIS LINE
+    "https://cataract-assistant.ikites.ai", # <--- Add this too (for future SSL)
     "https://cataract-p9pks1uzc-srinivas831s-projects.vercel.app",
     "https://cataract-8p61yr28h-srinivas831s-projects.vercel.app",
     "https://cataract-ui.vercel.app",
-    "https://cataract-ebkhf3zpw-srinivas831s-projects.vercel.app",
 ]
 
 # Allow overriding via env to avoid code changes for each hostname/IP
