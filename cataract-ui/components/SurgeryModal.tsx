@@ -284,7 +284,10 @@ const DayOfSurgeryView = ({
 const SurgeryModal: React.FC<SurgeryModalProps> = ({ patient, onClose, isDayOfSurgery = false, moduleContent, onOpenChat }) => {
     const { classes } = useTheme();
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-    const isEligibleForLaser = patient?.surgical_recommendations_by_doctor?.candidate_for_laser === true;
+    const rawLaserFlag = patient?.surgical_recommendations_by_doctor?.candidate_for_laser as unknown;
+    const isEligibleForLaser =
+        rawLaserFlag === true ||
+        (typeof rawLaserFlag === 'string' && rawLaserFlag.toLowerCase() === 'true');
 
     const sanitizeQuestion = (q?: string) =>
         (q || '')

@@ -79,8 +79,10 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
     );
   }
 
-  // Route "IOL" or "Lens Options" to the new IOLModal
-  const isIOLModule = item.title.toLowerCase().includes('iol') || item.title.toLowerCase().includes('lens options');
+  // Route "What is an IOL?" to the IOLModal
+  // IMPORTANT: Do NOT route "My IOL Options" here, so it can render its own content
+  const titleLower = item.title.toLowerCase();
+  const isIOLModule = titleLower.includes('iol') && !titleLower.includes('options');
   if (isIOLModule && !loading) {
     return (
       <IOLModal

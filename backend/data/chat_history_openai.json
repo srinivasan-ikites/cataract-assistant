@@ -1,0 +1,159 @@
+{
+"chat_history": [
+    {
+      "role": "user",
+      "text": "Tell me about Nuclear sclerosis and cortical",
+      "timestamp": "now"
+    },
+    {
+      "role": "bot",
+      "text": "**Nuclear sclerosis** is a common type of cataract where the center of the lens becomes cloudy and hardens over time. It usually causes gradual **blurred vision** and difficulty seeing clearly at all distances.\n\n**Cortical cataracts** affect the edges of the lens in a spoke-like pattern. They often cause **glare** and **difficulty with bright lights** or night vision.\n\nBoth types of cataracts are age-related changes in the lens, and they can sometimes occur together. If they progress enough to affect your vision, surgery can help restore clarity.",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "**Nuclear sclerosis** is a common type of cataract where the center of the lens becomes cloudy and hardens over time. It usually causes gradual **blurred vision** and difficulty seeing clearly at all distances."
+        },
+        {
+          "type": "text",
+          "content": "**Cortical cataracts** affect the edges of the lens in a spoke-like pattern. They often cause **glare** and **difficulty with bright lights** or night vision."
+        },
+        {
+          "type": "callout",
+          "content": "Both types of cataracts are age-related changes in the lens, and they can sometimes occur together. If they progress enough to affect your vision, surgery can help restore clarity."
+        },
+        {
+          "type": "suggestions",
+          "items": [
+            "How do cataract surgeries work?",
+            "What are the signs my cataract is worsening?",
+            "Are there risks with cataract surgery?"
+          ]
+        }
+      ],
+      "suggestions": [
+        "How do I know if my cataracts need treatment?",
+        "Can cataracts be prevented or slowed down?",
+        "What are the signs my cataracts are getting worse?"
+      ],
+      "timestamp": "now"
+    },
+    {
+      "role": "user",
+      "text": " Can I know why I am being affected by this cataract? What is the reason behind being diagnosed with this condition?",
+      "timestamp": "now"
+    },
+    {
+      "role": "bot",
+      "text": "Your **cataract** is caused by natural changes in your eye's lens as you age. Specifically, your lens has developed **nuclear sclerosis** and **cortical** clouding, which are common types of age-related cataracts.\n\nWhy this happens\n\n- The lens inside your eye gradually becomes cloudy over time.\n- This process is part of normal aging, and almost everyone over 65 has some clouding.\n- Other factors like **UV light exposure**, **diabetes**, and **steroid use** can speed up this process.\n\nIt's important to remember that cataracts develop slowly, and your eye's natural aging process is the main reason for this change.",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "Your **cataract** is caused by natural changes in your eye's lens as you age. Specifically, your lens has developed **nuclear sclerosis** and **cortical** clouding, which are common types of age-related cataracts."
+        },
+        {
+          "type": "list",
+          "title": "Why this happens",
+          "items": [
+            "The lens inside your eye gradually becomes cloudy over time.",
+            "This process is part of normal aging, and almost everyone over 65 has some clouding.",
+            "Other factors like **UV light exposure**, **diabetes**, and **steroid use** can speed up this process."
+          ]
+        },
+        {
+          "type": "callout",
+          "content": "It's important to remember that cataracts develop slowly, and your eye's natural aging process is the main reason for this change."
+        }
+      ],
+      "suggestions": [
+        "What are the signs I should watch for?",
+        "How is cataract surgery done?",
+        "Will I need glasses after surgery?"
+      ],
+      "timestamp": "now"
+    },
+    {
+      "role": "user",
+      "text": "So, what is the only option that is left, or do I have multiple options for this particular thing? What should I do now? I have cataracts, so what is the thing I need to do?",
+      "timestamp": "now"
+    },
+    {
+      "role": "bot",
+      "text": "Since you have cataracts, the main treatment option is **cataract surgery**. This surgery removes the cloudy lens and replaces it with a clear artificial lens.\n\nYour Options\n\n- Most patients choose **standard monofocal lenses** for clear distance vision.\n- You can also consider **premium lenses** like **toric** for astigmatism or **multifocal** for near and far vision.\n- Your surgeon recommended a **trifocal lens** for better overall vision, which is a good choice for many patients.\n\nYou don't have to decide immediately. Your next step is to discuss these options with your surgeon, who can help you choose the best lens for your lifestyle and needs.\n\nRemember, surgery is the only way to remove a cataract. If your vision is bothering you, it's a good time to consider scheduling the procedure.",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "Since you have cataracts, the main treatment option is **cataract surgery**. This surgery removes the cloudy lens and replaces it with a clear artificial lens."
+        },
+        {
+          "type": "list",
+          "title": "Your Options",
+          "items": [
+            "Most patients choose **standard monofocal lenses** for clear distance vision.",
+            "You can also consider **premium lenses** like **toric** for astigmatism or **multifocal** for near and far vision.",
+            "Your surgeon recommended a **trifocal lens** for better overall vision, which is a good choice for many patients."
+          ]
+        },
+        {
+          "type": "text",
+          "content": "You don't have to decide immediately. Your next step is to discuss these options with your surgeon, who can help you choose the best lens for your lifestyle and needs."
+        },
+        {
+          "type": "callout",
+          "content": "Remember, surgery is the only way to remove a cataract. If your vision is bothering you, it's a good time to consider scheduling the procedure."
+        },
+        {
+          "type": "suggestions",
+          "content": [
+            "What should I expect during surgery?",
+            "How long is recovery after surgery?",
+            "Are there any risks I should know?"
+          ]
+        }
+      ],
+      "suggestions": [
+        "Are there risks with cataract surgery?",
+        "How long does the surgery take?",
+        "Will I need glasses after surgery?"
+      ],
+      "timestamp": "now"
+    },
+    {
+      "role": "user",
+      "text": "So if I need to do surgery, it will involve the removal of my lens and replacing it with another lens, right? What lens is recommended for me, and what do you suggest I do?",
+      "timestamp": "now"
+    },
+    {
+      "role": "bot",
+      "text": "Yes, if you decide to have surgery, it will involve **removing your cloudy natural lens** and replacing it with a clear artificial lens called an **intraocular lens (IOL)**.\n\nYour surgeon has recommended a **trifocal lens** for you, which can help you see clearly at different distances, and a **toric lens** to correct your astigmatism. The **Light Adjustable Lens (LAL)** is also an option, allowing for fine-tuning after surgery.\n\nWhat you should do next\n\n- Discuss these lens options with your surgeon to see which best fits your lifestyle.\n- Follow your pre-surgery instructions carefully, like using prescribed eye drops.\n- Arrange for someone to drive you home after the procedure.\n\nChoosing the right lens depends on your vision needs and lifestyle. Your surgeon will help you decide the best option for you.",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "Yes, if you decide to have surgery, it will involve **removing your cloudy natural lens** and replacing it with a clear artificial lens called an **intraocular lens (IOL)**."
+        },
+        {
+          "type": "text",
+          "content": "Your surgeon has recommended a **trifocal lens** for you, which can help you see clearly at different distances, and a **toric lens** to correct your astigmatism. The **Light Adjustable Lens (LAL)** is also an option, allowing for fine-tuning after surgery."
+        },
+        {
+          "type": "list",
+          "title": "What you should do next",
+          "items": [
+            "Discuss these lens options with your surgeon to see which best fits your lifestyle.",
+            "Follow your pre-surgery instructions carefully, like using prescribed eye drops.",
+            "Arrange for someone to drive you home after the procedure."
+          ]
+        },
+        {
+          "type": "callout",
+          "content": "Choosing the right lens depends on your vision needs and lifestyle. Your surgeon will help you decide the best option for you."
+        }
+      ],
+      "suggestions": [
+        "What are the risks of cataract surgery?",
+        "How long is recovery after surgery?",
+        "Will I need glasses after surgery?"
+      ],
+      "timestamp": "now"
+    }
+  ]
+}

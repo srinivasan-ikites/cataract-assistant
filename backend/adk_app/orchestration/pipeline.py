@@ -144,7 +144,14 @@ def prepare_context(
         patient_context_start = perf_counter()
         try:
             if patient_record:
-                patient_context = json.dumps(patient_record.get("extra") or patient_record, indent=2)
+                # Remove bulky/non-essential fields before sending to the LLM
+                safe_patient = dict(patient_record)
+                safe_patient.pop("chat_history", None)
+                safe_patient.pop("module_content", None)
+                patient_context = json.dumps(
+                    patient_record.get("extra") or safe_patient,
+                    indent=2,
+                )
         except Exception as exc:
             print(f"[Pipeline] patient context failed for {patient_id}: {exc}")
         finally:

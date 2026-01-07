@@ -375,17 +375,16 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'user' ? (
                     <div
-                      className={`max-w-[92%] p-4 rounded-[20px] text-sm leading-relaxed shadow-sm ${classes.userBubble} rounded-br-sm`}
+                      className={`max-w-[92%] p-4 rounded-[20px] text-[17px] leading-[1.8] text-slate-800 shadow-sm ${classes.userBubble} rounded-br-sm`}
                     >
-                      <div className="text-sm">
-                        <ReactMarkdown
-                          components={{
-                            p: ({ children }) => <p className="text-sm m-0">{children}</p>,
-                          }}
-                        >
-                          {msg.text}
-                        </ReactMarkdown>
-                      </div>
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="text-[17px] leading-[1.8] m-0">{children}</p>,
+                          strong: ({ children }) => <strong className="font-bold text-slate-900">{children}</strong>,
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <div className="max-w-[100%] w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -494,7 +493,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                     <button
                       key={i}
                       onClick={() => handleSend(sq)}
-                      className={`whitespace-nowrap text-xs font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-1 shadow-sm shrink-0 ${classes.suggestionChip}`}
+                      className={`whitespace-nowrap text-sm leading-[1.4] font-semibold px-4 py-2.5 rounded-full transition-colors flex items-center gap-1 shadow-sm shrink-0 ${classes.suggestionChip}`}
                     >
                       {sq}
                     </button>

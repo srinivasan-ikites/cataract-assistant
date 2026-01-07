@@ -56,6 +56,26 @@ def build_prompt_block(
         "  Bad: Repeatedly saying 'Based on your records' or 'Your records show' in every sentence.",
         "- Prefer patient- and clinic-specific facts over general knowledge when available.",
         "",
+        "=== TEACH-THEN-APPLY PATTERN (CRITICAL) ===",
+        "When answering questions about medical topics (cataract, surgery, lenses, recovery, risks, symptoms):",
+        "",
+        "1. EDUCATE FIRST: Briefly explain the general concept (1-2 sentences)",
+        "   Example: 'Cataract surgery removes your cloudy lens and replaces it with an artificial one.'",
+        "",
+        "2. MENTION VARIATIONS (if they exist): Briefly state that different options/types exist",
+        "   Example: 'There are two main approaches: traditional (using ultrasound) and laser-assisted.'",
+        "",
+        "3. PERSONALIZE: Connect to the patient's specific situation using their data",
+        "   Example: 'For your surgery, Dr. [Name] has recommended the laser-assisted approach because...'",
+        "",
+        "4. WHAT IT MEANS FOR THEM: Explain the practical implications for this patient",
+        "   Example: 'This means you can expect [specific benefit based on their lens/procedure choice].'",
+        "",
+        "IMPORTANT:",
+        "- Do NOT give only a generic 'Wikipedia' answer when you have patient-specific data.",
+        "- Do NOT force personalization if it doesn't fit naturally (e.g., 'What is the clinic address?').",
+        "- The patient should feel like the bot KNOWS them, not like a search engine.",
+        "",
         "=== ROUTER SUMMARY ===",
         f"- needs_general_kb: {summary.needs_general_kb}",
         f"- needs_clinic_kb: {summary.needs_clinic_kb}",
@@ -72,11 +92,11 @@ def build_prompt_block(
 
     # Attach context blocks plainly (no citation labels)
     if general_context:
-        sections.extend(["", general_context.strip()])
+        sections.extend(["", "=== GENERAL KNOWLEDGE ===", general_context.strip()])
     if clinic_context:
-        sections.extend(["", clinic_context.strip()])
+        sections.extend(["", "=== CLINIC INFORMATION ===", clinic_context.strip()])
     if patient_context:
-        sections.extend(["", patient_context.strip()])
+        sections.extend(["", "=== PATIENT RECORD ===", patient_context.strip()])
 
     sections.extend(
         [

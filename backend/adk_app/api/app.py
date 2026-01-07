@@ -502,7 +502,7 @@ def _save_uploaded_files(base_dir: Path, files: List[UploadFile]) -> list[Path]:
 def get_runtime() -> AgentRuntime:
     config = ModelConfig.from_env()
     router_provider = os.getenv("ROUTER_PROVIDER", config.provider)
-    router_model = os.getenv("ROUTER_MODEL", config.model)
+    router_model = os.getenv("MODEL_PROVIDER", config.model)
     print(
         "[Model Config] provider="
         f"{config.provider} model={config.model} temperature={config.temperature}"
@@ -1137,7 +1137,7 @@ Be honest about information gaps, but don't offer unrequested tasks like draftin
 
     try:
         answer_text = response["choices"][0]["message"]["content"]
-        print("[Final Answer]\n", answer_text, "\n")
+        # print("[Final Answer]\n", answer_text, "\n")
         return answer_text
     except (KeyError, IndexError) as exc:
         print(f"[Answer Parse Error] {exc}")
@@ -1526,17 +1526,33 @@ def _generate_answer_with_history(
     messages = [
         {
             "role": "system",
-            "content": """You are a cataract surgery counselling assistant for patients. 
+            "content": """You are a cataract surgery counselling assistant for patients. You have access to the patient's complete medical record.
 
-TONE: Warm, reassuring, conversational
+TONE: Warm, reassuring, conversational - speak like a caring nurse who KNOWS this patient
 LANGUAGE: Simple terms (8th grade reading level)
 LENGTH: Concise - aim for 100-150 words, max 200 words
+
+ANSWER STRUCTURE (Teach-Then-Apply):
+When answering medical questions, follow this pattern:
+1. EDUCATE: Briefly explain the general concept (1-2 sentences)
+2. VARIATIONS: If multiple types/options exist, mention them briefly
+3. PERSONALIZE: Connect to THIS patient's specific situation (their lens choice, diagnosis type, surgery approach)
+4. IMPLICATION: What this means for them specifically
+
+Example for "How is cataract surgery performed?":
+- General: "Cataract surgery removes your cloudy lens and replaces it with an artificial one."
+- Variations: "There are two approaches: traditional (ultrasound) and laser-assisted."
+- Personal: "For you, Dr. [Name] has recommended laser-assisted surgery..."
+- Implication: "This precision helps position your trifocal toric lens accurately."
+
+DO NOT give only generic answers when patient data is available. The patient should feel the bot KNOWS them.
+
 FORMATTING: 
 - Use double line breaks between paragraphs
-- You MAY use **bold** for emphasis on key terms
+- Use **bold** for key medical terms and the patient's specific choices
 - Avoid section headers like 'Short answer:' or 'Next steps:'
-CITATIONS:
-- Do NOT add citation tags in the answer.
+
+CITATIONS: Do NOT add citation tags in the answer.
 
 Be honest about information gaps, but don't offer unrequested tasks like drafting questions.""",
         }
@@ -1840,7 +1856,7 @@ JSON only, no prose, no markdown fences.""",
             dedup.append(s)
     final_suggestions = dedup[:3]
 
-    print("[Final Answer]\n", answer_text, "\n")
+    # print("[Final Answer]\n", answer_text, "\n")
     print(f"[Blocks] Count: {len(blocks)}")
     print(f"[Suggestions] Final: {final_suggestions}")
     print(f"####### timing llm.total_ms={(time.perf_counter() - t_start)*1000:.1f}")

@@ -7,7 +7,7 @@
     "dob": "1956-01-20",
     "age": 68,
     "gender": "Female",
-    "occupation": "Teacherr"
+    "occupation": "Teacher"
   },
   "medical_history": {
     "source": "Visit Note - September 18, 2024",
@@ -113,7 +113,7 @@
       }
     },
     "scheduling": {
-      "surgery_date": "2026-01-05",
+      "surgery_date": "2026-01-10",
       "arrival_time": "",
       "pre_op_start_date": "",
       "post_op_visit_1": "",
@@ -168,6 +168,11 @@
           "nsaid_0": true,
           "steroid_0": true,
           "antibiotic_2": true
+        },
+        "2026-01-06": {
+          "antibiotic_0": false,
+          "antibiotic_1": false,
+          "antibiotic_2": false
         }
       }
     }

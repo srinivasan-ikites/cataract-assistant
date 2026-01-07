@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useEffect, useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -9,7 +5,6 @@ import Cube3D from './components/Cube3D';
 import DetailModal from './components/DetailModal';
 import FAQOverlay from './components/FAQOverlay';
 import ThemeSwitcher from './components/ThemeSwitcher';
-import PatientSidebar from './components/PatientSidebar';
 import { ModuleItem } from './types';
 import { ThemeProvider, useTheme } from './theme';
 import { Patient, Clinic, api } from './services/api';
@@ -65,7 +60,7 @@ const getModules = (patient: Patient | null): ModuleItem[] => {
       id: '6',
       title: 'Before Surgery',
       iconName: 'preop',
-      shortDescription: `Date: ${surgeryDate}`
+      shortDescription: 'Pre-op checklist & arrival time'
     },
 
     // Row 3: Act & Recover
@@ -73,7 +68,7 @@ const getModules = (patient: Patient | null): ModuleItem[] => {
       id: '7',
       title: 'Day of Surgery',
       iconName: 'day',
-      shortDescription: 'Duration: ~15-20 Mins'
+      shortDescription: 'Timeline & what to expect'
     },
     {
       id: '8',

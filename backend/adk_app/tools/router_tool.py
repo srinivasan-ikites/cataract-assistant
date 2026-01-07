@@ -6,10 +6,10 @@ import re
 from dataclasses import asdict, dataclass
 from typing import List, Optional
 
+from dotenv import load_dotenv
 from google.adk.tools import FunctionTool
 
-from adk_app.config import ModelConfig
-
+load_dotenv()
 
 TOPIC_KEYWORDS = {
     "BASICS": ["what is", "definition", "types", "basics"],
@@ -83,9 +83,8 @@ def router_tool(
 
 
 def _route_question(question: str, clinic_id: Optional[str], patient_id: Optional[str]) -> RouterDecision:
-    config = ModelConfig.from_env()
-    provider = os.getenv("ROUTER_PROVIDER", config.provider).lower()
-    model = os.getenv("ROUTER_MODEL", config.model)
+    model = os.getenv("ROUTER_MODEL", "gemini-1.5-flash")
+    provider = os.getenv("MODEL_PROVIDER", "gemini").lower()
     prompt = _build_prompt(question, clinic_id, patient_id)
     print(f"[Router Config] provider={provider} model={model}")
 
@@ -216,10 +215,19 @@ def _heuristic_decision(question: str, clinic_id: Optional[str], patient_id: Opt
     text = question.lower()
     topics = _infer_topics(text)
     needs_clinic = bool(clinic_id) or any(word in text for word in CLINIC_KEYWORDS)
-    needs_patient = bool(patient_id) or any(word in text for word in PATIENT_KEYWORDS)
+    
+    # Greedy patient data: Always include patient data for medical topics
+    # This ensures personalized answers even for "general" sounding questions
+    MEDICAL_TOPICS = {"SURGERY", "LENSES", "DIAGNOSIS", "RECOVERY", "POST_OP", "SYMPTOMS", "BASICS"}
+    is_medical_topic = bool(set(topics) & MEDICAL_TOPICS)
+    
+    # Patient data needed if: patient_id provided, OR explicit patient keywords, OR medical topic
+    needs_patient = bool(patient_id) or any(word in text for word in PATIENT_KEYWORDS) or is_medical_topic
+    
     is_emergency = any(word in text for word in EMERGENCY_KEYWORDS)
     rationale = (
-        "Heuristic routing based on detected keywords and supplied identifiers."
+        "Heuristic routing based on detected keywords and supplied identifiers. "
+        f"Medical topic detected: {is_medical_topic}."
     )
     return RouterDecision(
         needs_general_kb=True,
@@ -254,6 +262,19 @@ def _build_prompt(question: str, clinic_id: Optional[str], patient_id: Optional[
         "Multiple sources may be needed simultaneously: set each boolean independently instead of forcing a single choice.\n"
         "Mark a source as true whenever any part of the question would benefit from that knowledge base (General_KB, clinic JSON, patient JSON).\n"
         "Only set false when you are confident the source is irrelevant.\n"
+        "\n"
+        "CRITICAL - GREEDY PATIENT DATA RULE:\n"
+        "For medical topics, ALWAYS set needs_patient_data=true even if the question sounds general.\n"
+        "This applies to questions about: SURGERY, LENSES, IOL, DIAGNOSIS, RECOVERY, POST_OP, SYMPTOMS, RISKS, MEDICATIONS.\n"
+        "Reason: The patient's specific situation (e.g., laser candidate, lens choice, diagnosis type) should inform the answer.\n"
+        "Examples where needs_patient_data should be TRUE:\n"
+        "- 'How is cataract surgery performed?' -> TRUE (patient may have laser-assisted vs traditional)\n"
+        "- 'What is an IOL?' -> TRUE (patient has a specific lens chosen)\n"
+        "- 'What are the risks?' -> TRUE (patient's comorbidities affect risk profile)\n"
+        "- 'What is a cataract?' -> TRUE (patient has a specific cataract type)\n"
+        "Examples where needs_patient_data can be FALSE:\n"
+        "- 'What is the clinic address?' -> FALSE (purely logistical)\n"
+        "- 'What are your hours?' -> FALSE (clinic info only)\n"
         "\n"
         "EMERGENCY DETECTION: Mark is_emergency=true ONLY if the patient describes NEW or WORSENING physical symptoms:\n"
         "- Sudden vision loss or severe blurriness\n"

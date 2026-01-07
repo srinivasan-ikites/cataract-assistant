@@ -47,7 +47,7 @@ def general_kb_search_tool(
     seen_sources: set[str] = set()
     for idx, hit in enumerate(hits, start=1):
         metadata = hit.get("metadata", {})
-        print(f"metadata: {metadata}")
+        # print(f"metadata: {metadata}")
         section_title = metadata.get("section_title") or metadata.get("page_title") or "Unknown section"
         score = hit.get("score", 0.0) or 0.0
         chunk_id = hit.get("chunk_id", "unknown")
