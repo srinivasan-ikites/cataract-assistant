@@ -126,7 +126,9 @@
       "antibiotic_name": "Besifloxacin (Besivance)",
       "frequency_id": 2,
       "frequency": "3 times a day",
-      "progress": {}
+      "progress": {
+        "2026-01-08": []
+      }
     },
     "day_of_surgery": {},
     "post_op": {
