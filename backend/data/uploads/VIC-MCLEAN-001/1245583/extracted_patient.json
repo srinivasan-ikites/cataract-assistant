@@ -10,8 +10,7 @@
   },
   "medical_profile": {
     "systemic_conditions": [
-      "No diabetes",
-      "No glaucoma"
+      "No diabetes"
     ],
     "medications_systemic": [
       "Adults Multivitamin",
@@ -23,11 +22,21 @@
     "review_of_systems": [
       "No Artificial Joints",
       "No Fever",
+      "No Chills",
+      "No Weight Loss",
       "No Stuffy Nose",
+      "No Ear Ache",
+      "No Dry Mouth",
+      "No Upset Stomach",
       "No Diarrhea",
+      "No Constipation",
       "No Urinary Frequency",
+      "No Joint Swelling",
+      "No Decreased Range Of Motion",
+      "No Anxiety",
       "No Insomnia",
-      "No Allergic Reactions"
+      "No Allergic Reactions",
+      "No Hives"
     ],
     "surgical_history": {
       "non_ocular": [
@@ -40,7 +49,7 @@
   },
   "clinical_context": {
     "od_right": {
-      "pathology": "1-2+ nuclear sclerosis and 2+cortical cataract",
+      "pathology": "1-2+ nuclear sclerosis, 2+ cortical, abnormal tear break up time, spk inferiorly",
       "visual_acuity": {
         "ucva": "",
         "bcva": "20/20"
@@ -51,22 +60,24 @@
           "axial_length_mm": 25.32,
           "acd_mm": 3.77,
           "wtw_mm": 11.6,
+          "cct_um": 495,
           "flat_k_k1": 42.88,
           "steep_k_k2": 45.6,
-          "astigmatism_power": 2.72,
+          "astigmatism_power": -2.72,
           "axis": 102,
-          "k_type": "Standard"
+          "k_type": "KERATOMETRY"
         },
         "pentacam_topography": {
           "source": "Oculus Pentacam",
           "astigmatism_power": 1.7,
           "axis": 12,
+          "cct_um": 521,
           "belin_ambrosio_score": 0.93
         }
       }
     },
     "os_left": {
-      "pathology": "1+ cortical and 1-2+ nuclear sclerosis cataract",
+      "pathology": "1+ cortical, 1-2+ nuclear sclerosis, abnormal tear break up time, spk inferiorly",
       "visual_acuity": {
         "ucva": "",
         "bcva": "20/20"
@@ -77,34 +88,32 @@
           "axial_length_mm": 25.23,
           "acd_mm": 3.73,
           "wtw_mm": 11.7,
+          "cct_um": 494,
           "flat_k_k1": 43.76,
           "steep_k_k2": 44.66,
-          "astigmatism_power": 0.9,
+          "astigmatism_power": -0.9,
           "axis": 51,
-          "k_type": "Standard"
+          "k_type": "KERATOMETRY"
         },
         "pentacam_topography": {
-          "source": "",
+          "source": "Oculus Pentacam",
           "astigmatism_power": null,
           "axis": null,
-          "belin_ambrosio_score": null
+          "cct_um": 526,
+          "belin_ambrosio_score": 1.31
         }
       }
     },
     "ocular_comorbidities": [
       "Dry Eye Syndrome",
       "Myopia",
-      "Abnormal tear break up time",
-      "SPK"
+      "Senile Cataract",
+      "No glaucoma"
     ],
     "clinical_alerts": [
       {
-        "trigger": "OD (Right) Astigmatism > 2.0D",
-        "alert_msg": "Toric IOL recommended for OD (Right) astigmatism correction (2.72D)"
-      },
-      {
         "trigger": "OD (Right) Biometry Discrepancy",
-        "alert_msg": "IOL Master (2.72D) vs Pentacam (1.7D) differ by 1.02D - Consider intraoperative aberrometry"
+        "alert_msg": "IOL Master (-2.72D) vs Pentacam (1.7D) differ by 4.42D - Consider intraoperative aberrometry"
       }
     ]
   },
@@ -126,6 +135,16 @@
     "symptoms_impact": {
       "night_driving_difficulty": true,
       "glare_halos": true
+    }
+  },
+  "surgical_plan": {
+    "operative_logistics": {
+      "od_right": {
+        "surgery_date": ""
+      },
+      "os_left": {
+        "surgery_date": ""
+      }
     }
   }
 }
