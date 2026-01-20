@@ -71,7 +71,7 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
 
     // 1. Calculate Progress & Timing
     // const surgeryDateStr = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date || "2025-12-23";
-    const surgeryDateStr = "2026-1-11";
+    const surgeryDateStr = "2026-1-15";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dateKey = today.toISOString().split('T')[0];

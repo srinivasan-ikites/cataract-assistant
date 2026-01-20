@@ -62,11 +62,12 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
         "chat_history", 
         "module_content", 
         "extra", 
-        "medications",
         "clinical_context",
-        "surgical_recommendations_by_doctor",
-        "lifestyle",
-        "medical_history",
+        # New v2 schema fields
+        "medical_profile",
+        "lifestyle_profile",
+        "surgical_plan",
+        "medications_plan",
         "documents",
         # Legacy/Internal keys that shouldn't leak into 'extra'
         "patient_id",
@@ -85,13 +86,13 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
         "dob": dob,
         "chat_history": chat_history,
         "module_content": module_content,
-        # New reviewed schema fields
+        # Current schema fields (v2)
         "clinical_context": data.get("clinical_context"),
-        "surgical_recommendations_by_doctor": data.get("surgical_recommendations_by_doctor"),
-        "lifestyle": data.get("lifestyle"),
-        "medical_history": data.get("medical_history"),
+        "medical_profile": data.get("medical_profile"),  # NEW field name
+        "lifestyle_profile": data.get("lifestyle_profile"),  # NEW field name
+        "surgical_plan": data.get("surgical_plan"),  # NEW field name
+        "medications_plan": data.get("medications_plan"),  # NEW field name
         "documents": data.get("documents"),
-        "medications": data.get("medications"),
         # Reconstruct identity object for the schema
         "patient_identity": {
             **identity,
@@ -110,21 +111,21 @@ def normalize_patient(raw: Dict[str, Any]) -> Dict[str, Any]:
 def denormalize_patient(normalized: Dict[str, Any]) -> Dict[str, Any]:
     """
     Remove legacy convenience fields and 'extra' debris before saving to disk.
-    Ensures the JSON file stays aligned with the intended schema and keeps keys ordered.
+    Ensures the JSON file stays aligned with the intended v2 schema and keeps keys ordered.
     """
     if not normalized:
         return {}
     
     data = deepcopy(normalized)
     
-    # Standard schema top-level keys in preferred order
+    # V2 schema top-level keys in preferred order
     schema_keys = [
         "patient_identity",
-        "medical_history",
+        "medical_profile",       # v2 (replaces medical_history)
         "clinical_context",
-        "lifestyle",
-        "surgical_recommendations_by_doctor",
-        "medications",
+        "lifestyle_profile",     # v2 (replaces lifestyle)
+        "surgical_plan",         # v2 (replaces surgical_recommendations_by_doctor)
+        "medications_plan",      # v2 (replaces medications)
         "documents",
         "chat_history",
         "module_content"
@@ -137,7 +138,9 @@ def denormalize_patient(normalized: Dict[str, Any]) -> Dict[str, Any]:
             clean_data[key] = data[key]
             
     # Include anything truly 'extra' that isn't a schema key or a legacy convenience field
-    legacy_keys = {"patient_id", "clinic_id", "name", "dob", "extra", "_file_path"}
+    legacy_keys = {"patient_id", "clinic_id", "name", "dob", "extra", "_file_path",
+                   # Legacy field names that should NOT be saved
+                   "medical_history", "lifestyle", "surgical_recommendations_by_doctor", "medications"}
     schema_keys_set = set(schema_keys)
     if "extra" in data and isinstance(data["extra"], dict):
         for k, v in data["extra"].items():

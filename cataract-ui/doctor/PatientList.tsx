@@ -14,7 +14,7 @@ import {
 import { api, Patient } from '../services/api';
 
 interface PatientListProps {
-  onSelectPatient: (id: string) => void;
+  onSelectPatient: (id: string, allPatientIds?: string[]) => void;
   clinicId: string;
 }
 
@@ -176,7 +176,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
               <tr
                 key={patient.patient_id}
                 className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                onClick={() => onSelectPatient(patient.patient_id)}
+                onClick={() => onSelectPatient(patient.patient_id, patients.map(p => p.patient_id))}
               >
                 <td className="px-10 py-6">
                   <div className="flex items-center gap-4">

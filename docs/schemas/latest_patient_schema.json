@@ -1,0 +1,71 @@
+{
+    "patient_identity": {
+      "patient_id": "string",
+      "clinic_ref_id": "string",
+      "first_name": "string",
+      "middle_name": "string",
+      "last_name": "string",
+      "dob": "YYYY-MM-DD",
+      "gender": "string"
+    },
+    "medical_profile": {
+      "systemic_conditions": ["string"], 
+      "medications_systemic": ["string"], 
+      "allergies": ["string"],
+      "review_of_systems": ["string"],
+      "surgical_history": {
+        "non_ocular": ["string"], 
+        "ocular": ["string"]      
+      }
+    },
+    "clinical_context": {
+      "od_right": {
+        "pathology": "string", 
+        "visual_acuity": { "ucva": "string", "bcva": "string" },
+        "biometry": {
+          "iol_master": {
+            "axial_length_mm": "number",
+            "acd_mm": "number",
+            "wtw_mm": "number",
+            "cct_um": "number",
+            "flat_k_k1": "number",
+            "steep_k_k2": "number",
+            "astigmatism_power": "number",
+            "axis": "number",
+            "k_type": "string"
+          },
+          "pentacam_topography": {
+            "astigmatism_power": "number",
+            "axis": "number",
+            "cct_um": "number",
+            "belin_ambrosio_score": "number"
+          }
+        }
+      },
+      "os_left": {
+        "pathology": "string",
+        "visual_acuity": { "ucva": "string", "bcva": "string" },
+        "biometry": {
+          "iol_master": { "axial_length_mm": "number", "acd_mm": "number", "wtw_mm": "number", "cct_um": "number", "flat_k_k1": "number", "steep_k_k2": "number", "astigmatism_power": "number", "axis": "number", "k_type": "string" },
+          "pentacam_topography": { "astigmatism_power": "number", "axis": "number", "cct_um": "number", "belin_ambrosio_score": "number" } 
+        }
+      },
+      "ocular_comorbidities": ["string"] 
+    },
+    "lifestyle_profile": {
+      "occupation": "string",
+      "hobbies": ["string"],
+      "visual_goals": {
+        "primary_zone": "string",
+        "spectacle_independence_desire": "string"
+      },
+      "personality_traits": {
+        "perfectionism_score": "number",
+        "risk_tolerance": "string"
+      },
+      "symptoms_impact": {
+        "night_driving_difficulty": "boolean",
+        "glare_halos": "boolean"
+      }
+    }
+  }

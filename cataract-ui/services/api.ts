@@ -150,6 +150,77 @@ export interface AskResponse {
     sources?: any[];
 }
 
+/**
+ * Doctor Context Response - All clinic configuration needed for Doctor's View
+ * Matches the structure returned by /clinics/{clinic_id}/doctor-context endpoint
+ */
+export interface DoctorContextResponse {
+    status?: string;
+    clinic_id?: string;
+    medications: {
+        pre_op: {
+            antibiotics: Array<{ id: number; name: string }>;
+            frequencies: Array<{ id: number; name: string; times_per_day: number }>;
+            default_start_days: number;
+        };
+        post_op: {
+            antibiotics: Array<{
+                id: number;
+                name: string;
+                default_frequency: number;
+                default_weeks: number;
+                allergy_note?: string;
+            }>;
+            nsaids: Array<{
+                id: number;
+                name: string;
+                default_frequency: number;
+                frequency_label: string;
+                default_weeks: number;
+                variable_frequency?: boolean;
+            }>;
+            steroids: Array<{
+                id: number;
+                name: string;
+                default_taper: number[];
+                default_weeks: number;
+            }>;
+            glaucoma_drops: Array<{
+                id: number;
+                name: string;
+                category: string;
+            }>;
+            combination_drops: Array<{
+                id: number;
+                name: string;
+                components: string[];
+            }>;
+        };
+        dropless_option: {
+            available: boolean;
+            description: string;
+            medications: string[];
+        };
+        frequency_options: Array<{ id: number; label: string; times_per_day: number }>;
+    };
+    staff?: Array<{
+        provider_id: string;
+        name: string;
+        role: string;
+        specialty?: string;
+    }>;
+    surgical_packages: Array<{
+        package_id: string;
+        display_name: string;
+        description?: string;
+        price_cash: number;
+        includes_laser: boolean;
+        allowed_lens_codes: string[];
+    }>;
+    lens_inventory: Record<string, any>;
+    lens_categories?: string[];
+}
+
 export const api = {
     async getPatients(): Promise<Patient[]> {
         const res = await fetch(`${API_BASE}/patients`);
@@ -271,6 +342,44 @@ export const api = {
     async getReviewedClinic(clinicId: string): Promise<any> {
         const res = await fetch(`${API_BASE}/doctor/reviewed/clinic?clinic_id=${clinicId}`);
         if (!res.ok) return null; // Might not exist yet
+        return res.json();
+    },
+
+    async getClinicConfig(clinicId: string): Promise<any> {
+        const res = await fetch(`${API_BASE}/clinics/${clinicId}`);
+        if (!res.ok) return null;
+        return res.json();
+    },
+
+    async getClinicMedications(clinicId: string): Promise<any> {
+        const res = await fetch(`${API_BASE}/clinics/${clinicId}/medications`);
+        if (!res.ok) return null;
+        return res.json();
+    },
+
+    async getClinicPackages(clinicId: string): Promise<any> {
+        const res = await fetch(`${API_BASE}/clinics/${clinicId}/packages`);
+        if (!res.ok) return null;
+        return res.json();
+    },
+
+    async getClinicLensInventory(clinicId: string, category?: string): Promise<any> {
+        const url = category 
+            ? `${API_BASE}/clinics/${clinicId}/lens-inventory?category=${category}`
+            : `${API_BASE}/clinics/${clinicId}/lens-inventory`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return res.json();
+    },
+
+    /**
+     * Get all clinic context needed for Doctor's View in a single call.
+     * Returns medications, staff, packages, and lens inventory.
+     * Optimized for performance - reduces multiple API calls to one.
+     */
+    async getDoctorContext(clinicId: string): Promise<DoctorContextResponse | null> {
+        const res = await fetch(`${API_BASE}/clinics/${clinicId}/doctor-context`);
+        if (!res.ok) return null;
         return res.json();
     },
 

@@ -27,11 +27,32 @@ const DoctorPortal: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [clinicId] = useState('VIC-MCLEAN-001'); // Default clinic
+  const [patientList, setPatientList] = useState<string[]>([]); // Track patient IDs for navigation
 
-  const navigateToOnboarding = (pid: string) => {
+  const navigateToOnboarding = (pid: string, allPatients?: string[]) => {
     setSelectedPatientId(pid);
+    if (allPatients) {
+      setPatientList(allPatients);
+    }
     setCurrentView('onboarding');
   };
+
+  // Navigate to previous/next patient
+  const handlePatientNavigation = (direction: 'prev' | 'next') => {
+    if (!selectedPatientId || patientList.length === 0) return;
+    const currentIndex = patientList.indexOf(selectedPatientId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < patientList.length) {
+      setSelectedPatientId(patientList[newIndex]);
+    }
+  };
+
+  // Check if navigation is available
+  const currentPatientIndex = selectedPatientId ? patientList.indexOf(selectedPatientId) : -1;
+  const hasPrevPatient = currentPatientIndex > 0;
+  const hasNextPatient = currentPatientIndex < patientList.length - 1 && currentPatientIndex !== -1;
 
   const renderView = () => {
     switch (currentView) {
@@ -70,10 +91,13 @@ const DoctorPortal: React.FC = () => {
         );
       case 'onboarding':
         return selectedPatientId ? (
-          <PatientOnboarding 
-            patientId={selectedPatientId} 
-            clinicId={clinicId} 
-            onBack={() => setCurrentView('dashboard')} 
+          <PatientOnboarding
+            patientId={selectedPatientId}
+            clinicId={clinicId}
+            onBack={() => setCurrentView('dashboard')}
+            onNavigate={handlePatientNavigation}
+            hasPrev={hasPrevPatient}
+            hasNext={hasNextPatient}
           />
         ) : null;
       case 'clinic':

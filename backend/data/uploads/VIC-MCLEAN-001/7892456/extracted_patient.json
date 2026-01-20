@@ -1,0 +1,151 @@
+{
+  "patient_identity": {
+    "patient_id": "7892456",
+    "clinic_ref_id": "VIC-MCLEAN-001",
+    "first_name": "Robert",
+    "middle_name": "James",
+    "last_name": "Thompson",
+    "dob": "1962-07-15",
+    "gender": "Male"
+  },
+  "medical_profile": {
+    "systemic_conditions": [
+      "Type 2 Diabetes - controlled with metformin",
+      "Hypertension",
+      "Hyperlipidemia"
+    ],
+    "medications_systemic": [
+      "Metformin 500mg twice daily",
+      "Lisinopril 10mg daily",
+      "Atorvastatin 20mg daily",
+      "Aspirin 81mg daily"
+    ],
+    "allergies": [
+      "Penicillin",
+      "Sulfa drugs"
+    ],
+    "review_of_systems": [
+      "No chest pain",
+      "No shortness of breath",
+      "Mild peripheral neuropathy in feet",
+      "Occasional headaches",
+      "No vision loss episodes"
+    ],
+    "surgical_history": {
+      "non_ocular": [
+        "Appendectomy (1995)",
+        "Knee arthroscopy (2018)"
+      ],
+      "ocular": [
+        "Laser trabeculoplasty OS (2022)"
+      ]
+    }
+  },
+  "clinical_context": {
+    "od_right": {
+      "pathology": "2-3+ posterior subcapsular cataract with early nuclear sclerosis",
+      "visual_acuity": {
+        "ucva": "20/80",
+        "bcva": "20/40"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 23.45,
+          "acd_mm": 3.12,
+          "wtw_mm": 11.8,
+          "flat_k_k1": 44.25,
+          "steep_k_k2": 44.75,
+          "astigmatism_power": 0.50,
+          "axis": 90,
+          "k_type": "Standard"
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 0.45,
+          "axis": 88,
+          "belin_ambrosio_score": 1.2
+        }
+      }
+    },
+    "os_left": {
+      "pathology": "3+ posterior subcapsular cataract",
+      "visual_acuity": {
+        "ucva": "20/100",
+        "bcva": "20/50"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 23.52,
+          "acd_mm": 3.08,
+          "wtw_mm": 11.9,
+          "flat_k_k1": 44.50,
+          "steep_k_k2": 46.25,
+          "astigmatism_power": 1.75,
+          "axis": 175,
+          "k_type": "Standard"
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 1.6,
+          "axis": 178,
+          "belin_ambrosio_score": 1.1
+        }
+      }
+    },
+    "ocular_comorbidities": [
+      "Primary Open Angle Glaucoma (POAG) - OS controlled on medications",
+      "Diabetic retinopathy - mild NPDR OU",
+      "Posterior vitreous detachment OD",
+      "Pseudoexfoliation syndrome OU"
+    ],
+    "clinical_alerts": [
+      {
+        "trigger": "Glaucoma Patient",
+        "alert_msg": "Patient has POAG with history of laser trabeculoplasty OS. Coordinate with glaucoma service. Resume glaucoma drops post-op."
+      },
+      {
+        "trigger": "Diabetic Retinopathy",
+        "alert_msg": "Mild NPDR present bilaterally. Consider anti-VEGF if macular edema develops post-op."
+      },
+      {
+        "trigger": "Sulfa Allergy",
+        "alert_msg": "Patient allergic to Sulfa drugs. Avoid sulfacetamide-containing eye drops."
+      },
+      {
+        "trigger": "Aspirin Use",
+        "alert_msg": "Patient on daily aspirin. Discuss with PCP regarding hold before surgery per protocol."
+      },
+      {
+        "trigger": "OS Left Eye - Astigmatism > 1.5D",
+        "alert_msg": "Consider toric IOL for OS to address 1.75D astigmatism."
+      },
+      {
+        "trigger": "Pseudoexfoliation Syndrome",
+        "alert_msg": "Weak zonules possible. Plan for CTR if needed. Increased risk of IOL decentration."
+      }
+    ]
+  },
+  "lifestyle_profile": {
+    "occupation": "Retired Engineer",
+    "hobbies": [
+      "Golf",
+      "Woodworking",
+      "Fishing",
+      "Reading technical manuals"
+    ],
+    "visual_goals": {
+      "primary_zone": "Distance",
+      "spectacle_independence_desire": "Moderate"
+    },
+    "personality_traits": {
+      "perfectionism_score": 8,
+      "risk_tolerance": "Low"
+    },
+    "symptoms_impact": {
+      "night_driving_difficulty": true,
+      "glare_halos": true
+    }
+  }
+}

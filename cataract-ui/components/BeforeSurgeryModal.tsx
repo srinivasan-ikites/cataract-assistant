@@ -67,7 +67,8 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
     // const surgeryDateStr = "2026-01-07"
-    const surgeryDateStr = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date;
+    // const surgeryDateStr = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date;
+    const surgeryDateStr = "2026-01-19"
     const arrivalTime = patient?.surgical_recommendations_by_doctor?.scheduling?.arrival_time || "7:00 AM";
 
     // Use fallback lookups if strings are missing

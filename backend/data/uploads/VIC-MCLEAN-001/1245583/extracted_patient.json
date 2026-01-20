@@ -1,169 +1,131 @@
 {
   "patient_identity": {
     "patient_id": "1245583",
-    "clinic_ref_id": "VIC-MCLEAN-001",
+    "clinic_ref_id": "",
     "first_name": "Lata",
+    "middle_name": "",
     "last_name": "Bhagia",
     "dob": "1956-01-20",
-    "age": 68,
-    "gender": "Female",
-    "occupation": "Teacher"
+    "gender": "Female"
   },
-  "medical_history": {
-    "source": "Visit Note - September 18, 2024",
+  "medical_profile": {
     "systemic_conditions": [
       "No diabetes",
-      "No glaucoma",
-      "Dry Eye Syndrome"
+      "No glaucoma"
+    ],
+    "medications_systemic": [
+      "Adults Multivitamin",
+      "Calcium"
     ],
     "allergies": [
-      "codeine - Anaphylaxis"
+      "codeine"
     ],
-    "ocular_history": "Cataract of right eye, Cataract of left eye, Myopia OU, Wears glasses"
+    "review_of_systems": [
+      "No Artificial Joints",
+      "No Fever",
+      "No Stuffy Nose",
+      "No Diarrhea",
+      "No Urinary Frequency",
+      "No Insomnia",
+      "No Allergic Reactions"
+    ],
+    "surgical_history": {
+      "non_ocular": [
+        "None"
+      ],
+      "ocular": [
+        "None"
+      ]
+    }
   },
   "clinical_context": {
-    "diagnosis": {
-      "icd_10_code": "H25.813",
-      "type": "Combined form of senile cataract",
-      "pathology": "Nuclear sclerosis and cortical",
-      "primary_cataract_type": "combined",
-      "anatomical_status": "Phakic"
-    },
-    "comorbidities": [
-      "Dry Eye Syndrome",
-      "Myopia"
-    ],
-    "symptoms_reported_by_patient": [
-      "Night vision worsen",
-      "Blurred Vision",
-      "Glare from headlights",
-      "Difficulty driving at night"
-    ],
-    "measurements": {
-      "od_right_eye": {
-        "axial_length_mm": 25.32,
-        "astigmatism_power": 2.72,
-        "astigmatism_axis": 102,
-        "biometric_insight": "High astigmatism indicated (2.72D)"
+    "od_right": {
+      "pathology": "1-2+ nuclear sclerosis and 2+cortical cataract",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
       },
-      "os_left_eye": {
-        "axial_length_mm": 25.23,
-        "astigmatism_power": 0.9,
-        "astigmatism_axis": 51,
-        "biometric_insight": "Moderate astigmatism indicated (0.90D)"
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.32,
+          "acd_mm": 3.77,
+          "wtw_mm": 11.6,
+          "flat_k_k1": 42.88,
+          "steep_k_k2": 45.6,
+          "astigmatism_power": 2.72,
+          "axis": 102,
+          "k_type": "Standard"
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 1.7,
+          "axis": 12,
+          "belin_ambrosio_score": 0.93
+        }
       }
     },
-    "triggered_alerts": []
+    "os_left": {
+      "pathology": "1+ cortical and 1-2+ nuclear sclerosis cataract",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.23,
+          "acd_mm": 3.73,
+          "wtw_mm": 11.7,
+          "flat_k_k1": 43.76,
+          "steep_k_k2": 44.66,
+          "astigmatism_power": 0.9,
+          "axis": 51,
+          "k_type": "Standard"
+        },
+        "pentacam_topography": {
+          "source": "",
+          "astigmatism_power": null,
+          "axis": null,
+          "belin_ambrosio_score": null
+        }
+      }
+    },
+    "ocular_comorbidities": [
+      "Dry Eye Syndrome",
+      "Myopia",
+      "Abnormal tear break up time",
+      "SPK"
+    ],
+    "clinical_alerts": [
+      {
+        "trigger": "OD (Right) Astigmatism > 2.0D",
+        "alert_msg": "Toric IOL recommended for OD (Right) astigmatism correction (2.72D)"
+      },
+      {
+        "trigger": "OD (Right) Biometry Discrepancy",
+        "alert_msg": "IOL Master (2.72D) vs Pentacam (1.7D) differ by 1.02D - Consider intraoperative aberrometry"
+      }
+    ]
   },
-  "lifestyle": {
+  "lifestyle_profile": {
+    "occupation": "Teacher",
     "hobbies": [
       "Reading",
       "Walking",
       "Music"
     ],
-    "visual_priorities": "Distance Vision (Golf, Driving, Tennis, Other Sports, Watching TV)",
-    "attitude_toward_glasses": "Perfectionist (7/10)"
-  },
-  "surgical_recommendations_by_doctor": {
-    "doctor_ref_id": "Gitanjali Baveja",
-    "counselor_ref_id": "AM",
-    "decision_date": "2024-10-04",
-    "candidate_for_laser": null,
-    "recommended_lens_options": [
-      {
-        "package_id": "TORIC",
-        "name": "Monofocal",
-        "description": "Toric option circled in recommendations",
-        "reason": "Astigmatism correction",
-        "is_selected_preference": null
-      },
-      {
-        "package_id": "PRESBYOPIC_TORIC",
-        "name": "Trifocal",
-        "description": "Presbyopic (w/toric) circled; PanOptix ordered",
-        "reason": "Presbyopia and Astigmatism correction",
-        "is_selected_preference": true
-      },
-      {
-        "package_id": "LAL",
-        "name": "LAL (Light Adjustable Lens)",
-        "description": "LAL circled in recommendations",
-        "reason": "Adjustability",
-        "is_selected_preference": null
-      }
-    ],
-    "selected_implants": {
-      "od_right": {
-        "model": "CNWTT6",
-        "power": "+15.0",
-        "cylinder": "Toric",
-        "alignment_axis": "11",
-        "incision": "160"
-      },
-      "os_left": {
-        "model": "CNWTT3",
-        "power": "+15.5",
-        "cylinder": "Toric",
-        "alignment_axis": "135",
-        "incision": "020"
-      }
+    "visual_goals": {
+      "primary_zone": "Distance",
+      "spectacle_independence_desire": "High"
     },
-    "scheduling": {
-      "surgery_date": "",
-      "arrival_time": "",
-      "pre_op_start_date": "",
-      "post_op_visit_1": "",
-      "post_op_visit_2": ""
-    }
-  },
-  "medications": {
-    "pre_op": {
-      "antibiotic_id": null,
-      "antibiotic_name": "",
-      "frequency_id": null,
-      "frequency": "",
-      "progress": {}
+    "personality_traits": {
+      "perfectionism_score": 7,
+      "risk_tolerance": ""
     },
-    "day_of_surgery": {},
-    "post_op": {
-      "is_dropless": false,
-      "is_combination": false,
-      "combination_name": "",
-      "antibiotic": {
-        "name": "",
-        "frequency": 3,
-        "frequency_label": "3x Daily",
-        "weeks": 1
-      },
-      "nsaid": {
-        "name": "",
-        "frequency": 0,
-        "frequency_label": "",
-        "weeks": 4
-      },
-      "steroid": {
-        "name": "",
-        "taper_schedule": [
-          4,
-          3,
-          2,
-          1
-        ],
-        "weeks": 4
-      },
-      "glaucoma": {
-        "resume": false,
-        "medications": []
-      },
-      "progress": {}
+    "symptoms_impact": {
+      "night_driving_difficulty": true,
+      "glare_halos": true
     }
-  },
-  "documents": {
-    "signed_consents": [
-      {
-        "name": "Lifestyle Questionnaire Visual Assessment",
-        "date": "2024-10-04"
-      }
-    ]
   }
 }

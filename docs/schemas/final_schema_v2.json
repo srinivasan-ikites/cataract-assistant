@@ -1,0 +1,160 @@
+{
+  "patient_identity": {
+    "patient_id": "",
+    "clinic_ref_id": "",
+    "first_name": "",
+    "middle_name": "",
+    "last_name": "",
+    "dob": "",
+    "gender": ""
+  },
+  "medical_profile": {
+    "systemic_conditions": [],
+    "medications_systemic": [],
+    "allergies": [],
+    "review_of_systems": [],
+    "surgical_history": {
+      "non_ocular": [],
+      "ocular": []
+    }
+  },
+  "clinical_context": {
+    "od_right": {
+      "pathology": "",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": ""
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "",
+          "axial_length_mm": null,
+          "acd_mm": null,
+          "wtw_mm": null,
+          "cct_um": null,
+          "flat_k_k1": null,
+          "steep_k_k2": null,
+          "astigmatism_power": null,
+          "axis": null,
+          "k_type": ""
+        },
+        "pentacam_topography": {
+          "source": "",
+          "astigmatism_power": null,
+          "axis": null,
+          "cct_um": null,
+          "belin_ambrosio_score": null
+        }
+      }
+    },
+    "os_left": {
+      "pathology": "",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": ""
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "",
+          "axial_length_mm": null,
+          "acd_mm": null,
+          "wtw_mm": null,
+          "cct_um": null,
+          "flat_k_k1": null,
+          "steep_k_k2": null,
+          "astigmatism_power": null,
+          "axis": null,
+          "k_type": ""
+        },
+        "pentacam_topography": {
+          "source": "",
+          "astigmatism_power": null,
+          "axis": null,
+          "cct_um": null,
+          "belin_ambrosio_score": null
+        }
+      }
+    },
+    "ocular_comorbidities": [],
+    "clinical_alerts": []
+  },
+  "lifestyle_profile": {
+    "occupation": "",
+    "hobbies": [],
+    "visual_goals": {
+      "primary_zone": "",
+      "spectacle_independence_desire": ""
+    },
+    "personality_traits": {
+      "perfectionism_score": null,
+      "risk_tolerance": ""
+    },
+    "symptoms_impact": {
+      "night_driving_difficulty": false,
+      "glare_halos": false
+    }
+  },
+  "surgical_plan": {
+    "candidacy_profile": {
+      "od_right": {
+        "is_candidate_multifocal": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
+      },
+      "os_left": {
+        "is_candidate_multifocal": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
+      }
+    },
+    "offered_packages": [],
+    "patient_selection": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "operative_logistics": {
+      "od_right": {
+        "status": "",
+        "surgery_date": "",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      },
+      "os_left": {
+        "status": "",
+        "surgery_date": "",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      }
+    }
+  },
+  "medications_plan": {
+    "settings": {
+      "pre_op_protocol_type": "",
+      "post_op_protocol_type": "",
+      "glaucoma_meds_instruction": ""
+    },
+    "pre_op_schedule": {
+      "instruction": "",
+      "medications": []
+    },
+    "post_op_schedule": {
+      "instruction": "",
+      "medications": []
+    }
+  },
+  "chat_history": [],
+  "module_content": {}
+}

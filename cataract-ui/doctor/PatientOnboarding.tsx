@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   PanelRightOpen,
   PanelRightClose,
   Eye,
@@ -11,31 +13,44 @@ import {
   Save,
   User,
   X,
-  Loader2,
   Trash2,
+  Heart,
+  Stethoscope,
+  Target,
+  Brain,
+  Pill,
+  Scissors,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Check,
+  Zap,
+  DollarSign,
+  Package,
+  Sparkles,
 } from 'lucide-react';
-import { api } from '../services/api';
-import {
-  ANTIBIOTIC_OPTIONS,
-  FREQUENCY_OPTIONS,
-  getAntibioticName,
-  getFrequencyName,
-  POST_OP_ANTIBIOTICS,
-  POST_OP_NSAIDS,
-  POST_OP_STEROIDS,
-  GLAUCOMA_DROPS,
-  COMBO_DROP_EXAMPLES
-} from '../constants/medications';
+import { api, DoctorContextResponse } from '../services/api';
 import CollapsibleCard from './components/CollapsibleCard';
 import UploadPanel from './components/UploadPanel';
+import { PageLoader } from '../components/Loader';
 
 interface PatientOnboardingProps {
   patientId: string;
   clinicId: string;
   onBack: () => void;
+  onNavigate?: (direction: 'prev' | 'next') => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
 }
 
-const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinicId, onBack }) => {
+const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
+  patientId,
+  clinicId,
+  onBack,
+  onNavigate,
+  hasPrev = false,
+  hasNext = false,
+}) => {
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -44,50 +59,123 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
   const [status, setStatus] = useState<'idle' | 'extracted' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    alerts: true,
     identity: true,
     medical: true,
     clinical: true,
     lifestyle: true,
     surgical: true,
-    postop_meds: true,
-    documents: true,
+    postop_meds: false,
+    documents: false,
   });
   const [showUploads, setShowUploads] = useState(true);
   const [showAllUploads, setShowAllUploads] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Clinic context - loaded from API
+  const [clinicContext, setClinicContext] = useState<DoctorContextResponse | null>(null);
+  const [loadingContext, setLoadingContext] = useState(true);
+
+  // Calculate age from DOB
+  const calculateAge = (dob: string): number | null => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   useEffect(() => {
-    const checkExisting = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const reviewed = await api.getReviewedPatient(clinicId, patientId);
-        if (reviewed && reviewed.reviewed) {
-          setData(reviewed.reviewed);
+        setLoadingContext(true);
+
+        const [patientResult, contextResult] = await Promise.all([
+          api.getReviewedPatient(clinicId, patientId).catch(() => null),
+          api.getDoctorContext(clinicId).catch(() => null)
+        ]);
+
+        if (contextResult) {
+          setClinicContext(contextResult);
+        }
+        setLoadingContext(false);
+
+        if (patientResult && patientResult.reviewed) {
+          setData(patientResult.reviewed);
           setStatus('saved');
+          setRecentUploads((patientResult?.files as string[]) || []);
         } else {
-          const extracted = await api.getExtractedPatient(clinicId, patientId);
-          if (extracted && extracted.extracted) {
-            setData(extracted.extracted);
-            setStatus('extracted');
+          try {
+            const extracted = await api.getExtractedPatient(clinicId, patientId);
+            if (extracted && extracted.extracted) {
+              setData(extracted.extracted);
+              setStatus('extracted');
+            } else {
+              throw new Error('No data');
+            }
+          } catch {
+            setData({
+              patient_identity: { patient_id: patientId, clinic_ref_id: clinicId },
+              medical_profile: {
+                systemic_conditions: [],
+                medications_systemic: [],
+                allergies: [],
+                review_of_systems: [],
+                surgical_history: { non_ocular: [], ocular: [] }
+              },
+              clinical_context: {
+                od_right: { biometry: { iol_master: {}, pentacam_topography: {} } },
+                os_left: { biometry: { iol_master: {}, pentacam_topography: {} } },
+                ocular_comorbidities: [],
+                clinical_alerts: []
+              },
+              lifestyle_profile: { hobbies: [], visual_goals: {}, personality_traits: {}, symptoms_impact: {} },
+              surgical_plan: { eligible_packages: [], selected_package_id: '' },
+              medications_plan: {},
+              documents: { signed_consents: [] }
+            });
           }
         }
-        setRecentUploads((reviewed?.files as string[]) || []);
       } catch (err) {
-        console.log('No existing data for this patient - starting fresh');
-        // Initialize empty structure so the form renders
+        console.log('Error loading data:', err);
         setData({
-          patient_identity: { patient_id: patientId },
-          medications: { pre_op: {} },
-          surgical_recommendations_by_doctor: { scheduling: {}, pre_op_instructions: {} },
-          documents: { signed_consents: [] }
+          patient_identity: { patient_id: patientId, clinic_ref_id: clinicId },
+          medical_profile: { systemic_conditions: [], medications_systemic: [], allergies: [] },
+          clinical_context: { od_right: {}, os_left: {}, clinical_alerts: [] },
+          lifestyle_profile: {},
         });
       } finally {
         setLoading(false);
       }
     };
-    checkExisting();
+    loadData();
   }, [clinicId, patientId]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === 'ArrowLeft' && hasPrev && onNavigate) {
+        e.preventDefault();
+        onNavigate('prev');
+      } else if (e.altKey && e.key === 'ArrowRight' && hasNext && onNavigate) {
+        e.preventDefault();
+        onNavigate('next');
+      } else if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (data && status !== 'saved') {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hasPrev, hasNext, onNavigate, data, status]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -140,7 +228,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
       const finalData = cleanData(data) || {};
       await api.saveReviewedPatient(clinicId, patientId, finalData);
       setStatus('saved');
-      alert('Patient data saved successfully! Empty fields were removed to keep the record clean.');
+      alert('Patient data saved successfully!');
     } catch (err: any) {
       setError(err.message || 'Save failed');
     } finally {
@@ -158,7 +246,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
       setFiles([]);
       setRecentUploads([]);
       setStatus('idle');
-      alert('Patient data deleted. You can upload again to start fresh.');
+      alert('Patient data deleted.');
     } catch (err: any) {
       setError(err.message || 'Delete failed');
     } finally {
@@ -167,7 +255,6 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
   };
 
   const updateNestedField = (path: string, value: any) => {
-    // Reset status so save button is re-enabled
     setStatus('idle');
     setData((prev: any) => {
       const newData = JSON.parse(JSON.stringify(prev));
@@ -183,7 +270,21 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
     });
   };
 
-  const renderTagList = (path: string, label: string) => {
+  // Toggle package eligibility
+  const togglePackageEligibility = (packageId: string) => {
+    const current = data?.surgical_plan?.eligible_packages || [];
+    const newList = current.includes(packageId)
+      ? current.filter((id: string) => id !== packageId)
+      : [...current, packageId];
+    updateNestedField('surgical_plan.eligible_packages', newList);
+  };
+
+  // Select package as patient's choice
+  const selectPackage = (packageId: string) => {
+    updateNestedField('surgical_plan.selected_package_id', packageId);
+  };
+
+  const renderTagList = (path: string, label: string, placeholder?: string) => {
     const parts = path.split('.');
     let list = data;
     for (const part of parts) list = list?.[part];
@@ -191,17 +292,21 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
     return (
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{label}</p>
+          <p className="text-xs font-bold text-slate-700">{label}</p>
+          {arr.length > 0 && (
+            <span className="text-[10px] font-semibold text-slate-400">{arr.length} items</span>
+          )}
         </div>
         <div className="flex flex-wrap gap-2 mb-2">
           {arr.map((item, idx) => (
-            <span key={idx} className="px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-2 border border-slate-200">
+            <span key={idx} className="px-3 py-1.5 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg text-xs font-semibold text-slate-600 flex items-center gap-2 border border-slate-200 shadow-sm">
               {item}
               <button
                 onClick={() => {
                   const newList = arr.filter((_, i) => i !== idx);
                   updateNestedField(path, newList);
                 }}
+                className="hover:text-rose-500 transition-colors"
               >
                 <X size={10} />
               </button>
@@ -210,8 +315,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
         </div>
         <input
           type="text"
-          placeholder={`Add ${label.toLowerCase()}...`}
-          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-400"
+          placeholder={placeholder || `Add ${label.toLowerCase()}...`}
+          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               const val = (e.target as HTMLInputElement).value.trim();
@@ -237,14 +342,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
     const parts = path.split('.');
     let val = data;
     for (const part of parts) val = val?.[part];
-    const isEmpty = val === null || val === '' || (Array.isArray(val) && val.length === 0);
+    const isEmpty = val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0);
     return (
       <div className="group/field relative">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-tight transition-colors group-focus-within/field:text-blue-600">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <label className="block text-xs font-bold text-slate-700 transition-colors group-focus-within/field:text-blue-600">
             {label}
           </label>
-          {isEmpty && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]" title="Not Extracted"></div>}
+          {isEmpty && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]" title="Not Extracted"></div>}
         </div>
         {type === 'select' ? (
           <div className="relative">
@@ -252,13 +357,11 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
               value={val || ''}
               onChange={(e) => updateNestedField(path, e.target.value)}
               disabled={disabled}
-              className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-50 transition-all appearance-none`}
+              className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all appearance-none`}
             >
               <option value="">Select...</option>
               {options?.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
+                <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
@@ -266,10 +369,10 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
         ) : (
           <input
             type={type}
-            value={val || ''}
-            onChange={(e) => updateNestedField(path, e.target.value)}
+            value={val ?? ''}
+            onChange={(e) => updateNestedField(path, type === 'number' ? (e.target.value ? parseFloat(e.target.value) : null) : e.target.value)}
             disabled={disabled}
-            className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-50 transition-all`}
+            className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all`}
             placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           />
         )}
@@ -277,580 +380,1555 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
     );
   };
 
-  if (loading && !data) {
+  const renderToggle = (path: string, label: string) => {
+    const parts = path.split('.');
+    let val = data;
+    for (const part of parts) val = val?.[part];
+    return (
+      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+        <span className="text-sm font-semibold text-slate-700">{label}</span>
+        <button
+          onClick={() => updateNestedField(path, !val)}
+          className={`w-11 h-6 rounded-full transition-all ${val ? 'bg-blue-600' : 'bg-slate-200'}`}
+        >
+          <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${val ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+    );
+  };
+
+  if (loading || loadingContext) {
+    return <PageLoader context="patient" />;
+  }
+
+  if (!data) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4 py-32">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-        <p className="font-medium">Loading patient record...</p>
+        <AlertCircle className="text-rose-400" size={32} />
+        <p className="font-medium">Failed to load patient data</p>
+        <button onClick={onBack} className="text-blue-600 hover:underline text-sm">Go back</button>
       </div>
     );
   }
 
-  const name = `${data?.patient_identity?.first_name || ''} ${data?.patient_identity?.last_name || ''}`.trim() || 'Patient';
+  const firstName = data?.patient_identity?.first_name || '';
+  const middleName = data?.patient_identity?.middle_name || '';
+  const lastName = data?.patient_identity?.last_name || '';
+  const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Patient';
+  const age = calculateAge(data?.patient_identity?.dob);
+  const gender = data?.patient_identity?.gender || '';
+  const clinicalAlerts = data?.clinical_context?.clinical_alerts || [];
+
+  // Get packages from clinic context
+  const surgicalPackages = clinicContext?.surgical_packages || [];
+  const eligiblePackages = data?.surgical_plan?.eligible_packages || [];
+  const selectedPackageId = data?.surgical_plan?.selected_package_id || '';
+
+  // Get medications from clinic context (matches doctor-context endpoint response)
+  const preOpAntibiotics = clinicContext?.medications?.pre_op?.antibiotics || [];
+  const preOpFrequencies = clinicContext?.medications?.pre_op?.frequencies || [];
+  const preOpDefaultDays = clinicContext?.medications?.pre_op?.default_start_days || 3;
+  const postOpAntibiotics = clinicContext?.medications?.post_op?.antibiotics || [];
+  const postOpNsaids = clinicContext?.medications?.post_op?.nsaids || [];
+  const postOpSteroids = clinicContext?.medications?.post_op?.steroids || [];
+  const combinationDrops = clinicContext?.medications?.post_op?.combination_drops || [];
+  const glaucomaDrops = clinicContext?.medications?.post_op?.glaucoma_drops || [];
+  const droplessOption = clinicContext?.medications?.dropless_option; // Note: dropless_option is at medications level, not post_op
+  const frequencyOptions = clinicContext?.medications?.frequency_options || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-3 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all bg-white shadow-sm"
-            title="Back"
-            aria-label="Back"
-          >
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all" title="Back">
             <ChevronLeft size={18} />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{name}</h1>
-            <p className="text-xs text-slate-400 font-medium mt-1">Patient ID: {data?.patient_identity?.patient_id || patientId}</p>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-200">
+              {firstName.charAt(0)}{lastName.charAt(0)}
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">{fullName}</h1>
+              <div className="flex items-center gap-3 mt-0.5">
+                <span className="text-xs font-medium text-slate-400">ID: {data?.patient_identity?.patient_id || patientId}</span>
+                {age && <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{age} years</span>}
+                {gender && <span className="text-xs font-medium text-slate-400">{gender}</span>}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                  status === 'saved' ? 'bg-emerald-100 text-emerald-600' :
+                  status === 'extracted' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {status === 'saved' ? 'Reviewed' : status === 'extracted' ? 'Pending Review' : 'New'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className={`p-3 rounded-xl shadow-sm transition-all ${deleting ? 'bg-rose-100 text-rose-300 cursor-not-allowed' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-              }`}
-            title="Delete patient data"
-            aria-label="Delete patient data"
-          >
+
+        <div className="flex items-center gap-2">
+          {onNavigate && (
+            <div className="flex items-center gap-1 mr-2">
+              <button onClick={() => onNavigate('prev')} disabled={!hasPrev} className={`p-2 rounded-lg transition-all ${hasPrev ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-200 cursor-not-allowed'}`} title="Previous (Alt+Left)">
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => onNavigate('next')} disabled={!hasNext} className={`p-2 rounded-lg transition-all ${hasNext ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-200 cursor-not-allowed'}`} title="Next (Alt+Right)">
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+          <button onClick={handleDelete} disabled={deleting} className={`p-2.5 rounded-xl transition-all ${deleting ? 'bg-rose-100 text-rose-300 cursor-not-allowed' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-600'}`} title="Delete">
             <Trash2 size={16} />
           </button>
-          <button
-            onClick={() => setShowUploads((v) => !v)}
-            className="p-3 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all bg-white shadow-sm"
-            title={showUploads ? 'Hide uploads panel' : 'Show uploads panel'}
-            aria-label="Toggle uploads panel"
-          >
+          <button onClick={() => setShowUploads((v) => !v)} className="p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all" title={showUploads ? 'Hide uploads' : 'Show uploads'}>
             {showUploads ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
           </button>
-          <button
-            onClick={handleSave}
-            disabled={!data || status === 'saved'}
-            className={`p-3 rounded-xl shadow-sm transition-all ${!data || status === 'saved'
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            title="Save Changes"
-            aria-label="Save Changes"
-          >
-            <Save size={16} />
+          <button onClick={handleSave} disabled={!data || status === 'saved'} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${!data || status === 'saved' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`} title="Save (Ctrl+S)">
+            <Save size={16} />Save
           </button>
         </div>
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-12 gap-6 min-h-0">
-        {/* Left: form sections */}
-        <div className={`col-span-12 ${showUploads ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4 lg:max-h-[calc(100vh-220px)] overflow-y-auto pr-2 custom-scrollbar`}>
-          {/* Identity */}
-          <CollapsibleCard
-            title="Identity"
-            icon={<User size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"
-            expanded={expanded.identity}
-            onToggle={() => setExpanded((p) => ({ ...p, identity: !p.identity }))}
-            maxHeight="1200px"
-            bodyClassName="px-5 pb-5 space-y-4"
-          >
-            <div className="grid grid-cols-2 gap-4">
+      {/* Clinical Alerts */}
+      {clinicalAlerts.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-amber-100 rounded-lg"><AlertTriangle size={18} className="text-amber-600" /></div>
+            <div>
+              <h3 className="font-bold text-amber-900">Clinical Alerts</h3>
+              <p className="text-xs text-amber-600">{clinicalAlerts.length} alert{clinicalAlerts.length > 1 ? 's' : ''} require attention</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {clinicalAlerts.map((alert: any, idx: number) => (
+              <div key={idx} className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-amber-100">
+                <AlertCircle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-800">{alert.trigger}</p>
+                  <p className="text-xs text-amber-600 mt-0.5">{alert.alert_msg}</p>
+                </div>
+                <button onClick={() => updateNestedField('clinical_context.clinical_alerts', clinicalAlerts.filter((_: any, i: number) => i !== idx))} className="text-amber-300 hover:text-amber-600"><X size={14} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="grid grid-cols-12 gap-4">
+        <div className={`col-span-12 ${showUploads ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4 lg:max-h-[calc(100vh-280px)] overflow-y-auto pr-2 custom-scrollbar`}>
+
+          {/* Patient Identity */}
+          <CollapsibleCard title="Patient Identity" icon={<User size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200" expanded={expanded.identity} onToggle={() => setExpanded((p) => ({ ...p, identity: !p.identity }))} maxHeight="600px" bodyClassName="p-5 space-y-4">
+            <div className="grid grid-cols-3 gap-4">
               {renderField('patient_identity.first_name', 'First Name')}
+              {renderField('patient_identity.middle_name', 'Middle Name')}
               {renderField('patient_identity.last_name', 'Last Name')}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {renderField('patient_identity.dob', 'Date of Birth', 'date')}
-              {renderField('patient_identity.age', 'Age', 'number')}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {renderField('patient_identity.gender', 'Gender')}
-              {renderField('patient_identity.occupation', 'Occupation')}
+              {renderField('patient_identity.gender', 'Gender', 'select', ['Male', 'Female', 'Other'])}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Age (Auto-calculated)</label>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-bold text-blue-700">
+                  {age ? `${age} years` : 'Enter DOB'}
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {renderField('patient_identity.patient_id', 'Patient ID')}
-              {renderField('patient_identity.clinic_ref_id', 'Clinic Ref ID')}
+              {renderField('patient_identity.clinic_ref_id', 'Clinic Reference ID')}
             </div>
           </CollapsibleCard>
 
-          {/* Medical History */}
-          <CollapsibleCard
-            title="Medical History"
-            subtitle="Allergies, medications, prior conditions"
-            icon={<AlertCircle size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center"
-            expanded={expanded.medical}
-            onToggle={() => setExpanded((p) => ({ ...p, medical: !p.medical }))}
-            maxHeight="1000px"
-          >
-            {renderField('medical_history.source', 'Source')}
-            {renderField('medical_history.ocular_history', 'Ocular History')}
-            {renderTagList('medical_history.systemic_conditions', 'Systemic Conditions')}
-            {renderTagList('medical_history.allergies', 'Allergies')}
-          </CollapsibleCard>
-
-          {/* Clinical Notes */}
-          <CollapsibleCard
-            title="Clinical Notes"
-            subtitle="Diagnosis, ICD codes, pathology"
-            icon={<Eye size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center"
-            expanded={expanded.clinical}
-            onToggle={() => setExpanded((p) => ({ ...p, clinical: !p.clinical }))}
-            maxHeight="1600px"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              {renderField('clinical_context.diagnosis.icd_10_code', 'ICD-10 Code')}
-              {renderField('clinical_context.diagnosis.type', 'Diagnosis Type')}
+          {/* Medical Profile */}
+          <CollapsibleCard title="Medical Profile" subtitle="Conditions, medications, allergies, surgical history" icon={<Heart size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-200" expanded={expanded.medical} onToggle={() => setExpanded((p) => ({ ...p, medical: !p.medical }))} maxHeight="1200px" bodyClassName="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-5">
+              <div>{renderTagList('medical_profile.systemic_conditions', 'Systemic Conditions', 'Add condition...')}</div>
+              <div>{renderTagList('medical_profile.medications_systemic', 'Current Medications', 'Add medication...')}</div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {renderField('clinical_context.diagnosis.pathology', 'Pathology')}
-              {renderField('clinical_context.diagnosis.anatomical_status', 'Anatomical Status')}
+            <div className="grid grid-cols-2 gap-5">
+              <div>{renderTagList('medical_profile.allergies', 'Allergies', 'Add allergy...')}</div>
+              <div>{renderTagList('medical_profile.review_of_systems', 'Review of Systems', 'Add item...')}</div>
             </div>
-            {renderTagList('clinical_context.comorbidities', 'Comorbidities')}
-            {renderTagList('clinical_context.symptoms_reported_by_patient', 'Symptoms Reported')}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Right Eye (OD)</p>
-                {renderField('clinical_context.measurements.od_right_eye.axial_length_mm', 'Axial Length (mm)', 'number')}
-                {renderField('clinical_context.measurements.od_right_eye.astigmatism_power', 'Astigmatism Power (D)', 'number')}
-                {renderField('clinical_context.measurements.od_right_eye.astigmatism_axis', 'Astigmatism Axis (°)', 'number')}
-                {renderField('clinical_context.measurements.od_right_eye.biometric_insight', 'Biometric Insight')}
-              </div>
-              <div className="space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Left Eye (OS)</p>
-                {renderField('clinical_context.measurements.os_left_eye.axial_length_mm', 'Axial Length (mm)', 'number')}
-                {renderField('clinical_context.measurements.os_left_eye.astigmatism_power', 'Astigmatism Power (D)', 'number')}
-                {renderField('clinical_context.measurements.os_left_eye.astigmatism_axis', 'Astigmatism Axis (°)', 'number')}
-                {renderField('clinical_context.measurements.os_left_eye.biometric_insight', 'Biometric Insight')}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Triggered Alerts</p>
-              {(data?.clinical_context?.triggered_alerts || []).length === 0 ? (
-                <p className="text-xs text-slate-400">No alerts</p>
-              ) : (
-                <div className="space-y-2">
-                  {(data?.clinical_context?.triggered_alerts || []).map((alert: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-xl border border-amber-100 bg-amber-50 text-xs text-amber-700 flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold">{alert.type || 'Alert'}</p>
-                        <p className="mt-1 text-amber-600">{alert.message || alert.id}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const list = data?.clinical_context?.triggered_alerts || [];
-                          const next = list.filter((_: any, i: number) => i !== idx);
-                          updateNestedField('clinical_context.triggered_alerts', next);
-                        }}
-                        className="text-amber-400 hover:text-amber-600"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CollapsibleCard>
-
-          {/* Lifestyle */}
-          <CollapsibleCard
-            title="Lifestyle"
-            subtitle="Priorities, hobbies, attitudes"
-            icon={<Activity size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center"
-            expanded={expanded.lifestyle}
-            onToggle={() => setExpanded((p) => ({ ...p, lifestyle: !p.lifestyle }))}
-            maxHeight="800px"
-          >
-            {renderTagList('lifestyle.hobbies', 'Hobbies')}
-            {renderField('lifestyle.visual_priorities', 'Visual Priorities')}
-            {renderField('lifestyle.attitude_toward_glasses', 'Attitude Toward Glasses')}
-          </CollapsibleCard>
-
-          {/* Surgical Plan */}
-          <CollapsibleCard
-            title="Surgical Plan"
-            subtitle="Lens selection, logistics"
-            icon={<Save size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center"
-            expanded={expanded.surgical}
-            onToggle={() => setExpanded((p) => ({ ...p, surgical: !p.surgical }))}
-            maxHeight="1800px"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              {renderField('surgical_recommendations_by_doctor.doctor_ref_id', 'Doctor ID')}
-              {renderField('surgical_recommendations_by_doctor.counselor_ref_id', 'Counselor ID')}
-              {renderField('surgical_recommendations_by_doctor.decision_date', 'Decision Date', 'date')}
-              {renderField('surgical_recommendations_by_doctor.candidate_for_laser', 'Candidate for Laser')}
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Recommended Lens Options</p>
-                <button
-                  onClick={() => {
-                    const current = data?.surgical_recommendations_by_doctor?.recommended_lens_options || [];
-                    updateNestedField('surgical_recommendations_by_doctor.recommended_lens_options', [
-                      ...current,
-                      { package_id: '', name: '', description: '', reason: '', is_selected_preference: false },
-                    ]);
-                  }}
-                  className="text-[11px] font-bold text-blue-600 uppercase tracking-wide"
-                >
-                  + Add
-                </button>
-              </div>
-              {(data?.surgical_recommendations_by_doctor?.recommended_lens_options || []).map((opt: any, idx: number) => (
-                <div key={idx} className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField(`surgical_recommendations_by_doctor.recommended_lens_options.${idx}.name`, 'Name')}
-                    {renderField(`surgical_recommendations_by_doctor.recommended_lens_options.${idx}.package_id`, 'Package ID')}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderField(`surgical_recommendations_by_doctor.recommended_lens_options.${idx}.description`, 'Description')}
-                    {renderField(`surgical_recommendations_by_doctor.recommended_lens_options.${idx}.reason`, 'Reason')}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!opt.is_selected_preference}
-                      onChange={(e) =>
-                        updateNestedField(
-                          `surgical_recommendations_by_doctor.recommended_lens_options.${idx}.is_selected_preference`,
-                          e.target.checked,
-                        )
-                      }
-                    />
-                    <span className="text-xs font-semibold text-slate-600">Selected Preference</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Implant OD</p>
-                {renderField('surgical_recommendations_by_doctor.selected_implants.od_right.model', 'Model')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.od_right.power', 'Power')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.od_right.cylinder', 'Cylinder')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.od_right.alignment_axis', 'Alignment Axis')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.od_right.incision', 'Incision')}
-              </div>
-              <div className="space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Implant OS</p>
-                {renderField('surgical_recommendations_by_doctor.selected_implants.os_left.model', 'Model')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.os_left.power', 'Power')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.os_left.cylinder', 'Cylinder')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.os_left.alignment_axis', 'Alignment Axis')}
-                {renderField('surgical_recommendations_by_doctor.selected_implants.os_left.incision', 'Incision')}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {renderField('surgical_recommendations_by_doctor.scheduling.surgery_date', 'Surgery Date', 'date')}
-              {renderField('surgical_recommendations_by_doctor.scheduling.arrival_time', 'Arrival Time')}
-              {renderField('surgical_recommendations_by_doctor.scheduling.pre_op_start_date', 'Pre-Op Start', 'date')}
-              {renderField('surgical_recommendations_by_doctor.scheduling.post_op_visit_1', 'Post-Op Visit 1', 'date')}
-              {renderField('surgical_recommendations_by_doctor.scheduling.post_op_visit_2', 'Post-Op Visit 2', 'date')}
-            </div>
-
-            {/* Pre-op Medication Orders */}
             <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Pre-op Medication Orders</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Antibiotic</label>
-                  <div className="relative">
-                    <select
-                      value={data.medications?.pre_op?.antibiotic_id || ''}
-                      onChange={(e) => {
-                        const id = parseInt(e.target.value);
-                        updateNestedField('medications.pre_op.antibiotic_id', id);
-                        updateNestedField('medications.pre_op.antibiotic_name', getAntibioticName(id));
-                      }}
-                      className="w-full text-sm font-bold text-slate-700 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
-                    >
-                      <option value="">Select Antibiotic</option>
-                      {ANTIBIOTIC_OPTIONS.map(opt => (
-                        <option key={opt.id} value={opt.id}>{opt.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  </div>
+              <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Scissors size={14} />Surgical History</h4>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <p className="text-xs font-bold text-blue-700 mb-3 flex items-center gap-2"><Eye size={12} />Ocular Surgeries</p>
+                  {renderTagList('medical_profile.surgical_history.ocular', '', 'Add surgery...')}
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Frequency</label>
-                  <div className="relative">
-                    <select
-                      value={data.medications?.pre_op?.frequency_id || ''}
-                      onChange={(e) => {
-                        const id = parseInt(e.target.value);
-                        updateNestedField('medications.pre_op.frequency_id', id);
-                        updateNestedField('medications.pre_op.frequency', getFrequencyName(id));
-                      }}
-                      className="w-full text-sm font-bold text-slate-700 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
-                    >
-                      <option value="">Select Frequency</option>
-                      {FREQUENCY_OPTIONS.map(opt => (
-                        <option key={opt.id} value={opt.id}>{opt.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  </div>
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-2"><Activity size={12} />Non-Ocular Surgeries</p>
+                  {renderTagList('medical_profile.surgical_history.non_ocular', '', 'Add surgery...')}
                 </div>
               </div>
             </div>
           </CollapsibleCard>
 
-          {/* After Surgery Medications */}
-          <CollapsibleCard
-            title="After Surgery Medications"
-            subtitle="Tapering, Dropless, and Multi-Drug Regimens"
-            icon={<Activity size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"
-            expanded={expanded.postop_meds}
-            onToggle={() => setExpanded((p) => ({ ...p, postop_meds: !p.postop_meds }))}
-            maxHeight="2500px"
-          >
-            <div className="space-y-6">
-              {/* Global Post-Op Toggles */}
-              <div className="grid grid-cols-2 gap-4 h-full">
-                <div
-                  onClick={() => {
-                    const val = !data.medications?.post_op?.is_dropless;
-                    updateNestedField('medications.post_op.is_dropless', val);
-                    if (val) {
-                      updateNestedField('medications.post_op.is_combination', false);
-                    }
-                  }}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center h-full ${data.medications?.post_op?.is_dropless
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
-                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
-                    }`}
-                >
-                  <PanelRightClose size={24} className={data.medications?.post_op?.is_dropless ? 'text-white' : 'text-slate-300'} />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">Dropless Surgery</p>
-                    <p className={`text-[10px] mt-1 ${data.medications?.post_op?.is_dropless ? 'text-blue-100' : 'text-slate-400'}`}>No daily routine drops required</p>
+          {/* Clinical Context */}
+          <CollapsibleCard title="Clinical Context" subtitle="Pathology, visual acuity, biometry" icon={<Stethoscope size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-200" expanded={expanded.clinical} onToggle={() => setExpanded((p) => ({ ...p, clinical: !p.clinical }))} maxHeight="2000px" bodyClassName="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-5">
+              {/* OD */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">OD</div>
+                  <span className="font-bold text-slate-800">Right Eye</span>
+                </div>
+                {renderField('clinical_context.od_right.pathology', 'Pathology')}
+                {renderField('clinical_context.od_right.visual_acuity.bcva', 'BCVA (Best Corrected)')}
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                  <p className="text-xs font-bold text-blue-700">IOL Master Biometry</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.od_right.biometry.iol_master.axial_length_mm', 'Axial Length (mm)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.iol_master.acd_mm', 'ACD (mm)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.iol_master.wtw_mm', 'WTW (mm)', 'number')}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {renderField('clinical_context.od_right.biometry.iol_master.flat_k_k1', 'Flat K (K1)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.iol_master.steep_k_k2', 'Steep K (K2)', 'number')}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.od_right.biometry.iol_master.astigmatism_power', 'Astigmatism (D)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.iol_master.axis', 'Axis (°)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.iol_master.cct_um', 'CCT (μm)', 'number')}
                   </div>
                 </div>
-
-                <div
-                  onClick={() => {
-                    const val = !data.medications?.post_op?.is_combination;
-                    updateNestedField('medications.post_op.is_combination', val);
-                    if (val) {
-                      updateNestedField('medications.post_op.is_dropless', false);
-                    }
-                  }}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-center h-full ${data.medications?.post_op?.is_combination
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
-                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
-                    }`}
-                >
-                  <Activity size={24} className={data.medications?.post_op?.is_combination ? 'text-white' : 'text-slate-300'} />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">Combination Drop</p>
-                    <p className={`text-[10px] mt-1 ${data.medications?.post_op?.is_combination ? 'text-indigo-100' : 'text-slate-400'}`}>3-in-1 medication regimen</p>
+                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                  <p className="text-xs font-bold text-purple-700">Pentacam / Topography</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.od_right.biometry.pentacam_topography.astigmatism_power', 'Astigmatism (D)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.pentacam_topography.axis', 'Axis (°)', 'number')}
+                    {renderField('clinical_context.od_right.biometry.pentacam_topography.cct_um', 'CCT / Pachy (μm)', 'number')}
                   </div>
+                  {renderField('clinical_context.od_right.biometry.pentacam_topography.belin_ambrosio_score', 'Belin-Ambrosio', 'number')}
                 </div>
               </div>
 
-              {/* Conditional Warning */}
-              {data.medications?.post_op?.is_dropless && (
-                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-700">
-                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                  <p className="text-xs leading-relaxed">
-                    <strong>Dropless Surgery selected.</strong> Standard antibiotic, NSAID, and steroid requirements will be hidden from the patient. They will only see an instruction to resume their usual glaucoma or long-term eye drops.
-                  </p>
+              {/* OS */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-emerald-100">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">OS</div>
+                  <span className="font-bold text-slate-800">Left Eye</span>
+                </div>
+                {renderField('clinical_context.os_left.pathology', 'Pathology')}
+                {renderField('clinical_context.os_left.visual_acuity.bcva', 'BCVA (Best Corrected)')}
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 space-y-3">
+                  <p className="text-xs font-bold text-emerald-700">IOL Master Biometry</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.os_left.biometry.iol_master.axial_length_mm', 'Axial Length (mm)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.iol_master.acd_mm', 'ACD (mm)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.iol_master.wtw_mm', 'WTW (mm)', 'number')}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {renderField('clinical_context.os_left.biometry.iol_master.flat_k_k1', 'Flat K (K1)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.iol_master.steep_k_k2', 'Steep K (K2)', 'number')}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.os_left.biometry.iol_master.astigmatism_power', 'Astigmatism (D)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.iol_master.axis', 'Axis (°)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.iol_master.cct_um', 'CCT (μm)', 'number')}
+                  </div>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                  <p className="text-xs font-bold text-purple-700">Pentacam / Topography</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {renderField('clinical_context.os_left.biometry.pentacam_topography.astigmatism_power', 'Astigmatism (D)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.pentacam_topography.axis', 'Axis (°)', 'number')}
+                    {renderField('clinical_context.os_left.biometry.pentacam_topography.cct_um', 'CCT / Pachy (μm)', 'number')}
+                  </div>
+                  {renderField('clinical_context.os_left.biometry.pentacam_topography.belin_ambrosio_score', 'Belin-Ambrosio', 'number')}
+                </div>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-slate-100">
+              {renderTagList('clinical_context.ocular_comorbidities', 'Ocular Comorbidities', 'Add comorbidity...')}
+            </div>
+          </CollapsibleCard>
+
+          {/* Lifestyle Profile */}
+          <CollapsibleCard title="Lifestyle Profile" subtitle="Occupation, hobbies, visual goals" icon={<Target size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-200" expanded={expanded.lifestyle} onToggle={() => setExpanded((p) => ({ ...p, lifestyle: !p.lifestyle }))} maxHeight="1000px" bodyClassName="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-5">
+              {renderField('lifestyle_profile.occupation', 'Occupation')}
+              <div>{renderTagList('lifestyle_profile.hobbies', 'Hobbies', 'Add hobby...')}</div>
+            </div>
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-4">
+              <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2"><Eye size={14} />Visual Goals</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {renderField('lifestyle_profile.visual_goals.primary_zone', 'Primary Vision Range', 'select', ['Distance', 'Intermediate', 'Near', 'All'])}
+                {renderField('lifestyle_profile.visual_goals.spectacle_independence_desire', 'Spectacle Independence', 'select', ['None', 'Distance only', 'Reading only', 'Distance and Reading', 'Distance and Computer', 'All ranges of vision'])}
+              </div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 space-y-4">
+              <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2"><Brain size={14} />Personality Traits</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {renderField('lifestyle_profile.personality_traits.perfectionism_score', 'Perfectionism (1-10)', 'number')}
+                {renderField('lifestyle_profile.personality_traits.risk_tolerance', 'Risk Tolerance', 'select', ['Low', 'Medium', 'High'])}
+              </div>
+            </div>
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 space-y-4">
+              <h4 className="text-sm font-bold text-amber-800 flex items-center gap-2"><AlertCircle size={14} />Symptoms Impact</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {renderToggle('lifestyle_profile.symptoms_impact.night_driving_difficulty', 'Night Driving Difficulty')}
+                {renderToggle('lifestyle_profile.symptoms_impact.glare_halos', 'Glare / Halos')}
+              </div>
+            </div>
+          </CollapsibleCard>
+
+          {/* Surgical Plan - Candidacy Assessment & Package Selection */}
+          <CollapsibleCard title="Surgical Plan" subtitle="Assess candidacy and offer packages per eye" icon={<Package size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-purple-200" expanded={expanded.surgical} onToggle={() => setExpanded((p) => ({ ...p, surgical: !p.surgical }))} maxHeight="3500px" bodyClassName="p-6 space-y-6">
+
+            {/* Same Plan Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Same Plan for Both Eyes</p>
+                  <p className="text-xs text-slate-500">When enabled, candidacy and packages apply to both OD and OS</p>
+                </div>
+              </div>
+              <button
+                onClick={() => updateNestedField('surgical_plan.same_plan_both_eyes', !data?.surgical_plan?.same_plan_both_eyes)}
+                className={`w-14 h-7 rounded-full transition-all ${data?.surgical_plan?.same_plan_both_eyes ? 'bg-purple-600' : 'bg-slate-200'}`}
+              >
+                <div className={`w-6 h-6 rounded-full bg-white shadow-sm transform transition-transform ${data?.surgical_plan?.same_plan_both_eyes ? 'translate-x-7' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+
+            {/* SECTION 1: Candidacy Assessment */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white flex items-center justify-center">
+                  <Target size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">Candidacy Assessment</h4>
+                  <p className="text-xs text-slate-500">Evaluate which lens types the patient is a candidate for</p>
+                </div>
+              </div>
+
+              {data?.surgical_plan?.same_plan_both_eyes ? (
+                /* Single view when same plan for both eyes */
+                <div className="p-5 bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl border border-purple-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm font-bold text-purple-800">Both Eyes (OU)</span>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full text-[10px] font-bold">UNIFIED</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Near + Far vision', color: 'blue' },
+                      { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism correction', color: 'emerald' },
+                      { key: 'is_candidate_lal', label: 'LAL', desc: 'Light Adjustable Lens', color: 'amber' },
+                    ].map(item => {
+                      const value = data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
+                      const colorClasses: Record<string, { bg: string; border: string; text: string; activeBg: string }> = {
+                        blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', activeBg: 'bg-blue-600' },
+                        emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', activeBg: 'bg-emerald-600' },
+                        amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', activeBg: 'bg-amber-600' },
+                      };
+                      const colors = colorClasses[item.color];
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => {
+                            updateNestedField(`surgical_plan.candidacy_profile.od_right.${item.key}`, !value);
+                            updateNestedField(`surgical_plan.candidacy_profile.os_left.${item.key}`, !value);
+                          }}
+                          className={`p-4 rounded-xl border-2 transition-all ${value ? `${colors.activeBg} border-transparent` : `${colors.bg} ${colors.border} hover:shadow-md`}`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-sm font-bold ${value ? 'text-white' : colors.text}`}>{item.label}</span>
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${value ? 'bg-white/20' : 'bg-white border border-slate-200'}`}>
+                              {value && <Check size={14} className="text-white" />}
+                            </div>
+                          </div>
+                          <p className={`text-xs ${value ? 'text-white/80' : 'text-slate-500'}`}>{item.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Split view for each eye */
+                <div className="grid grid-cols-2 gap-4">
+                  {/* OD (Right Eye) */}
+                  <div className="p-5 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                      <div>
+                        <span className="text-sm font-bold text-blue-800">Right Eye</span>
+                        <span className="block text-[10px] text-blue-500">Oculus Dexter</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { key: 'is_candidate_multifocal', label: 'Multifocal Candidate', desc: 'Near + Far' },
+                        { key: 'is_candidate_toric', label: 'Toric Candidate', desc: 'Astigmatism' },
+                        { key: 'is_candidate_lal', label: 'LAL Candidate', desc: 'Adjustable' },
+                      ].map(item => {
+                        const value = data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
+                        return (
+                          <button
+                            key={item.key}
+                            onClick={() => updateNestedField(`surgical_plan.candidacy_profile.od_right.${item.key}`, !value)}
+                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${value ? 'bg-blue-600 border-blue-600' : 'bg-white border-blue-100 hover:border-blue-300'}`}
+                          >
+                            <div>
+                              <span className={`text-sm font-semibold ${value ? 'text-white' : 'text-slate-700'}`}>{item.label}</span>
+                              <span className={`block text-[10px] ${value ? 'text-blue-100' : 'text-slate-400'}`}>{item.desc}</span>
+                            </div>
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center ${value ? 'bg-white/20' : 'border border-slate-200'}`}>
+                              {value && <Check size={14} className="text-white" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* OS (Left Eye) */}
+                  <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                      <div>
+                        <span className="text-sm font-bold text-emerald-800">Left Eye</span>
+                        <span className="block text-[10px] text-emerald-500">Oculus Sinister</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { key: 'is_candidate_multifocal', label: 'Multifocal Candidate', desc: 'Near + Far' },
+                        { key: 'is_candidate_toric', label: 'Toric Candidate', desc: 'Astigmatism' },
+                        { key: 'is_candidate_lal', label: 'LAL Candidate', desc: 'Adjustable' },
+                      ].map(item => {
+                        const value = data?.surgical_plan?.candidacy_profile?.os_left?.[item.key];
+                        return (
+                          <button
+                            key={item.key}
+                            onClick={() => updateNestedField(`surgical_plan.candidacy_profile.os_left.${item.key}`, !value)}
+                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${value ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-emerald-100 hover:border-emerald-300'}`}
+                          >
+                            <div>
+                              <span className={`text-sm font-semibold ${value ? 'text-white' : 'text-slate-700'}`}>{item.label}</span>
+                              <span className={`block text-[10px] ${value ? 'text-emerald-100' : 'text-slate-400'}`}>{item.desc}</span>
+                            </div>
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center ${value ? 'bg-white/20' : 'border border-slate-200'}`}>
+                              {value && <Check size={14} className="text-white" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
+            </div>
 
-              {/* Medication Inputs */}
-              {!data.medications?.post_op?.is_dropless && (
-                <div className="space-y-6 animate-fadeIn">
+            {/* SECTION 2: Package Selection - Grouped by Category */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center">
+                  <Package size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">Packages to Offer</h4>
+                  <p className="text-xs text-slate-500">Select packages to offer based on candidacy. Packages are grouped by lens category.</p>
+                </div>
+              </div>
 
-                  {/* Combination Name Selection (Visible only if is_combination) */}
-                  {data.medications?.post_op?.is_combination && (
-                    <div className="space-y-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
-                      <label className="text-[11px] font-bold text-indigo-500 uppercase tracking-tight">Bottle Name (Combo)</label>
-                      {renderField('medications.post_op.combination_name', 'Select or Enter Combination Name', 'select', COMBO_DROP_EXAMPLES)}
-                    </div>
-                  )}
+              {/* Packages grouped by category */}
+              {(() => {
+                const odCandidacy = data?.surgical_plan?.candidacy_profile?.od_right || {};
+                const osCandidacy = data?.surgical_plan?.candidacy_profile?.os_left || {};
+                const offeredPackages = data?.surgical_plan?.offered_packages || [];
+                const isMultifocalCandidate = odCandidacy.is_candidate_multifocal || osCandidacy.is_candidate_multifocal;
+                const isToricCandidate = odCandidacy.is_candidate_toric || osCandidacy.is_candidate_toric;
+                const isLalCandidate = odCandidacy.is_candidate_lal || osCandidacy.is_candidate_lal;
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* A. Antibiotic */}
-                    {!data.medications?.post_op?.is_combination && (
-                      <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">A. Antibiotic</label>
-                          <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">1 Week</span>
-                        </div>
-                        {renderField('medications.post_op.antibiotic.name', 'Select Antibiotic', 'select', POST_OP_ANTIBIOTICS)}
-                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 px-1">
-                          <Activity size={14} />
-                          <span>Fixed: 3x Daily (7 Days)</span>
-                        </div>
-                        {/* Sulfa Warning */}
-                        {data.medications?.post_op?.antibiotic?.name === 'Neomycin-Polymyxin' &&
-                          data.medical_history?.allergies?.includes('Sulfa') && (
-                            <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex gap-2 text-[11px] text-rose-700">
-                              <AlertCircle size={14} className="shrink-0" />
-                              <p>Warning: Sulfa allergy detected. Neomycin may be contraindicated.</p>
-                            </div>
-                          )}
-                      </div>
-                    )}
+                // Define package categories
+                const packageCategories = [
+                  {
+                    id: 'monofocal',
+                    title: 'Monofocal',
+                    subtitle: 'Single distance focus - Insurance covered',
+                    color: 'slate',
+                    bgGradient: 'from-slate-50 to-gray-50',
+                    borderColor: 'border-slate-200',
+                    packages: ['PKG_STD', 'PKG_LASER_LRI'],
+                    alwaysShow: true,
+                  },
+                  {
+                    id: 'toric',
+                    title: 'Toric',
+                    subtitle: 'Distance and astigmatism correction',
+                    color: 'emerald',
+                    bgGradient: 'from-emerald-50 to-teal-50',
+                    borderColor: 'border-emerald-200',
+                    packages: ['PKG_TORIC', 'PKG_TORIC_LASER'],
+                    alwaysShow: false,
+                    showWhen: isToricCandidate,
+                  },
+                  {
+                    id: 'edof',
+                    title: 'Extended Depth of Focus (EDOF)',
+                    subtitle: 'Excellent intermediate vision with minimal halos',
+                    color: 'blue',
+                    bgGradient: 'from-blue-50 to-sky-50',
+                    borderColor: 'border-blue-200',
+                    packages: ['PKG_EDOF', 'PKG_EDOF_LASER'],
+                    alwaysShow: false,
+                    showWhen: isMultifocalCandidate,
+                  },
+                  {
+                    id: 'multifocal',
+                    title: 'Multifocal / Trifocal',
+                    subtitle: 'Near, intermediate, and distance vision',
+                    color: 'purple',
+                    bgGradient: 'from-purple-50 to-violet-50',
+                    borderColor: 'border-purple-200',
+                    packages: ['PKG_MULTIFOCAL', 'PKG_MULTIFOCAL_LASER'],
+                    alwaysShow: false,
+                    showWhen: isMultifocalCandidate,
+                  },
+                  {
+                    id: 'lal',
+                    title: 'Light Adjustable Lens (LAL)',
+                    subtitle: 'Post-operative customization via UV light',
+                    color: 'amber',
+                    bgGradient: 'from-amber-50 to-orange-50',
+                    borderColor: 'border-amber-200',
+                    packages: ['PKG_LAL'],
+                    alwaysShow: false,
+                    showWhen: isLalCandidate,
+                  },
+                ];
 
-                    {/* B. Anti-Inflammatory (NSAID) */}
-                    {!data.medications?.post_op?.is_combination && (
-                      <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">B. Anti-Inflammatory (NSAID)</label>
-                        <div className="relative">
-                          <select
-                            value={data.medications?.post_op?.nsaid?.name || ''}
-                            onChange={(e) => {
-                              const name = e.target.value;
-                              const ref = POST_OP_NSAIDS.find(n => n.name === name);
-                              updateNestedField('medications.post_op.nsaid.name', name);
-                              if (ref) {
-                                updateNestedField('medications.post_op.nsaid.frequency', ref.defaultFrequency);
-                                updateNestedField('medications.post_op.nsaid.frequency_label', ref.label);
-                              }
-                            }}
-                            className="w-full text-sm font-medium text-slate-700 p-3 bg-white border border-slate-200 rounded-xl outline-none appearance-none"
-                          >
-                            <option value="">Select Drug</option>
-                            {POST_OP_NSAIDS.map(n => <option key={n.name} value={n.name}>{n.name}</option>)}
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                        </div>
+                const colorClasses: Record<string, { text: string; bg: string; activeBg: string; badge: string }> = {
+                  slate: { text: 'text-slate-700', bg: 'bg-slate-100', activeBg: 'bg-slate-600', badge: 'bg-slate-100 text-slate-600' },
+                  emerald: { text: 'text-emerald-700', bg: 'bg-emerald-100', activeBg: 'bg-emerald-600', badge: 'bg-emerald-100 text-emerald-600' },
+                  blue: { text: 'text-blue-700', bg: 'bg-blue-100', activeBg: 'bg-blue-600', badge: 'bg-blue-100 text-blue-600' },
+                  purple: { text: 'text-purple-700', bg: 'bg-purple-100', activeBg: 'bg-purple-600', badge: 'bg-purple-100 text-purple-600' },
+                  amber: { text: 'text-amber-700', bg: 'bg-amber-100', activeBg: 'bg-amber-600', badge: 'bg-amber-100 text-amber-600' },
+                };
 
-                        {data.medications?.post_op?.nsaid?.name && (
-                          <div className="grid grid-cols-2 gap-4">
+                const visibleCategories = packageCategories.filter(cat => cat.alwaysShow || cat.showWhen);
+                const hiddenCategories = packageCategories.filter(cat => !cat.alwaysShow && !cat.showWhen);
+
+                return (
+                  <div className="space-y-4">
+                    {/* Visible categories based on candidacy */}
+                    {visibleCategories.map(category => {
+                      const colors = colorClasses[category.color];
+                      const categoryPackages = surgicalPackages.filter(pkg => category.packages.includes(pkg.package_id));
+                      if (categoryPackages.length === 0) return null;
+
+                      return (
+                        <div key={category.id} className={`p-4 bg-gradient-to-r ${category.bgGradient} rounded-2xl border ${category.borderColor}`}>
+                          <div className="flex items-center justify-between mb-3">
                             <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-2">Frequency</p>
-                              {POST_OP_NSAIDS.find(n => n.name === data.medications?.post_op?.nsaid?.name)?.variableFrequency ? (
-                                <div className="relative">
-                                  <select
-                                    value={data.medications?.post_op?.nsaid?.frequency || ''}
-                                    onChange={(e) => {
-                                      const freq = parseInt(e.target.value);
-                                      updateNestedField('medications.post_op.nsaid.frequency', freq);
-                                      updateNestedField('medications.post_op.nsaid.frequency_label', `${freq}x Daily`);
-                                    }}
-                                    className="w-full text-xs font-bold p-2.5 bg-white border border-slate-200 rounded-lg outline-none appearance-none"
-                                  >
-                                    <option value="1">1x Daily</option>
-                                    <option value="3">3x Daily</option>
-                                    <option value="4">4x Daily</option>
-                                  </select>
-                                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                                </div>
-                              ) : (
-                                <div className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600">
-                                  {data.medications?.post_op?.nsaid?.frequency_label}
-                                </div>
-                              )}
+                              <h5 className={`text-sm font-bold ${colors.text}`}>{category.title}</h5>
+                              <p className="text-xs text-slate-500">{category.subtitle}</p>
                             </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-2">Duration</p>
-                              <div className="relative">
-                                <select
-                                  value={data.medications?.post_op?.nsaid?.weeks || 4}
-                                  onChange={(e) => updateNestedField('medications.post_op.nsaid.weeks', parseInt(e.target.value))}
-                                  className="w-full text-xs font-bold p-2.5 bg-white border border-slate-200 rounded-lg outline-none appearance-none"
+                            {!category.alwaysShow && (
+                              <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${colors.badge}`}>
+                                ELIGIBLE
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {categoryPackages.map(pkg => {
+                              const isOffered = offeredPackages.includes(pkg.package_id);
+                              return (
+                                <div
+                                  key={pkg.package_id}
+                                  onClick={() => {
+                                    const newList = isOffered
+                                      ? offeredPackages.filter((id: string) => id !== pkg.package_id)
+                                      : [...offeredPackages, pkg.package_id];
+                                    updateNestedField('surgical_plan.offered_packages', newList);
+                                  }}
+                                  className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                                    isOffered
+                                      ? `${colors.activeBg} border-transparent`
+                                      : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                                  }`}
                                 >
-                                  <option value="1">1 Week</option>
-                                  <option value="2">2 Weeks</option>
-                                  <option value="4">4 Weeks</option>
-                                </select>
-                                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                              </div>
-                            </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-sm font-semibold ${isOffered ? 'text-white' : 'text-slate-800'}`}>
+                                        {pkg.display_name}
+                                      </span>
+                                      {pkg.includes_laser && (
+                                        <Zap size={12} className={isOffered ? 'text-yellow-300' : 'text-amber-500'} />
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <span className={`text-xs font-medium ${isOffered ? 'text-white/80' : 'text-slate-500'}`}>
+                                        {pkg.price_cash === 0 ? 'Insurance Covered' : `$${pkg.price_cash.toLocaleString()}`}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ml-2 ${
+                                    isOffered ? 'bg-white/20' : 'border-2 border-slate-300'
+                                  }`}>
+                                    {isOffered && <Check size={12} className="text-white" />}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Hidden categories (not matching candidacy) */}
+                    {hiddenCategories.length > 0 && (
+                      <div className="border-t border-slate-100 pt-4">
+                        <button
+                          onClick={() => setExpanded(p => ({ ...p, otherPackages: !p.otherPackages }))}
+                          className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+                        >
+                          <ChevronDown size={14} className={`transition-transform ${expanded.otherPackages ? 'rotate-180' : ''}`} />
+                          {hiddenCategories.length} additional categories (patient not currently a candidate)
+                        </button>
+                        {expanded.otherPackages && (
+                          <div className="space-y-3 mt-3 opacity-60">
+                            {hiddenCategories.map(category => {
+                              const colors = colorClasses[category.color];
+                              const categoryPackages = surgicalPackages.filter(pkg => category.packages.includes(pkg.package_id));
+                              if (categoryPackages.length === 0) return null;
+
+                              return (
+                                <div key={category.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                  <p className="text-xs font-bold text-slate-600 mb-2">{category.title}</p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {categoryPackages.map(pkg => {
+                                      const isOffered = offeredPackages.includes(pkg.package_id);
+                                      return (
+                                        <div
+                                          key={pkg.package_id}
+                                          onClick={() => {
+                                            const newList = isOffered
+                                              ? offeredPackages.filter((id: string) => id !== pkg.package_id)
+                                              : [...offeredPackages, pkg.package_id];
+                                            updateNestedField('surgical_plan.offered_packages', newList);
+                                          }}
+                                          className={`p-2.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                                            isOffered ? 'bg-indigo-100 border-indigo-300' : 'bg-white border-slate-200 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          <span className={`text-xs font-medium ${isOffered ? 'text-indigo-700' : 'text-slate-600'}`}>
+                                            {pkg.display_name}
+                                          </span>
+                                          <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                            isOffered ? 'bg-indigo-600' : 'border border-slate-300'
+                                          }`}>
+                                            {isOffered && <Check size={10} className="text-white" />}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
                     )}
-                  </div>
 
-                  {/* C. Steroid (or Combined Drop) Tapering Section */}
-                  <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
-                          <Activity size={18} />
+                    {/* Summary of offered packages */}
+                    {offeredPackages.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 size={16} className="text-indigo-600" />
+                          <span className="text-sm font-bold text-indigo-800">{offeredPackages.length} Package(s) Offered to Patient</span>
                         </div>
-                        <div>
-                          <label className="text-xs font-extrabold text-slate-800 uppercase tracking-widest">
-                            {data.medications?.post_op?.is_combination ? 'C. Combination Regimen' : 'C. Steroid Taper Regimen'}
-                          </label>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Automated Weekly Schedule</p>
+                        <div className="flex flex-wrap gap-2">
+                          {offeredPackages.map((pkgId: string) => {
+                            const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                            return pkg ? (
+                              <span key={pkgId} className="px-3 py-1.5 bg-white rounded-lg text-xs font-semibold text-indigo-700 border border-indigo-200">
+                                {pkg.display_name}
+                              </span>
+                            ) : null;
+                          })}
                         </div>
                       </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* SECTION 3: Patient Selection Status */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">Patient Selection</h4>
+                  <p className="text-xs text-slate-500">Track which package the patient has selected</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selected Package</label>
+                  <div className="relative">
+                    <select
+                      value={data?.surgical_plan?.patient_selection?.selected_package_id || ''}
+                      onChange={(e) => updateNestedField('surgical_plan.patient_selection.selected_package_id', e.target.value)}
+                      className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                    >
+                      <option value="">Not yet selected</option>
+                      {(data?.surgical_plan?.offered_packages || []).map((pkgId: string) => {
+                        const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                        return pkg ? (
+                          <option key={pkgId} value={pkgId}>{pkg.display_name}</option>
+                        ) : null;
+                      })}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selection Status</label>
+                  <div className="relative">
+                    <select
+                      value={data?.surgical_plan?.patient_selection?.status || ''}
+                      onChange={(e) => updateNestedField('surgical_plan.patient_selection.status', e.target.value)}
+                      className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                    >
+                      <option value="">Select status...</option>
+                      <option value="pending">Pending Decision</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="declined">Declined Surgery</option>
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                  </div>
+                </div>
+                {renderField('surgical_plan.patient_selection.selection_date', 'Selection Date', 'date')}
+              </div>
+            </div>
+
+            {/* SECTION 4: Lens Selection & Operative Logistics */}
+            {data?.surgical_plan?.patient_selection?.selected_package_id && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center">
+                    <Eye size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">Lens Model Selection</h4>
+                    <p className="text-xs text-slate-500">Select specific lens model from inventory based on patient's package choice</p>
+                  </div>
+                </div>
+
+                {/* Lens Selection Based on Selected Package */}
+                {(() => {
+                  const selectedPkgId = data?.surgical_plan?.patient_selection?.selected_package_id;
+                  const selectedPkg = surgicalPackages.find(p => p.package_id === selectedPkgId);
+                  const allowedLensCodes = selectedPkg?.allowed_lens_codes || [];
+                  const lensInventory = clinicContext?.lens_inventory || {};
+
+                  // Get all available lens models for the selected package
+                  const availableLensModels: Array<{ category: string; categoryName: string; model: any }> = [];
+                  allowedLensCodes.forEach((code: string) => {
+                    const category = lensInventory[code];
+                    if (category?.models) {
+                      category.models.forEach((model: any) => {
+                        availableLensModels.push({
+                          category: code,
+                          categoryName: category.display_name || code,
+                          model,
+                        });
+                      });
+                    }
+                  });
+
+                  const isToric = allowedLensCodes.some((code: string) => code.includes('TORIC'));
+
+                  return (
+                    <div className="p-5 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl border border-cyan-200 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-cyan-800">
+                            Available Lenses for: {selectedPkg?.display_name}
+                          </p>
+                          <p className="text-xs text-cyan-600">{availableLensModels.length} lens model(s) available in inventory</p>
+                        </div>
+                        {isToric && (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                            TORIC OPTIONS AVAILABLE
+                          </span>
+                        )}
+                      </div>
+
+                      {availableLensModels.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {availableLensModels.map((item, idx) => {
+                            const isSelectedOD = data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_code === item.model.model_code;
+                            const isSelectedOS = data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_code === item.model.model_code;
+                            return (
+                              <div
+                                key={`${item.category}-${idx}`}
+                                className={`p-3 rounded-xl border-2 transition-all ${
+                                  isSelectedOD || isSelectedOS
+                                    ? 'border-cyan-500 bg-cyan-100'
+                                    : 'border-slate-200 bg-white hover:border-cyan-300 hover:shadow-sm'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
+                                    <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
+                                    <p className="text-[10px] text-cyan-600 font-medium">{item.model.model_code}</p>
+                                  </div>
+                                  {item.category.includes('TORIC') && (
+                                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[8px] font-bold rounded">TORIC</span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">{item.model.description}</p>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => {
+                                      updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_name', item.model.model);
+                                      updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_code', item.model.model_code);
+                                    }}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                                      isSelectedOD
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                    }`}
+                                  >
+                                    {isSelectedOD ? '✓ OD Selected' : 'Select for OD'}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_name', item.model.model);
+                                      updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_code', item.model.model_code);
+                                    }}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                                      isSelectedOS
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                    }`}
+                                  >
+                                    {isSelectedOS ? '✓ OS Selected' : 'Select for OS'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                          <p className="text-sm text-amber-700">No lens models found in inventory for this package category.</p>
+                          <p className="text-xs text-amber-500 mt-1">Please ensure lens inventory is configured for: {allowedLensCodes.join(', ')}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* SECTION 5: Operative Scheduling */}
+            {data?.surgical_plan?.patient_selection?.selected_package_id && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center">
+                    <Calendar size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">Operative Scheduling</h4>
+                    <p className="text-xs text-slate-500">Schedule surgery and enter lens specifications per eye</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* OD (Right Eye) Logistics */}
+                  <div className="p-5 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200 space-y-4">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                        <div>
+                          <span className="text-sm font-bold text-blue-800">Right Eye</span>
+                          {data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_name && (
+                            <span className="block text-[10px] text-blue-500">
+                              Lens: {data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.operative_logistics?.od_right?.status || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.operative_logistics.od_right.status', e.target.value)}
+                          className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-700 outline-none focus:border-blue-400 appearance-none cursor-pointer pr-7"
+                        >
+                          <option value="">Status...</option>
+                          <option value="pending">Pending</option>
+                          <option value="scheduled">Scheduled</option>
+                          <option value="lens_ordered">Lens Ordered</option>
+                          <option value="ready">Ready for Surgery</option>
+                          <option value="completed">Completed</option>
+                          <option value="not_applicable">N/A</option>
+                        </select>
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {renderField('surgical_plan.operative_logistics.od_right.surgery_date', 'Surgery Date', 'date')}
+                      {renderField('surgical_plan.operative_logistics.od_right.arrival_time', 'Arrival Time')}
+                    </div>
+                    <div className="p-3 bg-white/60 rounded-xl border border-blue-100 space-y-3">
+                      <p className="text-xs font-bold text-blue-700">Lens Specifications</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {renderField('surgical_plan.operative_logistics.od_right.lens_order.power', 'Power (D)')}
+                        {renderField('surgical_plan.operative_logistics.od_right.lens_order.cylinder', 'Cylinder')}
+                        {renderField('surgical_plan.operative_logistics.od_right.lens_order.axis_alignment', 'Axis')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* OS (Left Eye) Logistics */}
+                  <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                        <div>
+                          <span className="text-sm font-bold text-emerald-800">Left Eye</span>
+                          {data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_name && (
+                            <span className="block text-[10px] text-emerald-500">
+                              Lens: {data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.operative_logistics?.os_left?.status || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.operative_logistics.os_left.status', e.target.value)}
+                          className="bg-white border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 outline-none focus:border-emerald-400 appearance-none cursor-pointer pr-7"
+                        >
+                          <option value="">Status...</option>
+                          <option value="pending">Pending</option>
+                          <option value="scheduled">Scheduled</option>
+                          <option value="lens_ordered">Lens Ordered</option>
+                          <option value="ready">Ready for Surgery</option>
+                          <option value="completed">Completed</option>
+                          <option value="not_applicable">N/A</option>
+                        </select>
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {renderField('surgical_plan.operative_logistics.os_left.surgery_date', 'Surgery Date', 'date')}
+                      {renderField('surgical_plan.operative_logistics.os_left.arrival_time', 'Arrival Time')}
+                    </div>
+                    <div className="p-3 bg-white/60 rounded-xl border border-emerald-100 space-y-3">
+                      <p className="text-xs font-bold text-emerald-700">Lens Specifications</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {renderField('surgical_plan.operative_logistics.os_left.lens_order.power', 'Power (D)')}
+                        {renderField('surgical_plan.operative_logistics.os_left.lens_order.cylinder', 'Cylinder')}
+                        {renderField('surgical_plan.operative_logistics.os_left.lens_order.axis_alignment', 'Axis')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Book Surgery Button */}
+                {data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_name &&
+                 data?.surgical_plan?.operative_logistics?.od_right?.surgery_date && (
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => {
+                        updateNestedField('surgical_plan.operative_logistics.od_right.status', 'scheduled');
+                        if (data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_name &&
+                            data?.surgical_plan?.operative_logistics?.os_left?.surgery_date) {
+                          updateNestedField('surgical_plan.operative_logistics.os_left.status', 'scheduled');
+                        }
+                        alert('Surgery scheduled successfully!');
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all"
+                    >
+                      <Calendar size={16} className="inline mr-2" />
+                      Confirm Surgery Booking
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </CollapsibleCard>
+
+          {/* Medications Plan */}
+          <CollapsibleCard title="Medications Plan" subtitle="Pre-op and post-op protocols" icon={<Pill size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200" expanded={expanded.postop_meds} onToggle={() => setExpanded((p) => ({ ...p, postop_meds: !p.postop_meds }))} maxHeight="3000px" bodyClassName="p-6 space-y-6">
+
+            {/* Protocol Type Selection - At Top */}
+            <div className="p-5 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200">
+              <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-4">Select Medication Protocol</h4>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { id: 'STANDARD', label: 'Standard Drops', desc: 'Individual drops: Antibiotic + NSAID + Steroid', icon: <Eye size={22} /> },
+                  { id: 'COMBINATION', label: 'Combination Drop', desc: '3-in-1 drop for both pre-op and post-op', icon: <Activity size={22} /> },
+                  { id: 'DROPLESS', label: 'Dropless Surgery', desc: 'Intracameral injection - minimal drops', icon: <Sparkles size={22} /> },
+                ].map(opt => {
+                  const isSelected = (data?.medications_plan?.protocol_type || 'STANDARD') === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => updateNestedField('medications_plan.protocol_type', opt.id)}
+                      className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-indigo-500 bg-white shadow-xl shadow-indigo-100'
+                          : 'border-transparent bg-white hover:border-slate-300 hover:shadow-md'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${isSelected ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                        {opt.icon}
+                      </div>
+                      <h5 className={`font-bold text-sm mb-1 ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{opt.label}</h5>
+                      <p className="text-xs text-slate-500 leading-relaxed">{opt.desc}</p>
+                      {isSelected && (
+                        <div className="mt-3 flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-indigo-500" />
+                          <span className="text-xs font-semibold text-indigo-600">Selected</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ========== COMBINATION PROTOCOL ========== */}
+            {data?.medications_plan?.protocol_type === 'COMBINATION' && (
+              <div className="space-y-5">
+                {/* Info Banner */}
+                <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200 flex items-start gap-3">
+                  <Activity size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-indigo-800">Combination Drop Protocol</p>
+                    <p className="text-xs text-indigo-600 mt-0.5">The selected combination drop will be used for both pre-operative and post-operative care with a taper schedule.</p>
+                  </div>
+                </div>
+
+                {/* Combination Drop Selection */}
+                <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4">
+                  <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Select Combination Drop</h5>
+                  <div className="relative">
+                    <select
+                      value={data?.medications_plan?.combination?.name || ''}
+                      onChange={(e) => {
+                        const combo = combinationDrops.find((c: any) => c.name === e.target.value);
+                        updateNestedField('medications_plan.combination.name', e.target.value);
+                        updateNestedField('medications_plan.combination.components', combo?.components || []);
+                        if (!data?.medications_plan?.combination?.taper_schedule) {
+                          updateNestedField('medications_plan.combination.taper_schedule', [4, 3, 2, 1]);
+                          updateNestedField('medications_plan.combination.taper_type', 'standard');
+                        }
+                      }}
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                    >
+                      <option value="" className="text-slate-400">Choose a combination drop...</option>
+                      {combinationDrops.map((c: any) => (
+                        <option key={c.id} value={c.name} className="py-2">{c.name} ({c.components?.join(' + ')})</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+
+                  {/* Show selected combination components */}
+                  {data?.medications_plan?.combination?.name && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {(data?.medications_plan?.combination?.components || []).map((comp: string, idx: number) => (
+                        <span key={idx} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold">{comp}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Taper Schedule */}
+                <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                        <Activity size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-slate-800">Taper Schedule</h5>
+                        <p className="text-xs text-slate-400">Automated weekly frequency reduction</p>
+                      </div>
+                    </div>
+                    <div className="flex bg-slate-100 p-1.5 rounded-xl gap-1">
+                      <button
+                        onClick={() => {
+                          updateNestedField('medications_plan.combination.taper_type', 'standard');
+                          updateNestedField('medications_plan.combination.taper_schedule', [4, 3, 2, 1]);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                          (data?.medications_plan?.combination?.taper_type || 'standard') === 'standard'
+                            ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Standard Taper
+                      </button>
+                      <button
+                        onClick={() => {
+                          updateNestedField('medications_plan.combination.taper_type', 'short');
+                          updateNestedField('medications_plan.combination.taper_schedule', [2, 1, 0, 0]);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                          data?.medications_plan?.combination?.taper_type === 'short'
+                            ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Short Taper
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Taper Schedule Visualizer</p>
+                      <div className="flex gap-2">
+                        {(data?.medications_plan?.combination?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
+                          <div key={i} className="flex-1 text-center">
+                            <div className={`py-4 rounded-xl font-bold text-white text-base transition-all ${
+                              freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-200'
+                            }`}>
+                              {freq}x
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 font-semibold">WK {i + 1}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Manual Frequency Adjustment</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[0, 1, 2, 3].map((weekIdx) => (
+                          <div key={weekIdx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <span className="text-xs font-semibold text-slate-600">Week {weekIdx + 1}</span>
+                            <select
+                              value={(data?.medications_plan?.combination?.taper_schedule || [4, 3, 2, 1])[weekIdx] || 0}
+                              onChange={(e) => {
+                                const newSchedule = [...(data?.medications_plan?.combination?.taper_schedule || [4, 3, 2, 1])];
+                                newSchedule[weekIdx] = parseInt(e.target.value);
+                                updateNestedField('medications_plan.combination.taper_schedule', newSchedule);
+                                updateNestedField('medications_plan.combination.taper_type', 'custom');
+                              }}
+                              className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-indigo-600 outline-none focus:border-indigo-400 cursor-pointer"
+                            >
+                              {[0, 1, 2, 3, 4].map(n => (
+                                <option key={n} value={n}>{n}x</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========== DROPLESS PROTOCOL ========== */}
+            {data?.medications_plan?.protocol_type === 'DROPLESS' && (
+              <div className="space-y-5">
+                <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <Sparkles size={24} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-emerald-900">Dropless Surgery Protocol</h4>
+                      <p className="text-sm text-emerald-700 mt-1">{droplessOption?.description || 'Intracameral injection at time of surgery - no post-op drops required'}</p>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-emerald-200">
+                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">Available Medications</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(droplessOption?.medications || []).map((med: string, idx: number) => (
+                        <span key={idx} className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-sm font-semibold">{med}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pre-op antibiotic still needed for dropless */}
+                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2 uppercase tracking-wide">
+                      <Clock size={16} />Pre-Op Antibiotic (Still Required)
+                    </h4>
+                    <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                      Start {preOpDefaultDays} days before
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Select Antibiotic</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.antibiotic_id || ''}
+                          onChange={(e) => {
+                            const id = parseInt(e.target.value);
+                            const ab = preOpAntibiotics.find((a: any) => a.id === id);
+                            updateNestedField('medications_plan.pre_op.antibiotic_id', id);
+                            updateNestedField('medications_plan.pre_op.antibiotic_name', ab?.name || '');
+                          }}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value="">Select...</option>
+                          {preOpAntibiotics.map((ab: any) => (
+                            <option key={ab.id} value={ab.id}>{ab.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Frequency</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.frequency_id || ''}
+                          onChange={(e) => {
+                            const id = parseInt(e.target.value);
+                            const freq = preOpFrequencies.find((f: any) => f.id === id);
+                            updateNestedField('medications_plan.pre_op.frequency_id', id);
+                            updateNestedField('medications_plan.pre_op.frequency', freq?.name || '');
+                          }}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value="">Select...</option>
+                          {preOpFrequencies.map((f: any) => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Duration</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.duration_days || 3}
+                          onChange={(e) => updateNestedField('medications_plan.pre_op.duration_days', parseInt(e.target.value))}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value={3}>3 Days</option>
+                          <option value={7}>1 Week</option>
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========== STANDARD PROTOCOL ========== */}
+            {(data?.medications_plan?.protocol_type === 'STANDARD' || !data?.medications_plan?.protocol_type) && (
+              <div className="space-y-6">
+                {/* PRE-OP SECTION */}
+                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2 uppercase tracking-wide">
+                      <Clock size={16} />Pre-Op Medications
+                    </h4>
+                    <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                      Start {preOpDefaultDays} days before
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Select Antibiotic</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.antibiotic_id || ''}
+                          onChange={(e) => {
+                            const id = parseInt(e.target.value);
+                            const ab = preOpAntibiotics.find((a: any) => a.id === id);
+                            updateNestedField('medications_plan.pre_op.antibiotic_id', id);
+                            updateNestedField('medications_plan.pre_op.antibiotic_name', ab?.name || '');
+                          }}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value="">Select antibiotic...</option>
+                          {preOpAntibiotics.map((ab: any) => (
+                            <option key={ab.id} value={ab.id}>{ab.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Frequency</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.frequency_id || ''}
+                          onChange={(e) => {
+                            const id = parseInt(e.target.value);
+                            const freq = preOpFrequencies.find((f: any) => f.id === id);
+                            updateNestedField('medications_plan.pre_op.frequency_id', id);
+                            updateNestedField('medications_plan.pre_op.frequency', freq?.name || '');
+                          }}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value="">Select frequency...</option>
+                          {preOpFrequencies.map((f: any) => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Duration</label>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.pre_op?.duration_days || 3}
+                          onChange={(e) => updateNestedField('medications_plan.pre_op.duration_days', parseInt(e.target.value))}
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value={3}>3 Days</option>
+                          <option value={7}>1 Week</option>
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Instructions for Pre-Op */}
+                  <div className="pt-3 border-t border-blue-200">
+                    <label className="block text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">Additional Pre-Op Instructions</label>
+                    <textarea
+                      value={data?.medications_plan?.pre_op?.additional_instructions || ''}
+                      onChange={(e) => updateNestedField('medications_plan.pre_op.additional_instructions', e.target.value)}
+                      placeholder="Enter any additional instructions (e.g., continue dry eye medications, hold specific drops, etc.)"
+                      className="w-full bg-white border-2 border-blue-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-400 transition-all resize-none"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                {/* POST-OP SECTION */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-3">
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Post-Op Medications</h4>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-5">
+                    {/* A. ANTIBIOTIC */}
+                    <div className="p-5 bg-white rounded-2xl border-2 border-slate-200 space-y-4 hover:border-slate-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wide">A. Antibiotic</h5>
+                        <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">1 Week</span>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Select Antibiotic</label>
+                        <div className="relative">
+                          <select
+                            value={data?.medications_plan?.post_op?.antibiotic?.name || ''}
+                            onChange={(e) => {
+                              const ab = postOpAntibiotics.find((a: any) => a.name === e.target.value);
+                              updateNestedField('medications_plan.post_op.antibiotic.name', e.target.value);
+                              updateNestedField('medications_plan.post_op.antibiotic.frequency', ab?.default_frequency || 4);
+                              updateNestedField('medications_plan.post_op.antibiotic.weeks', ab?.default_weeks || 1);
+                            }}
+                            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          >
+                            <option value="">Select antibiotic...</option>
+                            {postOpAntibiotics.map((a: any) => (
+                              <option key={a.id} value={a.name}>{a.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg">
+                        <Activity size={14} className="text-indigo-400" />
+                        <span className="font-medium">Fixed: {data?.medications_plan?.post_op?.antibiotic?.frequency || 4}x Daily (7 Days)</span>
+                      </div>
+                    </div>
+
+                    {/* B. ANTI-INFLAMMATORY (NSAID) */}
+                    <div className="p-5 bg-white rounded-2xl border-2 border-slate-200 space-y-4 hover:border-slate-300 transition-all">
+                      <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wide">B. Anti-Inflammatory (NSAID)</h5>
+                      <div className="relative">
+                        <select
+                          value={data?.medications_plan?.post_op?.nsaid?.name || ''}
+                          onChange={(e) => {
+                            const nsaid = postOpNsaids.find((n: any) => n.name === e.target.value);
+                            updateNestedField('medications_plan.post_op.nsaid.name', e.target.value);
+                            if (nsaid) {
+                              updateNestedField('medications_plan.post_op.nsaid.frequency', nsaid.default_frequency);
+                              updateNestedField('medications_plan.post_op.nsaid.frequency_label', nsaid.frequency_label);
+                              updateNestedField('medications_plan.post_op.nsaid.weeks', nsaid.default_weeks);
+                            }
+                          }}
+                          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                        >
+                          <option value="">Select NSAID...</option>
+                          {postOpNsaids.map((n: any) => (
+                            <option key={n.id} value={n.name}>{n.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Frequency</label>
+                          <div className="relative">
+                            <select
+                              value={data?.medications_plan?.post_op?.nsaid?.frequency || ''}
+                              onChange={(e) => {
+                                const freq = parseInt(e.target.value);
+                                const label = freq === 1 ? '1x Daily' : freq === 2 ? '2x Daily' : freq === 3 ? '3x Daily' : '4x Daily';
+                                updateNestedField('medications_plan.post_op.nsaid.frequency', freq);
+                                updateNestedField('medications_plan.post_op.nsaid.frequency_label', label);
+                              }}
+                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                            >
+                              <option value="">Select...</option>
+                              <option value={1}>1x Daily</option>
+                              <option value={2}>2x Daily</option>
+                              <option value={3}>3x Daily</option>
+                              <option value={4}>4x Daily</option>
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Duration</label>
+                          <div className="relative">
+                            <select
+                              value={data?.medications_plan?.post_op?.nsaid?.weeks || 4}
+                              onChange={(e) => updateNestedField('medications_plan.post_op.nsaid.weeks', parseInt(e.target.value))}
+                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                            >
+                              <option value={2}>2 Weeks</option>
+                              <option value={3}>3 Weeks</option>
+                              <option value={4}>4 Weeks</option>
+                              <option value={6}>6 Weeks</option>
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* C. STEROID TAPER REGIMEN */}
+                  <div className="p-5 bg-white rounded-2xl border-2 border-slate-200 space-y-5 hover:border-slate-300 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                          <Activity size={18} className="text-white" />
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-bold text-slate-800">C. Steroid Taper Regimen</h5>
+                          <p className="text-xs text-slate-400">Automated weekly schedule</p>
+                        </div>
+                      </div>
+                      <div className="flex bg-slate-100 p-1.5 rounded-xl gap-1">
                         <button
-                          onClick={() => updateNestedField('medications.post_op.steroid.taper_schedule', [4, 3, 2, 1])}
-                          className="px-3 py-1 bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition-all shadow-sm"
+                          onClick={() => {
+                            updateNestedField('medications_plan.post_op.steroid.taper_type', 'standard');
+                            updateNestedField('medications_plan.post_op.steroid.taper_schedule', [4, 3, 2, 1]);
+                          }}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            (data?.medications_plan?.post_op?.steroid?.taper_type || 'standard') === 'standard'
+                              ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                          }`}
                         >
                           Standard Taper
                         </button>
                         <button
-                          onClick={() => updateNestedField('medications.post_op.steroid.taper_schedule', [2, 1, 0, 0])}
-                          className="px-3 py-1 bg-white border border-slate-200 text-[10px] font-black uppercase text-slate-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition-all shadow-sm"
+                          onClick={() => {
+                            updateNestedField('medications_plan.post_op.steroid.taper_type', 'short');
+                            updateNestedField('medications_plan.post_op.steroid.taper_schedule', [2, 1, 0, 0]);
+                          }}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            data?.medications_plan?.post_op?.steroid?.taper_type === 'short'
+                              ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                          }`}
                         >
                           Short Taper
                         </button>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Drop Selection */}
+                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-4">
-                        {!data.medications?.post_op?.is_combination && (
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Select Medication</p>
-                            {renderField('medications.post_op.steroid.name', 'Steroid Name', 'select', POST_OP_STEROIDS)}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Steroid Name</label>
+                          <div className="relative">
+                            <select
+                              value={data?.medications_plan?.post_op?.steroid?.name || ''}
+                              onChange={(e) => {
+                                const steroid = postOpSteroids.find((s: any) => s.name === e.target.value);
+                                updateNestedField('medications_plan.post_op.steroid.name', e.target.value);
+                                if (steroid) {
+                                  updateNestedField('medications_plan.post_op.steroid.taper_schedule', steroid.default_taper || [4, 3, 2, 1]);
+                                }
+                              }}
+                              className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                            >
+                              <option value="">Select steroid...</option>
+                              {postOpSteroids.map((s: any) => (
+                                <option key={s.id} value={s.name}>{s.name}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                           </div>
-                        )}
-                        <div className="p-4 bg-white/60 border border-slate-100 rounded-2xl shadow-sm">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-3">Taper Schedule Visualizer</p>
-                          <div className="flex items-center justify-between gap-1">
-                            {(data.medications?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
-                              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                                <div className={`w-full h-8 rounded-lg flex items-center justify-center font-black text-xs transition-all ${freq > 0 ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-300'}`}>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Taper Schedule Visualizer</p>
+                          <div className="flex gap-2">
+                            {(data?.medications_plan?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
+                              <div key={i} className="flex-1 text-center">
+                                <div className={`py-4 rounded-xl font-bold text-white text-base transition-all ${
+                                  freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-200'
+                                }`}>
                                   {freq}x
                                 </div>
-                                <span className="text-[9px] font-black text-slate-400 uppercase">Wk {i + 1}</span>
+                                <p className="text-[10px] text-slate-400 mt-2 font-semibold">WK {i + 1}</p>
                               </div>
                             ))}
                           </div>
                         </div>
                       </div>
 
-                      {/* Manual Weekly Adjustments */}
-                      <div className="space-y-4">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Manual Frequency Adjustment</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {[0, 1, 2, 3].map((week) => (
-                            <div key={week} className="flex items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl">
-                              <span className="text-xs font-extrabold text-slate-500">Week {week + 1}</span>
-                              <div className="relative">
-                                <select
-                                  value={data.medications?.post_op?.steroid?.taper_schedule?.[week] || 0}
-                                  onChange={(e) => {
-                                    const next = [...(data.medications?.post_op?.steroid?.taper_schedule || [0, 0, 0, 0])];
-                                    next[week] = parseInt(e.target.value);
-                                    updateNestedField('medications.post_op.steroid.taper_schedule', next);
-                                  }}
-                                  className="bg-transparent text-sm font-black text-indigo-600 outline-none appearance-none pr-4"
-                                >
-                                  {[4, 3, 2, 1, 0].map(v => <option key={v} value={v}>{v}x</option>)}
-                                </select>
-                                <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                              </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Manual Frequency Adjustment</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[0, 1, 2, 3].map((weekIdx) => (
+                            <div key={weekIdx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-xs font-semibold text-slate-600">Week {weekIdx + 1}</span>
+                              <select
+                                value={(data?.medications_plan?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1])[weekIdx] || 0}
+                                onChange={(e) => {
+                                  const newSchedule = [...(data?.medications_plan?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1])];
+                                  newSchedule[weekIdx] = parseInt(e.target.value);
+                                  updateNestedField('medications_plan.post_op.steroid.taper_schedule', newSchedule);
+                                  updateNestedField('medications_plan.post_op.steroid.taper_type', 'custom');
+                                }}
+                                className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-indigo-600 outline-none focus:border-indigo-400 cursor-pointer"
+                              >
+                                {[0, 1, 2, 3, 4].map(n => (
+                                  <option key={n} value={n}>{n}x</option>
+                                ))}
+                              </select>
                             </div>
                           ))}
                         </div>
@@ -858,44 +1936,62 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
                     </div>
                   </div>
 
-                  {/* D. Glaucoma Section */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                          <AlertCircle size={18} />
-                        </div>
-                        <label className="text-xs font-extrabold text-slate-800 uppercase tracking-widest">D. Glaucoma / Long-Term</label>
-                      </div>
-                      <div
-                        onClick={() => updateNestedField('medications.post_op.glaucoma.resume', !data.medications?.post_op?.glaucoma?.resume)}
-                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-all ${data.medications?.post_op?.glaucoma?.resume ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                      >
-                        <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${data.medications?.post_op?.glaucoma?.resume ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </div>
-                    </div>
-                    {data.medications?.post_op?.glaucoma?.resume && (
-                      <div className="animate-fadeIn space-y-3">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Medications to Resume</p>
-                        {renderTagList('medications.post_op.glaucoma.medications', 'Select Medications')}
-                        <div className="relative">
-                          <select
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const current = data.medications?.post_op?.glaucoma?.medications || [];
-                              if (val && !current.includes(val)) {
-                                updateNestedField('medications.post_op.glaucoma.medications', [...current, val]);
-                              }
-                            }}
-                            className="w-full text-xs font-bold p-3 bg-white border border-slate-200 rounded-xl outline-none appearance-none"
-                          >
-                            <option value="">Quick Add Medication...</option>
-                            {GLAUCOMA_DROPS.map(g => <option key={g} value={g}>{g}</option>)}
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                        </div>
-                      </div>
-                    )}
+                  {/* Additional Instructions for Post-Op */}
+                  <div className="pt-3 border-t border-indigo-200">
+                    <label className="block text-xs font-bold text-indigo-700 mb-2 uppercase tracking-wide">Additional Post-Op Instructions</label>
+                    <textarea
+                      value={data?.medications_plan?.post_op?.additional_instructions || ''}
+                      onChange={(e) => updateNestedField('medications_plan.post_op.additional_instructions', e.target.value)}
+                      placeholder="Enter any additional instructions (e.g., activity restrictions, follow-up reminders, special considerations, etc.)"
+                      className="w-full bg-white border-2 border-indigo-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-400 transition-all resize-none"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========== GLAUCOMA / LONG-TERM DROPS ========== */}
+            <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-emerald-900 flex items-center gap-2 uppercase tracking-wide">
+                  <AlertCircle size={16} />Glaucoma / Long-Term Drops
+                </h4>
+                <button
+                  onClick={() => updateNestedField('medications_plan.post_op.glaucoma.resume', !data?.medications_plan?.post_op?.glaucoma?.resume)}
+                  className={`w-12 h-6 rounded-full transition-all ${data?.medications_plan?.post_op?.glaucoma?.resume ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${data?.medications_plan?.post_op?.glaucoma?.resume ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+              {data?.medications_plan?.post_op?.glaucoma?.resume && (
+                <div className="space-y-3">
+                  <p className="text-xs text-emerald-700">Select drops to resume after surgery:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {glaucomaDrops.map((drop: any) => {
+                      const isSelected = (data?.medications_plan?.post_op?.glaucoma?.medications || []).includes(drop.name);
+                      return (
+                        <button
+                          key={drop.id}
+                          onClick={() => {
+                            const current = data?.medications_plan?.post_op?.glaucoma?.medications || [];
+                            const newList = isSelected ? current.filter((d: string) => d !== drop.name) : [...current, drop.name];
+                            updateNestedField('medications_plan.post_op.glaucoma.medications', newList);
+                          }}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                              : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isSelected && <Check size={12} />}
+                            <span className="truncate">{drop.name}</span>
+                          </div>
+                          <span className={`text-[9px] mt-0.5 block ${isSelected ? 'text-emerald-200' : 'text-slate-400'}`}>{drop.category}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -903,81 +1999,64 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({ patientId, clinic
           </CollapsibleCard>
 
           {/* Documents */}
-          <CollapsibleCard
-            title="Documents"
-            subtitle="Consents & signatures"
-            icon={<FileText size={16} />}
-            iconClassName="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center"
-            expanded={expanded.documents}
-            onToggle={() => setExpanded((p) => ({ ...p, documents: !p.documents }))}
-            maxHeight="1000px"
-          >
+          <CollapsibleCard title="Documents" subtitle="Consents & signatures" icon={<FileText size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 text-white flex items-center justify-center shadow-lg shadow-slate-200" expanded={expanded.documents} onToggle={() => setExpanded((p) => ({ ...p, documents: !p.documents }))} maxHeight="800px" bodyClassName="p-5 space-y-3">
             {(data?.documents?.signed_consents || []).map((doc: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50">
-                <div className="grid grid-cols-2 gap-3 flex-1 pr-3">
+              <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <FileText size={16} className="text-slate-400" />
+                <div className="flex-1 grid grid-cols-2 gap-3">
                   {renderField(`documents.signed_consents.${idx}.name`, 'Form Name')}
                   {renderField(`documents.signed_consents.${idx}.date`, 'Date Signed', 'date')}
                 </div>
-                <button
-                  onClick={() => {
-                    const newList = data.documents.signed_consents.filter((_: any, i: number) => i !== idx);
-                    updateNestedField('documents.signed_consents', newList);
-                  }}
-                  className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                >
-                  <X size={16} />
+                <button onClick={() => updateNestedField('documents.signed_consents', data.documents.signed_consents.filter((_: any, i: number) => i !== idx))} className="p-2 text-slate-300 hover:text-rose-500">
+                  <X size={14} />
                 </button>
               </div>
             ))}
             <button
-              onClick={() => {
-                const current = data.documents?.signed_consents || [];
-                updateNestedField('documents.signed_consents', [...current, { name: '', date: '' }]);
-              }}
-              className="w-full py-2 border border-dashed border-slate-200 rounded-xl text-xs font-semibold text-slate-500 hover:border-blue-200 hover:text-blue-600 transition-colors"
+              onClick={() => updateNestedField('documents.signed_consents', [...(data.documents?.signed_consents || []), { name: '', date: '' }])}
+              className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
             >
               + Add Signed Form
             </button>
           </CollapsibleCard>
         </div>
 
-        {/* Right: upload + quick info */}
-        {
-          showUploads && (
-            <div className="col-span-12 lg:col-span-4">
-              <UploadPanel
-                fileInputRef={fileInputRef}
-                files={files}
-                setFiles={setFiles}
-                startExtraction={startExtraction}
-                extracting={extracting}
-                handleFileChange={handleFileChange}
-                recentUploads={recentUploads}
-                showAllUploads={showAllUploads}
-                setShowAllUploads={setShowAllUploads}
-              />
-            </div>
-          )
-        }
-      </div >
+        {/* Upload Panel */}
+        {showUploads && (
+          <div className="col-span-12 lg:col-span-4">
+            <UploadPanel fileInputRef={fileInputRef} files={files} setFiles={setFiles} startExtraction={startExtraction} extracting={extracting} handleFileChange={handleFileChange} recentUploads={recentUploads} showAllUploads={showAllUploads} setShowAllUploads={setShowAllUploads} />
+          </div>
+        )}
+      </div>
 
+      {/* Error */}
       {error && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-          {error}
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-700 flex items-center gap-3">
+          <AlertCircle size={18} />{error}
         </div>
       )}
+
+      {/* Keyboard hints */}
+      <div className="text-center text-[10px] text-slate-400 py-2">
+        <span className="px-2 py-1 bg-slate-100 rounded text-slate-500 font-mono">Ctrl+S</span> Save
+        {onNavigate && (
+          <>
+            <span className="mx-2">|</span>
+            <span className="px-2 py-1 bg-slate-100 rounded text-slate-500 font-mono">Alt+←</span> Prev
+            <span className="mx-1">|</span>
+            <span className="px-2 py-1 bg-slate-100 rounded text-slate-500 font-mono">Alt+→</span> Next
+          </>
+        )}
+      </div>
+
       <style>{`
-        .no-scrollbar {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
       `}</style>
-    </div >
+    </div>
   );
 };
 
 export default PatientOnboarding;
-

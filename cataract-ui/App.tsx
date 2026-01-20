@@ -9,6 +9,8 @@ import { ModuleItem } from './types';
 import { ThemeProvider, useTheme } from './theme';
 import { Patient, Clinic, api } from './services/api';
 import DoctorPortal from './doctor/DoctorPortal';
+import { ToastProvider } from './components/Toast';
+import Loader, { LoaderStyles } from './components/Loader';
 
 // The 9 main modules as requested
 // We define a helper to get modules dynamically based on patient data
@@ -174,11 +176,14 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3 text-slate-500">
-          <div className="w-10 h-10 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></div>
-          <p className="font-medium">Loading patient…</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <LoaderStyles />
+        <Loader
+          size="xl"
+          variant="medical"
+          message="Loading patient data"
+          subMessage="Preparing your personalized education portal"
+        />
       </div>
     );
   }
@@ -393,7 +398,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </ThemeProvider>
   );
 };

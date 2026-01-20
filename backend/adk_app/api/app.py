@@ -11,7 +11,6 @@ import traceback
 import shutil
 
 import litellm
-from litellm.utils import trim_messages
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -226,11 +225,13 @@ def _apply_schema_template(schema_name: str, data: dict) -> dict:
 
 def _normalize_extracted_data(data: dict) -> dict:
     """
-    Post-process extracted data to ensure consistency:
+    Post-process extracted data to ensure consistency (v2 schema support):
     - Standardize date formats to ISO 8601 (YYYY-MM-DD)
     - Normalize capitalization
-    - Validate lens options against standard list
+    - Normalize pathology grading
     - Clean up whitespace
+
+    Note: v2 schema separates extraction (clinical data) from doctor entry (surgical plan, medications)
     """
     # Helper: normalize date to YYYY-MM-DD
     def normalize_date(date_str: str) -> str:
@@ -248,92 +249,77 @@ def _normalize_extracted_data(data: dict) -> dict:
                 continue
         return date_str  # Return as-is if no format matches
 
-    # Helper: normalize lens name to standard vocabulary
-    def normalize_lens_name(lens_name: str) -> str:
-        if not lens_name:
-            return ""
-        lens_name = lens_name.strip()
-        # Fuzzy match to standard options
-        lens_lower = lens_name.lower()
-        for std_lens in STANDARD_LENS_OPTIONS:
-            if std_lens.lower() in lens_lower or lens_lower in std_lens.lower():
-                return std_lens
-        return lens_name  # Return as-is if no match (doctor can override in UI)
-
-    # Helper: normalize cataract type to exact IDs expected by UI
-    def normalize_cataract_type(cataract_type: str) -> str:
-        """
-        Convert extracted cataract type text to exact IDs expected by UI:
-        - "nuclear_sclerosis", "cortical", "posterior_subcapsular", "combined", "congenital"
-        """
-        if not cataract_type:
-            return ""
-        cataract_lower = cataract_type.lower().strip()
-        
-        # Check for combined first (multiple types mentioned)
-        if ("nuclear" in cataract_lower or "sclerosis" in cataract_lower) and "cortical" in cataract_lower:
-            return "combined"
-        if "combined" in cataract_lower:
-            return "combined"
-        
-        # Check individual types
-        if "nuclear" in cataract_lower or "sclerosis" in cataract_lower:
-            return "nuclear_sclerosis"
-        if "cortical" in cataract_lower:
-            return "cortical"
-        if "posterior" in cataract_lower or "subcapsular" in cataract_lower or "psc" in cataract_lower:
-            return "posterior_subcapsular"
-        if "congenital" in cataract_lower:
-            return "congenital"
-        
-        # Return as-is if no match (doctor can override in UI)
-        return cataract_type
-
     # Normalize patient identity
     if "patient_identity" in data:
         identity = data["patient_identity"]
         if "dob" in identity:
             identity["dob"] = normalize_date(identity["dob"])
-        if "gender" in identity:
-            gender = identity["gender"].strip()
+        if "gender" in identity and identity["gender"]:
+            gender = str(identity["gender"]).strip()
             # Capitalize first letter
             identity["gender"] = gender.capitalize() if gender else ""
-    
-    # Normalize diagnosis (cataract type)
-    if "clinical_context" in data and "diagnosis" in data["clinical_context"]:
-        diagnosis = data["clinical_context"]["diagnosis"]
-        if "primary_cataract_type" in diagnosis:
-            diagnosis["primary_cataract_type"] = normalize_cataract_type(diagnosis["primary_cataract_type"])
-    
-    # Normalize lifestyle (capitalize hobbies)
-    if "lifestyle" in data:
-        lifestyle = data["lifestyle"]
+
+    # Normalize medical_profile (v2 schema)
+    if "medical_profile" in data:
+        profile = data["medical_profile"]
+
+        # Capitalize systemic conditions
+        if "systemic_conditions" in profile and isinstance(profile["systemic_conditions"], list):
+            profile["systemic_conditions"] = [c.strip() for c in profile["systemic_conditions"] if c]
+
+        # Capitalize medications_systemic
+        if "medications_systemic" in profile and isinstance(profile["medications_systemic"], list):
+            profile["medications_systemic"] = [m.strip() for m in profile["medications_systemic"] if m]
+
+        # Capitalize allergies
+        if "allergies" in profile and isinstance(profile["allergies"], list):
+            profile["allergies"] = [a.strip() for a in profile["allergies"] if a]
+
+    # Normalize clinical_context per-eye structure (v2 schema)
+    if "clinical_context" in data:
+        for eye_key in ["od_right", "os_left"]:
+            if eye_key in data["clinical_context"]:
+                eye_data = data["clinical_context"][eye_key]
+
+                # Pathology is already graded (e.g., "2+ Nuclear Sclerosis")
+                # No normalization needed - trust LLM extraction
+
+                # Visual acuity - ensure strings (e.g., "20/40", "20/25")
+                if "visual_acuity" in eye_data:
+                    va = eye_data["visual_acuity"]
+                    if "ucva" in va and va["ucva"]:
+                        va["ucva"] = str(va["ucva"]).strip()
+                    if "bcva" in va and va["bcva"]:
+                        va["bcva"] = str(va["bcva"]).strip()
+
+    # Normalize lifestyle_profile (v2 schema)
+    if "lifestyle_profile" in data:
+        lifestyle = data["lifestyle_profile"]
+
+        # Capitalize hobbies
         if "hobbies" in lifestyle and isinstance(lifestyle["hobbies"], list):
             lifestyle["hobbies"] = [h.strip().capitalize() for h in lifestyle["hobbies"] if h]
-    
-    # Normalize surgical recommendations
-    if "surgical_recommendations_by_doctor" in data:
-        recs = data["surgical_recommendations_by_doctor"]
-        
-        # Normalize recommended lens options
-        if "recommended_lens_options" in recs and isinstance(recs["recommended_lens_options"], list):
-            for lens_option in recs["recommended_lens_options"]:
-                if "name" in lens_option:
-                    lens_option["name"] = normalize_lens_name(lens_option["name"])
-        
-        # Normalize scheduling dates
-        if "scheduling" in recs:
-            schedule = recs["scheduling"]
-            for date_field in ["surgery_date", "pre_op_start_date", "post_op_visit_1", "post_op_visit_2"]:
-                if date_field in schedule and schedule[date_field]:
-                    schedule[date_field] = normalize_date(schedule[date_field])
-    
-    # Normalize document dates
-    if "documents" in data and "signed_consents" in data["documents"]:
-        for consent in data["documents"]["signed_consents"]:
-            if "date" in consent and consent["date"]:
-                consent["date"] = normalize_date(consent["date"])
-    
+
+        # Occupation - capitalize first letter
+        if "occupation" in lifestyle and lifestyle["occupation"]:
+            lifestyle["occupation"] = str(lifestyle["occupation"]).strip().capitalize()
+
+    # Normalize surgical_plan dates (if present - added by doctor, not extraction)
+    if "surgical_plan" in data:
+        plan = data["surgical_plan"]
+
+        # Normalize patient selection date
+        if "patient_selection" in plan and "selection_date" in plan["patient_selection"]:
+            plan["patient_selection"]["selection_date"] = normalize_date(plan["patient_selection"]["selection_date"])
+
+        # Normalize operative logistics dates
+        if "operative_logistics" in plan:
+            for eye_key in ["od_right", "os_left"]:
+                if eye_key in plan["operative_logistics"]:
+                    logistics = plan["operative_logistics"][eye_key]
+                    if "surgery_date" in logistics and logistics["surgery_date"]:
+                        logistics["surgery_date"] = normalize_date(logistics["surgery_date"])
+
     return data
 
 
@@ -364,63 +350,85 @@ Target Schema:
 {schema_json}
 """
 
-    # Patient extraction prompt (default)
+    # Patient extraction prompt (default) - V2 Schema (Clinical Data Only)
     return f"""
 ROLE:
-You are an expert Surgical Counselor. Your job is to extract *precise* medical data. You must prioritize **specificity** over generic terms.
+You are a medical data extraction assistant. Extract ONLY clinical data directly observable in EMR documents.
+
+TARGET SCHEMA: extraction_schema_v2.json
+
+CRITICAL RULES:
+1. ONLY extract data directly observable in the EMR documents
+2. DO NOT infer surgical recommendations, medications, or treatment plans
+3. Leave fields empty if data is not present in documents
+4. DO NOT hallucinate values - if unsure, leave blank
 
 INPUT CONTEXT:
-1. **EMR Visit Notes:** Look for the "Assessment" or "Impression" section.
-2. **Biometry:** Look for IOL Master / Lenstar reports.
-3. **Questionnaire:** Look for patient-checked boxes.
-4. **Surgical Recommendations:** Look for the "Surgical Recommendations" section.
+1. **EMR Visit Notes:** Patient demographics, medical history, diagnosis
+2. **Biometry Reports:** IOL Master / Lenstar / Pentacam measurements
+3. **Patient Questionnaires:** Lifestyle, hobbies, visual priorities, personality traits
 
-CRITICAL EXTRACTION RULES (Must Follow):
+EXTRACTION SECTIONS (ONLY THESE):
+✅ patient_identity (name, DOB, gender)
+✅ medical_profile (systemic conditions, medications_systemic, allergies, surgical history)
+✅ clinical_context (pathology, visual acuity, biometry per eye, ocular comorbidities)
+✅ lifestyle_profile (occupation, hobbies, visual goals, personality traits, symptoms)
 
-1. **DIAGNOSIS SPECIFICITY (Patient-Facing Primary Type):**
-   - **DO NOT** return just "Cataract" or "Senile Cataract" if a more specific type is visible.
-   - **DO NOT** return the full bilateral breakdown (OD/OS with multiple components).
-   - **EXTRACT:** The PRIMARY pathology type mentioned in the Plan/Counseling section for patient communication.
-   - **LOOK FOR:** "Nuclear Sclerosis", "NS", "Cortical", "Posterior Subcapsular", "PSC", "Mature" in the counseling/plan text.
+❌ DO NOT EXTRACT (these are added by doctor later):
+- surgical_plan
+- medications_plan
 
-2. **LIFESTYLE & HOBBIES (Strict Source Mapping with Context):**
-   - **DO NOT** guess hobbies (e.g., Golf, Tennis) unless they are explicitly circled or written.
-   - **DO NOT** hallucinate scores (e.g., "7/10") from external knowledge. Only extract what is written.
-   - **Visual Priorities:** Look for checkboxes AND associated activities (e.g., "Distance Vision" + "Driving, Golf, TV").
-     - Extract as: "Distance Vision (Driving, Golf, TV)" if activities are listed
-     - Extract as: "Distance Vision" if no specific activities are checked
-   - **Hobbies:** Only include activities written in the "Hobbies" section (e.g., Reading, Music).
+FIELD-SPECIFIC INSTRUCTIONS:
 
-4. **MEDICAL HISTORY (Pertinent Negatives):**
-   - You MUST extract "Negative" findings if they are clinically relevant.
-   - **Example:** If EMR says "No Diabetes", "No Glaucoma", include these in `systemic_conditions` as "No diabetes", "No glaucoma". Do not ignore them.
+**patient_identity:**
+- Extract middle_name if present
+- Dates: ISO 8601 format (YYYY-MM-DD)
+- Gender: "Male", "Female", or "Other" (capitalize)
 
-5. **SURGICAL PREFERENCE (Ambiguity Handling):**
-   - If multiple lens options are marked, include ALL of them in `recommended_lens_options`.
-   - Only set `is_selected_preference: true` if there is a distinct indicator (Star, Signature, "Plan A"). If ambiguous, set to `null`.
+**medical_profile:**
+- medications_systemic: Look for systemic medications like Tamsulosin, Flomax, alpha-blockers, blood pressure meds
+- surgical_history.ocular: Extract prior eye surgeries (LASIK, PRK, retinal repair, glaucoma surgery)
+- surgical_history.non_ocular: Extract relevant non-eye surgeries (appendectomy, C-section, etc.)
+- Include "pertinent negatives" (e.g., "No diabetes", "No glaucoma")
 
-6. **MEASUREMENTS:**
-   - Extract `axial_length_mm` and `astigmatism_power` as floats.
+**clinical_context:**
+- pathology: Extract graded severity (e.g., "2+ Nuclear Sclerosis", "1+ Cortical Spoking")
+- visual_acuity: Extract BCVA if available (e.g., "20/40", "20/25"). UCVA is optional.
+- biometry.iol_master: REQUIRED - Extract all IOL Master fields
+  * source: Device name (e.g., "IOL Master 700")
+  * axial_length_mm, acd_mm, wtw_mm: As floats
+  * cct_um: Central Corneal Thickness in micrometers (e.g., 495, 521)
+  * flat_k_k1, steep_k_k2: Keratometry readings as floats
+  * astigmatism_power: CRITICAL - Preserve the sign! If IOL Master shows negative (e.g., -2.72), use negative. If positive, use positive. The sign is critical for axis calculation.
+  * axis: As integer (degrees)
+  * k_type: "TK" (Total Keratometry), "STEEP_K", or "FLAT_K"
+- biometry.pentacam_topography: OPTIONAL - If Pentacam/Topography data is present
+  * source: "Oculus Pentacam" or device name
+  * astigmatism_power: If labeled "steep", use positive value. If labeled "flat", use negative value.
+  * axis: As integer (degrees)
+  * cct_um: Central Corneal Thickness from Pentacam (labeled as "pachy thin" or "pachymetry") in micrometers
+  * belin_ambrosio_score: If available
+- ocular_comorbidities: Dry eye, glaucoma suspect, macular degeneration, etc.
 
-7. **DATA STANDARDIZATION (Critical for UI Display):**
-   - **Dates:** ALWAYS use ISO 8601 format: YYYY-MM-DD (e.g., "1956-01-20" not "01/20/1956")
-   - **Gender:** Use "Male", "Female", or "Other" (capitalize first letter)
-   - **Hobbies:** Capitalize first letter (e.g., "Reading", "Music", "Walking")
-   - **Lens Options:** Use ONLY these standardized names when extracting recommended_lens_options:
-     • "Monofocal"
-     • "Monofocal Toric"
-     • "EDOF (Extended Depth of Focus)"
-     • "EDOF Toric"
-     • "Multifocal"
-     • "Multifocal Toric"
-     • "Trifocal"
-     • "Trifocal Toric"
-     • "LAL (Light Adjustable Lens)"
-     • "LAL Toric"
-   - If a lens type doesn't exactly match, choose the closest standard name from the list above.
+**lifestyle_profile:**
+- occupation: From patient questionnaire
+- hobbies: ONLY activities explicitly written or circled (e.g., "Reading", "Golf", "Night Driving")
+- visual_goals.primary_zone: "Distance", "Intermediate", "Near", or "All"
+- visual_goals.spectacle_independence_desire: "Low", "Medium", or "High"
+- personality_traits.perfectionism_score: If questionnaire mentions perfectionist score, extract as 1-10
+- personality_traits.risk_tolerance: "Low", "Medium", or "High"
+- symptoms_impact: Extract boolean flags
+  * night_driving_difficulty: true if mentioned
+  * glare_halos: true if mentioned
+
+DATA STANDARDIZATION:
+- Dates: YYYY-MM-DD format
+- Gender: Capitalize first letter
+- Hobbies: Capitalize first letter
+- All measurements as floats/integers (not strings)
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON object matching the schema.
+Return ONLY a valid JSON object matching the schema below.
 
 Target Schema:
 {schema_json}
@@ -485,6 +493,76 @@ def _vision_extract(images: list[dict], prompt: str, model: str) -> dict:
         print(f"[Vision Extract Error] model={model} err={exc}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Vision extraction failed: {exc}")
+
+
+def _generate_clinical_alerts(data: dict) -> list[dict]:
+    """
+    Auto-generate clinical alerts from extracted patient data based on trigger rules.
+
+    Trigger Rules:
+    1. Tamsulosin/Flomax → IFIS risk
+    2. Prior LASIK/PRK → Special IOL calculation formulas needed
+    3. High astigmatism (>2.0D) → Toric IOL recommended
+    4. Pentacam/IOL Master discrepancy (>0.75D) → Consider intraoperative aberrometry
+
+    Args:
+        data: Extracted patient data (v2 schema)
+
+    Returns:
+        List of alert dictionaries with 'trigger' and 'alert_msg' keys
+    """
+    alerts = []
+
+    # Rule 1: Tamsulosin → IFIS risk (Intraoperative Floppy Iris Syndrome)
+    systemic_meds = data.get("medical_profile", {}).get("medications_systemic", [])
+    for med in systemic_meds:
+        med_lower = med.lower() if isinstance(med, str) else ""
+        if "tamsulosin" in med_lower or "flomax" in med_lower or "alpha blocker" in med_lower:
+            alerts.append({
+                "trigger": "Tamsulosin",
+                "alert_msg": "Risk of IFIS (Intraoperative Floppy Iris Syndrome) - Special surgical techniques required"
+            })
+            break  # Only add alert once
+
+    # Rule 2: Prior LASIK → Special IOL calculation formulas
+    ocular_history = data.get("medical_profile", {}).get("surgical_history", {}).get("ocular", [])
+    for surgery in ocular_history:
+        surgery_lower = surgery.lower() if isinstance(surgery, str) else ""
+        if "lasik" in surgery_lower or "prk" in surgery_lower or "refractive surgery" in surgery_lower:
+            alerts.append({
+                "trigger": "Prior Refractive Surgery",
+                "alert_msg": "Use post-refractive IOL power calculation formulas (Barrett True-K, Haigis-L)"
+            })
+            break
+
+    # Rule 3: High astigmatism → Toric IOL recommendation
+    for eye_name, eye_key in [("OD (Right)", "od_right"), ("OS (Left)", "os_left")]:
+        biometry = data.get("clinical_context", {}).get(eye_key, {}).get("biometry", {})
+        iol_master = biometry.get("iol_master", {})
+        astig = iol_master.get("astigmatism_power")
+
+        if astig is not None and astig > 2.0:
+            alerts.append({
+                "trigger": f"{eye_name} Astigmatism > 2.0D",
+                "alert_msg": f"Toric IOL recommended for {eye_name} astigmatism correction ({astig}D)"
+            })
+
+    # Rule 4: Pentacam/IOL Master discrepancy → Intraoperative aberrometry consideration
+    for eye_name, eye_key in [("OD (Right)", "od_right"), ("OS (Left)", "os_left")]:
+        biometry = data.get("clinical_context", {}).get(eye_key, {}).get("biometry", {})
+        iol_astig = biometry.get("iol_master", {}).get("astigmatism_power")
+        pentacam_astig = biometry.get("pentacam_topography", {}).get("astigmatism_power") if biometry.get("pentacam_topography") else None
+
+        if iol_astig is not None and pentacam_astig is not None:
+            discrepancy = abs(iol_astig - pentacam_astig)
+            if discrepancy > 0.75:
+                alerts.append({
+                    "trigger": f"{eye_name} Biometry Discrepancy",
+                    "alert_msg": f"IOL Master ({iol_astig}D) vs Pentacam ({pentacam_astig}D) differ by {discrepancy:.2f}D - Consider intraoperative aberrometry"
+                })
+
+    print(f"[Clinical Alerts] Generated {len(alerts)} alerts: {[a['trigger'] for a in alerts]}")
+    return alerts
 
 
 def _save_uploaded_files(base_dir: Path, files: List[UploadFile]) -> list[Path]:
@@ -574,13 +652,258 @@ def clear_patient_chat(patient_id: str) -> dict:
 
 @app.get("/clinics/{clinic_id}")
 def get_clinic(clinic_id: str) -> dict:
-    """Return full details for a specific clinic."""
+    """
+    Return full details for a specific clinic.
+    Priority: reviewed clinic data > base clinic data
+    """
+    # First check if there's reviewed clinic data
+    reviewed_path = REVIEW_ROOT / clinic_id / "reviewed_clinic.json"
+    if reviewed_path.exists():
+        try:
+            with open(reviewed_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Clinic] Failed to load reviewed clinic: {e}")
+    
+    # Fall back to base clinic data
     try:
         clinic = get_clinic_data(clinic_id)
-        # Prefer returning the original schema when available
+        # Return the original schema from 'extra' key
         return clinic.get("extra") or clinic
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
+
+
+@app.get("/clinics/{clinic_id}/medications")
+def get_clinic_medications(clinic_id: str) -> dict:
+    """Get medications configuration for a clinic."""
+    clinic_data = get_clinic(clinic_id)
+    medications = clinic_data.get("medications", {})
+    return {"status": "ok", "medications": medications}
+
+
+@app.get("/clinics/{clinic_id}/packages")
+def get_clinic_packages(clinic_id: str) -> dict:
+    """Get surgical packages for a clinic."""
+    clinic_data = get_clinic(clinic_id)
+    packages = clinic_data.get("surgical_packages", [])
+    return {"status": "ok", "packages": packages}
+
+
+@app.get("/clinics/{clinic_id}/lens-inventory")
+def get_clinic_lens_inventory(clinic_id: str, category: str = None) -> dict:
+    """
+    Get lens inventory for a clinic.
+    Optionally filter by category (e.g., MONOFOCAL, EDOF, MULTIFOCAL)
+    """
+    clinic_data = get_clinic(clinic_id)
+    inventory = clinic_data.get("lens_inventory", {})
+    
+    if category:
+        # Return specific category
+        cat_data = inventory.get(category, {})
+        return {"status": "ok", "category": category, "data": cat_data}
+    
+    return {"status": "ok", "lens_inventory": inventory}
+
+
+@app.get("/clinics/{clinic_id}/doctor-context")
+def get_doctor_context(clinic_id: str) -> dict:
+    """
+    Get all clinic configuration needed for the Doctor's View in a single call.
+    This provides medications, packages, staff, and lens inventory in one request,
+    optimizing for frontend performance and making future PostgreSQL migration easier.
+    """
+    clinic_data = get_clinic(clinic_id)
+    
+    # Extract medications configuration
+    raw_meds = clinic_data.get("medications", {})
+    
+    # Transform pre-op antibiotics to the format expected by frontend
+    pre_op_antibiotics = []
+    for i, ab in enumerate(raw_meds.get("pre_op", {}).get("antibiotics", [])):
+        if isinstance(ab, dict):
+            pre_op_antibiotics.append({
+                "id": ab.get("id", i + 1),
+                "name": ab.get("name", "")
+            })
+        elif isinstance(ab, str):
+            pre_op_antibiotics.append({"id": i + 1, "name": ab})
+    
+    # Transform pre-op frequencies
+    pre_op_frequencies = []
+    for i, freq in enumerate(raw_meds.get("pre_op", {}).get("frequencies", [])):
+        if isinstance(freq, dict):
+            pre_op_frequencies.append({
+                "id": freq.get("id", i + 1),
+                "name": freq.get("name", ""),
+                "times_per_day": freq.get("times_per_day", 4)
+            })
+        elif isinstance(freq, str):
+            pre_op_frequencies.append({"id": i + 1, "name": freq, "times_per_day": 4})
+    
+    # Transform post-op antibiotics - preserve full object structure
+    post_op_antibiotics = []
+    for i, ab in enumerate(raw_meds.get("post_op", {}).get("antibiotics", [])):
+        if isinstance(ab, dict):
+            post_op_antibiotics.append({
+                "id": ab.get("id", i + 1),
+                "name": ab.get("name", ""),
+                "default_frequency": ab.get("default_frequency", 4),
+                "default_weeks": ab.get("default_weeks", 1),
+                "allergy_note": ab.get("allergy_note", "")
+            })
+        elif isinstance(ab, str):
+            post_op_antibiotics.append({
+                "id": i + 1,
+                "name": ab,
+                "default_frequency": 4,
+                "default_weeks": 1
+            })
+
+    # Transform NSAIDs with frequency info
+    post_op_nsaids = []
+    for i, nsaid in enumerate(raw_meds.get("post_op", {}).get("nsaids", [])):
+        if isinstance(nsaid, dict):
+            post_op_nsaids.append({
+                "id": nsaid.get("id", i + 1),
+                "name": nsaid.get("name", ""),
+                "default_frequency": nsaid.get("default_frequency", 4),
+                "frequency_label": nsaid.get("frequency_label", "4x Daily"),
+                "default_weeks": nsaid.get("default_weeks", 4),
+                "variable_frequency": nsaid.get("variable_frequency", False)
+            })
+        elif isinstance(nsaid, str):
+            post_op_nsaids.append({
+                "id": i + 1,
+                "name": nsaid,
+                "default_frequency": 4,
+                "frequency_label": "4x Daily",
+                "default_weeks": 4,
+                "variable_frequency": False
+            })
+
+    # Transform steroids - preserve full object structure with taper info
+    post_op_steroids = []
+    for i, steroid in enumerate(raw_meds.get("post_op", {}).get("steroids", [])):
+        if isinstance(steroid, dict):
+            post_op_steroids.append({
+                "id": steroid.get("id", i + 1),
+                "name": steroid.get("name", ""),
+                "default_taper": steroid.get("default_taper", [4, 3, 2, 1]),
+                "default_weeks": steroid.get("default_weeks", 4)
+            })
+        elif isinstance(steroid, str):
+            post_op_steroids.append({
+                "id": i + 1,
+                "name": steroid,
+                "default_taper": [4, 3, 2, 1],
+                "default_weeks": 4
+            })
+
+    # Transform glaucoma drops - preserve full object structure
+    glaucoma_drops = []
+    for i, drop in enumerate(raw_meds.get("post_op", {}).get("glaucoma_drops", [])):
+        if isinstance(drop, dict):
+            glaucoma_drops.append({
+                "id": drop.get("id", i + 1),
+                "name": drop.get("name", ""),
+                "category": drop.get("category", "")
+            })
+        elif isinstance(drop, str):
+            glaucoma_drops.append({
+                "id": i + 1,
+                "name": drop,
+                "category": ""
+            })
+
+    # Transform combination drops - preserve full object structure
+    combo_drops = []
+    for i, combo in enumerate(raw_meds.get("post_op", {}).get("combination_drops", [])):
+        if isinstance(combo, dict):
+            combo_drops.append({
+                "id": combo.get("id", i + 1),
+                "name": combo.get("name", ""),
+                "components": combo.get("components", [])
+            })
+        elif isinstance(combo, str):
+            combo_drops.append({
+                "id": i + 1,
+                "name": combo,
+                "components": []
+            })
+    
+    # Dropless option
+    dropless = raw_meds.get("post_op", {}).get("dropless_option", {})
+    dropless_option = {
+        "available": dropless.get("available", False),
+        "description": dropless.get("description", ""),
+        "medications": dropless.get("medications", [])
+    }
+    
+    # Frequency options for general use
+    frequency_options = []
+    for i, opt in enumerate(raw_meds.get("frequency_options", [])):
+        if isinstance(opt, dict):
+            frequency_options.append({
+                "id": opt.get("id", i + 1),
+                "label": opt.get("label", ""),
+                "times_per_day": opt.get("times_per_day", 4)
+            })
+    
+    # Build medications response
+    medications = {
+        "pre_op": {
+            "antibiotics": pre_op_antibiotics,
+            "frequencies": pre_op_frequencies,
+            "default_start_days": raw_meds.get("pre_op", {}).get("default_start_days_before_surgery", 3)
+        },
+        "post_op": {
+            "antibiotics": post_op_antibiotics,
+            "nsaids": post_op_nsaids,
+            "steroids": post_op_steroids,
+            "glaucoma_drops": glaucoma_drops,
+            "combination_drops": combo_drops
+        },
+        "dropless_option": dropless_option,
+        "frequency_options": frequency_options
+    }
+    
+    # Extract staff directory
+    staff = []
+    for member in clinic_data.get("staff_directory", []):
+        staff.append({
+            "provider_id": member.get("provider_id", ""),
+            "name": member.get("name", ""),
+            "role": member.get("role", ""),
+            "specialty": member.get("specialty", "")
+        })
+    
+    # Extract surgical packages
+    packages = []
+    for pkg in clinic_data.get("surgical_packages", []):
+        packages.append({
+            "package_id": pkg.get("package_id", ""),
+            "display_name": pkg.get("display_name", pkg.get("name", "")),
+            "description": pkg.get("description", ""),
+            "price_cash": pkg.get("price_cash", 0),
+            "includes_laser": pkg.get("includes_laser", False),
+            "allowed_lens_codes": pkg.get("allowed_lens_codes", [])
+        })
+    
+    # Extract lens inventory categories
+    lens_inventory = clinic_data.get("lens_inventory", {})
+    lens_categories = list(lens_inventory.keys())
+    
+    return {
+        "status": "ok",
+        "clinic_id": clinic_id,
+        "medications": medications,
+        "staff": staff,
+        "surgical_packages": packages,
+        "lens_categories": lens_categories,
+        "lens_inventory": lens_inventory
+    }
 
 
 @app.post("/ask", response_model=AskResponse)
@@ -791,12 +1114,19 @@ async def doctor_upload_patient_docs(
         saved_files.append(str(target))
 
     try:
-        schema = _load_schema("patient_schema.json")
+        # Use extraction_schema_v2.json (clinical data only - no surgical/medications)
+        schema = _load_schema("extraction_schema_v2.json")
         prompt = _build_extraction_prompt(schema, scope="Patient")
         extraction = _vision_extract(images, prompt, vision_model)
+
+        # Auto-generate clinical alerts from extracted data
+        if "clinical_context" not in extraction:
+            extraction["clinical_context"] = {}
+        extraction["clinical_context"]["clinical_alerts"] = _generate_clinical_alerts(extraction)
+
         # Normalize extracted data for consistency and fill any missing keys using schema template
         extraction = _normalize_extracted_data(extraction)
-        extraction = _apply_schema_template("patient_schema.json", extraction)
+        extraction = _apply_schema_template("extraction_schema_v2.json", extraction)
 
         extracted_path = base_dir / "extracted_patient.json"
         with open(extracted_path, "w", encoding="utf-8") as f:
@@ -946,17 +1276,47 @@ async def get_reviewed_clinic(clinic_id: str) -> dict:
 
 @app.post("/doctor/review/patient")
 async def save_reviewed_patient(
-    payload: ReviewedPatientPayload, 
+    payload: ReviewedPatientPayload,
     background_tasks: BackgroundTasks,
     runtime: AgentRuntime = Depends(get_runtime)
 ) -> dict:
+    """
+    Save reviewed patient data (v2 schema).
+
+    Expected payload.data structure:
+    - Extraction data (patient_identity, medical_profile, clinical_context, lifestyle_profile)
+    - Doctor-entered data (surgical_plan, medications_plan)
+
+    This endpoint merges extracted data with doctor selections and saves to reviewed folder.
+    """
     base_dir = _ensure_dir(REVIEW_ROOT / payload.clinic_id / payload.patient_id)
     payload_data = payload.data if isinstance(payload.data, dict) else {}
-    
-    # Apply normalization and schema templates
+
+    # Auto-generate clinical alerts if not already present or if data changed
+    if "clinical_context" in payload_data:
+        # Regenerate alerts based on current data
+        payload_data["clinical_context"]["clinical_alerts"] = _generate_clinical_alerts(payload_data)
+
+    # Apply normalization (handles both v1 and v2 schemas)
     reviewed = _normalize_extracted_data(payload_data)
-    reviewed = _apply_schema_template("patient_schema.json", reviewed)
-    
+
+    # Apply final_schema_v2.json template to ensure all fields present
+    reviewed = _apply_schema_template("final_schema_v2.json", reviewed)
+
+    # Preserve chat_history and module_content if they exist from previous save
+    try:
+        existing_file = base_dir / "reviewed_patient.json"
+        if existing_file.exists():
+            with open(existing_file, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+                if "chat_history" in existing_data:
+                    reviewed["chat_history"] = existing_data.get("chat_history", [])
+                if "module_content" in existing_data:
+                    reviewed["module_content"] = existing_data.get("module_content", {})
+    except Exception as e:
+        print(f"[Save Reviewed Patient] Could not load existing chat/module data: {e}")
+        # Continue without existing data - will use defaults from schema
+
     # Ensure legacy/convenience fields are populated (using the adapter)
     from adk_app.utils.data_adapter import normalize_patient, denormalize_patient
     full_normalized = normalize_patient(reviewed)
@@ -967,9 +1327,20 @@ async def save_reviewed_patient(
     target = base_dir / "reviewed_patient.json"
     with open(target, "w", encoding="utf-8") as f:
         json.dump(to_save, f, ensure_ascii=False, indent=2)
-    
+
+    print(f"[Save Reviewed Patient] Saved v2 schema patient: {payload.clinic_id}/{payload.patient_id}")
+
     # Invalidate cache
     clear_patient_cache()
+
+    # Trigger background module generation
+    # This ensures patient has content ready when they open the app
+    # background_tasks.add_task(
+    #     _generate_modules_background,
+    #     payload.patient_id,
+    #     runtime.config
+    # )
+    # print(f"[Save Reviewed Patient] Queued background module generation for patient: {payload.patient_id}")
 
     return {"status": "ok", "reviewed_path": str(target), "reviewed": full_normalized}
 
@@ -1142,148 +1513,6 @@ Be honest about information gaps, but don't offer unrequested tasks like draftin
     except (KeyError, IndexError) as exc:
         print(f"[Answer Parse Error] {exc}")
         raise HTTPException(status_code=500, detail="LLM response parsing failed") from exc
-
-
-def _generate_module_content(module_title: str, patient: dict, config: ModelConfig) -> dict:
-    """Generate patient-specific module content for the dashboard cards."""
-    model_ref = (
-        f"{config.provider}/{config.model}" if config.provider != "gemini" else f"gemini/{config.model}"
-    )
-
-    # Build a slimmed patient payload for the prompt (drop chat_history, module_content, extra)
-    patient_copy = dict(patient)
-    patient_copy.pop("chat_history", None)
-    patient_copy.pop("module_content", None)
-    patient_copy.pop("extra", None)
-    patient_json = json.dumps(patient_copy, indent=2)[:4000]
-    print(f"[ModuleContent] model={model_ref} temp={config.temperature} patient_json_len={len(patient_json)}")
-
-    identity = patient.get("patient_identity", {}) or {}
-    dx = (patient.get("clinical_context", {}) or {}).get("primary_diagnosis", {}) or {}
-    surgery = patient.get("surgical_selection", {}) or {}
-    lens_cfg = surgery.get("lens_configuration", {}) or {}
-    patient_facts = {
-        "patient_name": f"{identity.get('first_name','')} {identity.get('last_name','')}".strip(),
-        "diagnosis_type": dx.get("type"),
-        "diagnosis_pathology": dx.get("pathology"),
-        "clinic_ref_id": identity.get("clinic_ref_id"),
-        "selected_package": surgery.get("selected_package_name"),
-        "lens_type": lens_cfg.get("lens_type"),
-        "decision_date": surgery.get("decision_date"),
-    }
-    patient_facts_json = json.dumps(patient_facts, indent=2)
-
-    # Load clinic data to provide real SOPs and pricing
-    clinic_id = identity.get("clinic_ref_id")
-    clinic_data = {}
-    if clinic_id:
-        try:
-            clinic_data = get_clinic_data(clinic_id)
-        except ValueError:
-            print(f"Clinic {clinic_id} not found, proceeding without clinic data.")
-
-    # Extract relevant clinic SOPs
-    sops = clinic_data.get("standard_operating_procedures", {})
-    pricing = clinic_data.get("standard_pricing_packages", {})
-    
-    clinic_context = {
-        "pre_op": sops.get("pre_op_checklist", []),
-        "post_op": sops.get("post_op_checklist", []),
-        "timeline": sops.get("surgery_day_timeline", []),
-        "risks": sops.get("risks_categorized", {}),
-        "pricing_options": pricing.get("options", []),
-        "pricing_note": pricing.get("note", "")
-    }
-    clinic_context_json = json.dumps(clinic_context, indent=2)
-
-    system_prompt = """
-You are a cataract surgery counselling assistant for elderly patients. Create warm, patient-specific module content.
-Return ONLY valid JSON matching the schema.
-
-TONE: Warm, compassionate, reassuring - speak like a caring nurse.
-LANGUAGE: Conversational, clear, easy to understand.
-FORMATTING: Use **bold** for all medical terms, diagnosis names, procedures, and the patient's specific choices.
-  Examples: **Nuclear Sclerosis**, **Monofocal Toric IOL**, **astigmatism**, **cataract surgery**
-NO citations, section headers, or technical jargon.
-"""
-
-    user_prompt = f"""
-Module: "{module_title}"
-
-Patient facts (MUST USE for personalization):
-{patient_facts_json}
-
-Clinic Standard Procedures & Pricing (MUST USE for checklists/timelines):
-{clinic_context_json}
-
-Full patient data (for context):
-{patient_json}
-
-CRITICAL REQUIREMENTS:
-1. SUMMARY: Must explicitly mention patient-specific details when relevant.
-2. DETAILS: 3-5 bullet points.
-3. FAQs: 3-4 questions STRICTLY about THIS module only.
-4. Use **bold** for medical terms.
-
-SPECIALIZED CONTENT:
-- If Module is "Before Surgery" or "After Surgery":
-  - Populate "checklist" field using clinic 'pre_op' or 'post_op' data.
-- If Module is "Day of Surgery":
-  - Populate "timeline" field using clinic 'timeline' data.
-- If Module is "Risks & Complications":
-  - Populate "risks" field using clinic 'risks' data.
-- If Module is "Costs & Insurance":
-  - Populate "costBreakdown" field using clinic 'pricing_options' for patient's package ({surgery.get('selected_package_id')}).
-
-Return JSON with:
-- title: string
-- summary: 2-3 sentences
-- details: array of strings
-- faqs: array of {{question, answer}}
-- checklist: array of strings (optional)
-- timeline: array of {{step, description}} (optional)
-- risks: array of {{category, items}} (optional)
-- costBreakdown: array of {{category, amount, covered, note}} (optional)
-- videoScriptSuggestion: short description string
-- botStarterPrompt: a suggested question about this module
-"""
-
-    try:
-        response = litellm.completion(
-            model=model_ref,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=config.temperature,
-        )
-    except Exception as exc:
-        print(f"[Module Content Error] {exc}")
-        raise HTTPException(status_code=500, detail="Module content generation failed") from exc
-
-    try:
-        content_text = response["choices"][0]["message"]["content"]
-        # print(f"[ModuleContent Raw]\n{content_text}\n")
-
-        # Some providers may wrap JSON in code fences; strip if present
-        cleaned = content_text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.strip("`").strip()
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:].strip()
-        parsed = json.loads(cleaned)
-        return parsed
-    except Exception as exc:
-        print(f"[Module Content Parse Error] {exc}")
-        # Fallback minimal shape
-        return {
-            "title": module_title,
-            "summary": "Unable to load personalized content right now.",
-            "details": ["Please try again soon.", "If urgent, ask your care team."],
-            "faqs": [],
-            "videoScriptSuggestion": "Standard medical disclaimer video.",
-            "botStarterPrompt": f"Tell me more about {module_title}",
-        }
 
 
 def _generate_all_modules_content(module_titles: list[str], patient: dict, config: ModelConfig) -> dict:
@@ -1501,6 +1730,45 @@ def _generate_and_save_missing(patient_id: str, patient: dict, missing_titles: l
         except Exception as exc:
             print(f"[ModuleContent] Save failed for '{title}': {exc}")
     return saved
+
+
+def _generate_modules_background(patient_id: str, config: ModelConfig) -> None:
+    """
+    Background task to generate module content for a patient.
+    Called after doctor saves patient data.
+    
+    This runs asynchronously so the doctor doesn't have to wait.
+    If generation fails, the patient frontend has a fallback that will
+    trigger generation on first load.
+    """
+    try:
+        print(f"[Background Module Gen] Starting for patient: {patient_id}")
+        
+        # Clear cache to get fresh patient data after save
+        clear_patient_cache()
+        
+        # Get the patient data
+        patient = get_patient_data(patient_id)
+        
+        # Get list of missing modules
+        missing, module_cache = _get_missing_modules(patient)
+        
+        if not missing:
+            print(f"[Background Module Gen] All modules already exist for patient: {patient_id}")
+            return
+        
+        print(f"[Background Module Gen] Generating {len(missing)} modules for patient: {patient_id}")
+        
+        # Generate and save
+        saved = _generate_and_save_missing(patient_id, patient, missing, config)
+        
+        print(f"[Background Module Gen] Completed for patient: {patient_id} - Saved: {saved}")
+        
+    except Exception as exc:
+        # Log error but don't raise - this is a background task
+        # The frontend fallback will handle generation if this fails
+        print(f"[Background Module Gen] ERROR for patient {patient_id}: {exc}")
+        traceback.print_exc()
 
 
 
