@@ -12,13 +12,15 @@
 1. [System Overview](#1-system-overview)
 2. [Architecture Decisions](#2-architecture-decisions)
 3. [User Roles & Hierarchy](#3-user-roles--hierarchy)
-4. [Authentication Flows](#4-authentication-flows)
-5. [Database Schema](#5-database-schema)
-6. [API Endpoint Mapping](#6-api-endpoint-mapping)
-7. [File Storage Strategy](#7-file-storage-strategy)
-8. [Migration Plan](#8-migration-plan)
-9. [Implementation Phases](#9-implementation-phases)
-10. [Future Considerations](#10-future-considerations)
+4. [URL Strategy & Access Methods](#4-url-strategy--access-methods)
+5. [Business Logic & Workflows](#5-business-logic--workflows)
+6. [Authentication Flows](#6-authentication-flows)
+7. [Database Schema](#7-database-schema)
+8. [API Endpoint Mapping](#8-api-endpoint-mapping)
+9. [File Storage Strategy](#9-file-storage-strategy)
+10. [Migration Plan](#10-migration-plan)
+11. [Implementation Phases](#11-implementation-phases)
+12. [Future Considerations](#12-future-considerations)
 
 ---
 
@@ -152,9 +154,226 @@ PATIENT LEVEL
 
 ---
 
-## 4. Authentication Flows
+## 4. URL Strategy & Access Methods
 
-### 4.1 Clinic User Authentication (Email + Password)
+### 4.0.1 URL Structure (Hybrid Approach)
+
+```
+https://app.cataractcounsellor.com/
+│
+├── PUBLIC ROUTES (No auth required)
+│   ├── /                       → Landing page
+│   ├── /login                  → Clinic user login
+│   ├── /register               → New clinic registration
+│   └── /patient/:clinicId/login → Patient login (clinic-specific)
+│
+├── CLINIC USER ROUTES (Auth required: clinic_admin, clinic_user)
+│   ├── /doctor                 → Dashboard
+│   ├── /doctor/patients        → Patient list
+│   ├── /doctor/patients/:id    → Patient details/onboarding
+│   ├── /doctor/settings        → Clinic settings
+│   └── /doctor/team            → Team management (admin only)
+│
+├── PATIENT ROUTES (Auth required: patient)
+│   ├── /patient/:clinicId/portal    → Patient education portal
+│   ├── /patient/:clinicId/chat      → AI chat
+│   └── /patient/:clinicId/modules   → Education modules
+│
+└── SUPER ADMIN ROUTES (Auth required: super_admin)
+    ├── /admin                  → Admin dashboard
+    ├── /admin/clinics          → All clinics list
+    ├── /admin/clinics/pending  → Pending approvals
+    └── /admin/clinics/:id      → Clinic details
+```
+
+### 4.0.2 Patient Access Method (Doctor Sends Link)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      PATIENT ACCESS FLOW                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  DOCTOR                          SYSTEM                          PATIENT    │
+│    │                               │                                │       │
+│    │  1. Open patient record       │                                │       │
+│    │  2. Click "Share with         │                                │       │
+│    │     Patient" button           │                                │       │
+│    │──────────────────────────────>│                                │       │
+│    │                               │                                │       │
+│    │                               │  3. Generate unique link:      │       │
+│    │                               │     /patient/mclean/login      │       │
+│    │                               │     ?ref=abc123                │       │
+│    │                               │                                │       │
+│    │                               │  4. Send SMS to patient:       │       │
+│    │                               │     "Access your cataract      │       │
+│    │                               │      surgery info: [link]"     │       │
+│    │                               │───────────────────────────────>│       │
+│    │                               │                                │       │
+│    │  5. Show confirmation:        │                                │       │
+│    │     "Link sent to patient"    │                                │       │
+│    │<──────────────────────────────│                                │       │
+│    │                               │                                │       │
+│    │                               │                 6. Click link  │       │
+│    │                               │<───────────────────────────────│       │
+│    │                               │                                │       │
+│    │                               │  7. Show login page with       │       │
+│    │                               │     phone pre-filled           │       │
+│    │                               │───────────────────────────────>│       │
+│    │                               │                                │       │
+│    │                               │              8. Confirm phone  │       │
+│    │                               │                 Click "Send    │       │
+│    │                               │                 OTP"           │       │
+│    │                               │<───────────────────────────────│       │
+│    │                               │                                │       │
+│    │                               │  9. Send OTP via SMS           │       │
+│    │                               │───────────────────────────────>│       │
+│    │                               │                                │       │
+│    │                               │              10. Enter OTP     │       │
+│    │                               │<───────────────────────────────│       │
+│    │                               │                                │       │
+│    │                               │  11. Verify OTP                │       │
+│    │                               │      Create/update auth user   │       │
+│    │                               │      Link to patient record    │       │
+│    │                               │      Create session (7 days)   │       │
+│    │                               │                                │       │
+│    │                               │  12. Redirect to patient       │       │
+│    │                               │      portal                    │       │
+│    │                               │───────────────────────────────>│       │
+│    │                               │                                │       │
+│    │                               │              13. View modules, │       │
+│    │                               │                  use chat      │       │
+│    │                               │                                │       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why this approach?**
+- Secure: Patient must verify phone number with OTP
+- Simple: Patient just clicks link and enters OTP (no passwords to remember)
+- Trackable: Doctor knows exactly when link was sent
+- Works for elderly: Minimal steps, familiar SMS flow
+
+**Alternative access (returning patient):**
+- Patient can also go directly to `/patient/:clinicId/login`
+- Enter phone number → OTP → Access their data
+- No need for doctor to send link again
+
+---
+
+## 5. Business Logic & Workflows
+
+### 5.1 Patient Status Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         PATIENT STATUS TRANSITIONS                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────┐
+    │ PENDING  │  ← Patient created (no data yet)
+    └────┬─────┘
+         │
+         │ Doctor uploads documents & runs extraction
+         ▼
+    ┌──────────┐
+    │EXTRACTED │  ← Data extracted from documents
+    └────┬─────┘
+         │
+         │ Doctor reviews data & clicks SAVE
+         │ (This is the "review" step)
+         ▼
+    ┌──────────┐
+    │ REVIEWED │  ← Doctor has reviewed & approved
+    └────┬─────┘    ★ Patient can now access portal
+         │
+         │ Surgery date is set & confirmed
+         ▼
+    ┌───────────┐
+    │ SCHEDULED │  ← Surgery scheduled
+    └─────┬─────┘
+          │
+          │ Surgery completed
+          ▼
+    ┌───────────┐
+    │ COMPLETED │  ← Surgery done, follow-up phase
+    └─────┬─────┘
+          │
+          │ Patient no longer active
+          ▼
+    ┌──────────┐
+    │ ARCHIVED │  ← Soft deleted / inactive
+    └──────────┘
+```
+
+**Key Rule:** Patient can only access their portal after status = 'reviewed' or later.
+
+### 5.2 Extraction & Re-extraction Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EXTRACTION BEHAVIOR                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+FIRST EXTRACTION:
+    Upload documents → Run extraction → Data saved to patient record
+
+RE-EXTRACTION (new documents uploaded):
+    Upload new documents → Run extraction → REPLACES existing extracted data
+
+    Note: Doctor must review & save again after re-extraction
+          Status resets to 'extracted' until saved
+```
+
+### 5.3 Module Content Regeneration
+
+```
+Module content is regenerated when:
+  ✓ Doctor clicks SAVE on patient data
+
+Module content is NOT regenerated when:
+  ✗ Patient views modules
+  ✗ Patient uses chat
+  ✗ Time passes
+```
+
+### 5.4 Clinic Deletion (Soft Delete)
+
+```
+When super admin "deletes" a clinic:
+
+1. clinic.status → 'deleted'
+2. clinic.deleted_at → current timestamp
+3. All clinic users cannot login
+4. All patient data preserved but inaccessible
+5. Clinic can be restored by super admin if needed
+6. Clinic ID remains reserved (cannot be reused)
+```
+
+### 5.5 Duplicate Patient Detection
+
+```
+When creating a new patient:
+
+1. System checks for existing patients with same:
+   - First name + Last name + DOB
+
+2. If match found:
+   ┌─────────────────────────────────────────────┐
+   │ ⚠️ Potential Duplicate Detected              │
+   │                                             │
+   │ A patient with similar details exists:      │
+   │ • John Doe (DOB: 1955-03-15)               │
+   │                                             │
+   │ [Continue Anyway]  [Cancel]                 │
+   └─────────────────────────────────────────────┘
+
+3. User can choose to continue (create anyway) or cancel
+```
+
+---
+
+## 6. Authentication Flows
+
+### 5.1 Clinic User Authentication (Email + Password)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -184,7 +403,7 @@ PATIENT LEVEL
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Patient Authentication (OTP)
+### 5.2 Patient Authentication (OTP)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -221,50 +440,124 @@ PATIENT LEVEL
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.3 Clinic Onboarding Flow
+### 5.3 Clinic Onboarding Flow (With Manual Approval)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  CLINIC ONBOARDING FLOW                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. Clinic visits /register                                      │
-│                    │                                             │
-│                    ▼                                             │
-│  2. Enter clinic name                                            │
-│     (minimal required field)                                     │
-│                    │                                             │
-│                    ▼                                             │
-│  3. System generates unique clinic_id                            │
-│     Format: [STATE]-[NAME]-[NUMBER]                              │
-│     Example: VIC-MCLEAN-001                                      │
-│                    │                                             │
-│                    ▼                                             │
-│  4. Enter admin email + password                                 │
-│                    │                                             │
-│                    ▼                                             │
-│  5. Verify email (confirmation link)                             │
-│                    │                                             │
-│                    ▼                                             │
-│  6. Clinic created with default config                           │
-│     Admin user created with clinic_admin role                    │
-│                    │                                             │
-│                    ▼                                             │
-│  7. Redirect to /doctor/setup                                    │
-│     (guided setup wizard - optional)                             │
-│     • Clinic profile details                                     │
-│     • Upload clinic documents                                    │
-│     • Configure packages/lenses                                  │
-│     • Invite team members                                        │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  CLINIC REGISTRATION & APPROVAL FLOW                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  CLINIC                           SYSTEM                      SUPER ADMIN   │
+│    │                                │                              │        │
+│    │  1. Visit /register            │                              │        │
+│    │───────────────────────────────>│                              │        │
+│    │                                │                              │        │
+│    │  2. Fill registration form:    │                              │        │
+│    │     • Clinic name (required)   │                              │        │
+│    │     • Admin name (required)    │                              │        │
+│    │     • Admin email (required)   │                              │        │
+│    │     • Phone number             │                              │        │
+│    │     • Address (optional)       │                              │        │
+│    │───────────────────────────────>│                              │        │
+│    │                                │                              │        │
+│    │                                │  3. Create records:          │        │
+│    │                                │     • clinic (status=        │        │
+│    │                                │       'pending')             │        │
+│    │                                │     • user_profile (status=  │        │
+│    │                                │       'pending_approval')    │        │
+│    │                                │                              │        │
+│    │  4. Show "Application          │                              │        │
+│    │     Submitted - Pending        │                              │        │
+│    │     Approval" message          │                              │        │
+│    │<───────────────────────────────│                              │        │
+│    │                                │                              │        │
+│    │                                │  5. Send notification        │        │
+│    │                                │     to super admin           │        │
+│    │                                │─────────────────────────────>│        │
+│    │                                │                              │        │
+│    │                                │                    6. Review │        │
+│    │                                │                       in     │        │
+│    │                                │                    dashboard │        │
+│    │                                │                              │        │
+│    │                                │               ┌──────────────┴──────┐ │
+│    │                                │               │                     │ │
+│    │                                │            APPROVE              REJECT │
+│    │                                │               │                     │ │
+│    │                                │               ▼                     ▼ │
+│    │                                │  7a. clinic.status='active'   7b. Send│
+│    │                                │      user.status='invited'    rejection│
+│    │                                │      Generate clinic_id       email   │
+│    │                                │      (VIC-MCLEAN-001)               │ │
+│    │                                │                              │        │
+│    │  8. Receive approval email     │                              │        │
+│    │     with "Set Password" link   │<─────────────────────────────│        │
+│    │<───────────────────────────────│                              │        │
+│    │                                │                              │        │
+│    │  9. Click link, set password   │                              │        │
+│    │───────────────────────────────>│                              │        │
+│    │                                │                              │        │
+│    │                                │  10. Create auth.users entry │        │
+│    │                                │      user.status='active'    │        │
+│    │                                │                              │        │
+│    │  11. Redirect to clinic        │                              │        │
+│    │      dashboard /doctor         │                              │        │
+│    │<───────────────────────────────│                              │        │
+│    │                                │                              │        │
+│    │  12. Complete optional setup:  │                              │        │
+│    │      • Clinic profile          │                              │        │
+│    │      • Upload documents        │                              │        │
+│    │      • Configure packages      │                              │        │
+│    │      • Invite team members     │                              │        │
+│    │                                │                              │        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.4 Team Member Invitation Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      INVITE CLINIC USER FLOW                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  CLINIC ADMIN                     SYSTEM                        NEW USER    │
+│       │                             │                              │        │
+│       │  1. Go to Settings > Team   │                              │        │
+│       │  2. Click "Invite User"     │                              │        │
+│       │  3. Enter:                  │                              │        │
+│       │     • Name                  │                              │        │
+│       │     • Email                 │                              │        │
+│       │     • Role (admin/user)     │                              │        │
+│       │────────────────────────────>│                              │        │
+│       │                             │                              │        │
+│       │                             │  4. Create user_profile      │        │
+│       │                             │     (status='invited')       │        │
+│       │                             │                              │        │
+│       │                             │  5. Send invitation email    │        │
+│       │                             │────────────────────────────────────>│ │
+│       │                             │                              │        │
+│       │                             │              6. Click link   │        │
+│       │                             │<────────────────────────────────────│ │
+│       │                             │                              │        │
+│       │                             │  7. Show "Set Password" page │        │
+│       │                             │────────────────────────────────────>│ │
+│       │                             │                              │        │
+│       │                             │              8. Set password │        │
+│       │                             │<────────────────────────────────────│ │
+│       │                             │                              │        │
+│       │                             │  9. Create auth.users entry  │        │
+│       │                             │     user.status='active'     │        │
+│       │                             │                              │        │
+│       │                             │  10. User can now login      │        │
+│       │                             │────────────────────────────────────>│ │
+│       │                             │                              │        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5. Database Schema
+## 7. Database Schema
 
-### 5.1 Entity Relationship Diagram
+### 7.1 Entity Relationship Diagram
 
 ```
 ┌─────────────────┐       ┌─────────────────┐
@@ -320,7 +613,7 @@ PATIENT LEVEL
                       └─────────────────┘
 ```
 
-### 5.2 Table Definitions
+### 7.2 Table Definitions
 
 ```sql
 -- =====================================================
@@ -336,14 +629,15 @@ CREATE TABLE clinics (
     contact JSONB DEFAULT '{}',      -- {phone, email, website}
 
     -- Status
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'pending')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended', 'deleted')),
 
     -- Settings
     settings JSONB DEFAULT '{}',     -- {timezone, language, branding}
 
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ           -- Soft delete timestamp (NULL if not deleted)
 );
 
 -- =====================================================
@@ -414,6 +708,10 @@ CREATE TABLE patients (
 
     -- Clinic's internal patient ID
     patient_id TEXT NOT NULL,       -- e.g., "1245583"
+
+    -- ===== ASSIGNMENT =====
+    created_by UUID REFERENCES user_profiles(id),        -- Who created this patient
+    assigned_doctor_id UUID REFERENCES user_profiles(id), -- Primary doctor assigned
 
     -- ===== IDENTITY =====
     first_name TEXT,
@@ -496,18 +794,18 @@ CREATE TABLE patients (
 
     -- ===== STATUS & METADATA =====
     status TEXT DEFAULT 'pending' CHECK (status IN (
-        'pending',      -- Just created
+        'pending',      -- Just created (no data yet)
         'extracted',    -- Data extracted from documents
-        'reviewed',     -- Doctor reviewed extraction
+        'reviewed',     -- Doctor reviewed & saved (patient can access portal)
         'scheduled',    -- Surgery scheduled
         'completed',    -- Surgery completed
-        'archived'      -- No longer active
+        'archived'      -- Soft deleted / no longer active
     )),
 
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    created_by UUID REFERENCES user_profiles(id),
+    archived_at TIMESTAMPTZ,         -- Soft delete timestamp (NULL if not archived)
 
     -- Constraints
     UNIQUE(clinic_id, patient_id)
@@ -559,6 +857,7 @@ CREATE INDEX idx_user_profiles_role ON user_profiles(role);
 CREATE INDEX idx_patients_clinic_id ON patients(clinic_id);
 CREATE INDEX idx_patients_patient_id ON patients(patient_id);
 CREATE INDEX idx_patients_auth_user_id ON patients(auth_user_id);
+CREATE INDEX idx_patients_assigned_doctor ON patients(assigned_doctor_id);
 CREATE INDEX idx_patients_status ON patients(status);
 CREATE INDEX idx_patients_created_at ON patients(created_at DESC);
 
@@ -611,7 +910,7 @@ CREATE POLICY "Patients can view own record" ON patients
 -- (Additional policies would be added for INSERT, UPDATE, DELETE)
 ```
 
-### 5.3 Comparison: Current JSON vs New Schema
+### 7.3 Comparison: Current JSON vs New Schema
 
 | Current JSON Field | New Database Location |
 |-------------------|----------------------|
@@ -627,9 +926,9 @@ CREATE POLICY "Patients can view own record" ON patients
 
 ---
 
-## 6. API Endpoint Mapping
+## 8. API Endpoint Mapping
 
-### 6.1 Current Endpoints → New Endpoints
+### 8.1 Current Endpoints → New Endpoints
 
 | Current Endpoint | New Endpoint | Changes |
 |-----------------|--------------|---------|
@@ -641,7 +940,7 @@ CREATE POLICY "Patients can view own record" ON patients
 | `POST /ask` | `POST /api/clinics/{clinic_id}/patients/{id}/chat` | Scoped to patient |
 | `GET /module-content` | `GET /api/clinics/{clinic_id}/patients/{id}/modules/{module}` | Scoped to patient |
 
-### 6.2 New Endpoints Required
+### 8.2 New Endpoints Required
 
 ```
 AUTHENTICATION
@@ -686,7 +985,7 @@ PATIENT PORTAL (Patient's own view)
 
 ---
 
-## 7. File Storage Strategy
+## 9. File Storage Strategy
 
 ### Storage Structure
 
@@ -719,9 +1018,9 @@ supabase-storage/
 
 ---
 
-## 8. Migration Plan
+## 10. Migration Plan
 
-### 8.1 Data to Migrate
+### 10.1 Data to Migrate
 
 | Source | Destination | Notes |
 |--------|-------------|-------|
@@ -729,7 +1028,7 @@ supabase-storage/
 | `data/reviewed/VIC-MCLEAN-001/*.json` | `patients` table | One row per patient |
 | `data/uploads/*` | Supabase Storage | Maintain folder structure |
 
-### 8.2 Migration Script Outline
+### 10.2 Migration Script Outline
 
 ```python
 # migration/migrate_to_supabase.py
@@ -756,7 +1055,7 @@ async def migrate():
 
 ---
 
-## 9. Implementation Phases
+## 11. Implementation Phases
 
 ### Phase 1: Foundation (Priority: HIGH)
 > Goal: Set up Supabase and basic database structure
@@ -831,7 +1130,7 @@ async def migrate():
 
 ---
 
-## 10. Future Considerations
+## 12. Future Considerations
 
 ### Priority: FUTURE (After core is complete)
 
@@ -881,11 +1180,69 @@ CREATE INDEX idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
 - [x] Patient auth: OTP-based
 - [x] Data isolation: Per-clinic
 - [x] Audit logging: Future phase
+- [x] Session duration: 7 days for both clinic users and patients
+- [x] SMS provider: Decide during implementation (likely Twilio or Supabase built-in)
+- [x] Clinic onboarding: Self-service with manual approval by super admin
 
 ### Open Questions
-- [ ] Patient document viewing: Should patients see uploaded EMR images?
-- [ ] Session duration for clinic users: Also 7 days or shorter?
-- [ ] SMS provider: Twilio vs Supabase built-in?
+- None - all questions resolved!
+
+### All Decisions Log
+
+#### Core Architecture
+| Decision | Choice |
+|----------|--------|
+| Database | Supabase (PostgreSQL) |
+| User Roles | super_admin, clinic_admin, clinic_user, patient |
+| Clinic User Auth | Email + Password |
+| Patient Auth | Phone/Email OTP (SMS primary, email fallback) |
+| Session Duration | 7 days for all users |
+| Data Isolation | Per-clinic (no sharing) |
+
+#### User & Access Management
+| Decision | Choice |
+|----------|--------|
+| Doctor-patient assignment | Single doctor per patient |
+| Multiple clinic admins | No, one admin per clinic |
+| Admin self-removal | Not allowed |
+| Clinic user visibility | Full visibility (all users can see each other's profiles) |
+| Super admin portal | Separate URL (/admin) |
+| User removal handling | Deferred to future phase |
+
+#### Clinic Management
+| Decision | Choice |
+|----------|--------|
+| Clinic onboarding | Self-service with manual approval |
+| Registration rejection | Can re-apply (not blocked) |
+| Suspended clinic behavior | Users cannot login |
+| Clinic deletion | Soft delete (hide but preserve data) |
+
+#### Patient Management
+| Decision | Choice |
+|----------|--------|
+| Patient document viewing | No - patients cannot see uploaded EMR images |
+| Patient deletion | Archive only (soft delete) |
+| Duplicate patients | Warn but allow |
+| Multi-clinic patient access | Separate logins per clinic |
+
+#### Data & Content
+| Decision | Choice |
+|----------|--------|
+| Re-extraction behavior | Replace existing data |
+| Module regeneration | Regenerate when doctor saves patient data |
+| Review workflow | Yes - doctor must save (review) before patient can access |
+| Chat history retention | Keep forever |
+| Patient view tracking | Not needed for now |
+
+#### Technical
+| Decision | Choice |
+|----------|--------|
+| URL Strategy | Hybrid (single domain + clinic-specific patient URLs) |
+| Patient Access Method | Doctor sends link → Patient verifies with OTP |
+| OTP delivery | SMS primary, email fallback |
+| Email notifications | Essential only (registration status, password reset) |
+| Super Admin features | Core only (list, approve, suspend, delete) |
+| Optional features | Moved to `cloud-future-features.md`
 
 ---
 
