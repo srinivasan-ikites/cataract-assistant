@@ -1,33 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Settings, 
-  ChevronRight, 
-  LogOut, 
-  Bell, 
+import {
+  Users,
+  LogOut,
+  Bell,
   Search,
   LayoutDashboard,
   Hospital,
-  Shield,
-  Calendar,
-  Moon,
   Scan,
   Upload,
   AlertCircle,
-  FilePlus,
-  ArrowLeft
+  PanelLeftClose,
+  Building2
 } from 'lucide-react';
 import PatientList from './PatientList';
 import PatientOnboarding from './PatientOnboarding';
 import ClinicSetup from './ClinicSetup';
+import { api, Clinic } from '../services/api';
 
 type View = 'dashboard' | 'onboarding' | 'clinic' | 'patients' | 'appointments';
+
+// Sidebar localStorage key
+const SIDEBAR_COLLAPSED_KEY = 'medcore_sidebar_collapsed';
 
 const DoctorPortal: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [clinicId] = useState('VIC-MCLEAN-001'); // Default clinic
   const [patientList, setPatientList] = useState<string[]>([]); // Track patient IDs for navigation
+  const [clinicData, setClinicData] = useState<Clinic | null>(null);
+
+  // Sidebar collapsed state - default to true (collapsed/icon-only mode)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    return stored !== null ? JSON.parse(stored) : true; // Default collapsed
+  });
+
+  // Fetch clinic data on mount
+  useEffect(() => {
+    const fetchClinicData = async () => {
+      try {
+        const data = await api.getClinicDetails(clinicId);
+        setClinicData(data);
+      } catch (err) {
+        console.error('Failed to fetch clinic data:', err);
+      }
+    };
+    fetchClinicData();
+  }, [clinicId]);
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
+
+  // Get clinic name with fallback
+  const clinicName = clinicData?.clinic_profile?.name || 'MedCore';
 
   const navigateToOnboarding = (pid: string, allPatients?: string[]) => {
     setSelectedPatientId(pid);
@@ -73,7 +102,7 @@ const DoctorPortal: React.FC = () => {
                       {stat.icon}
                     </div>
                     {stat.badge && (
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${stat.badgeBg} ${stat.badgeText}`}>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${stat.badgeBg} ${stat.badgeText}`}>
                         {stat.badge}
                       </span>
                     )}
@@ -112,72 +141,123 @@ const DoctorPortal: React.FC = () => {
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 relative z-30">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-10 px-2 group cursor-pointer">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100 transition-transform duration-500 group-hover:scale-105">
-              <Shield className="text-white" size={20} strokeWidth={3} />
+      <aside
+        className={`bg-white border-r border-slate-200 flex flex-col shrink-0 relative z-30 transition-all duration-300 ease-in-out ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-64'
+        }`}
+      >
+        {/* Logo Section with Toggle */}
+        <div className={`${sidebarCollapsed ? 'p-4' : 'p-6 pb-4'} transition-all duration-300`}>
+          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-6`}>
+            <div
+              className={`flex items-center gap-3 ${sidebarCollapsed ? '' : 'px-2'} group cursor-pointer`}
+              onClick={() => sidebarCollapsed && toggleSidebar()}
+              title={sidebarCollapsed ? 'Expand sidebar' : undefined}
+            >
+              <div className={`w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100 transition-transform duration-500 group-hover:scale-105 shrink-0 ${sidebarCollapsed ? 'hover:ring-2 hover:ring-blue-300' : ''}`}>
+                <Building2 className="text-white" size={20} strokeWidth={2.5} />
+              </div>
+              <span className={`font-bold text-lg tracking-tight text-blue-900 transition-all duration-300 truncate ${
+                sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100 max-w-[140px]'
+              }`}>
+                {clinicName}
+              </span>
             </div>
-            <span className="font-bold text-xl tracking-tight text-blue-900">MedCore</span>
+            {/* Toggle Button - Top Right */}
+            {!sidebarCollapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            )}
           </div>
 
+          {/* Navigation */}
           <nav className="space-y-1">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
               { id: 'patients', label: 'Patients', icon: <Users size={20} /> },
               { id: 'clinic', label: 'Clinic Data', icon: <Hospital size={20} /> },
-              // { id: 'appointments', label: 'Appointments', icon: <Calendar size={20} /> },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === 'dashboard' || item.id === 'clinic' || item.id === 'patients') {
-                    setCurrentView(item.id as View);
-                  }
-                }}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  currentView === item.id || (item.id === 'dashboard' && currentView === 'onboarding')
-                  ? 'bg-blue-50 text-blue-600 font-semibold' 
-                  : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className={`${currentView === item.id ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-600 transition-colors'}`}>
-                  {item.icon}
+            ].map((item) => {
+              const isActive = currentView === item.id || (item.id === 'dashboard' && currentView === 'onboarding');
+              return (
+                <div key={item.id} className="relative group">
+                  <button
+                    onClick={() => {
+                      if (item.id === 'dashboard' || item.id === 'clinic' || item.id === 'patients') {
+                        setCurrentView(item.id as View);
+                      }
+                    }}
+                    className={`w-full flex items-center gap-4 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-600 font-semibold'
+                        : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-600 transition-colors'}`}>
+                      {item.icon}
+                    </div>
+                    <span className={`text-sm whitespace-nowrap transition-all duration-300 ${
+                      sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
+                    }`}>
+                      {item.label}
+                    </span>
+                  </button>
+                  {/* Tooltip - only show when collapsed */}
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
+                      {item.label}
+                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
+                    </div>
+                  )}
                 </div>
-                <span className="text-[15px]">{item.label}</span>
-              </button>
-            ))}
+              );
+            })}
           </nav>
-
-          {/* <div className="mt-10">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-4">Settings</p>
-            <nav className="space-y-1">
-              <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 font-semibold hover:bg-slate-50 hover:text-slate-700 transition-all">
-                <Settings size={20} />
-                <span className="text-[15px]">General</span>
-              </button>
-              <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 font-semibold hover:bg-slate-50 hover:text-slate-700 transition-all">
-                <Moon size={20} />
-                <span className="text-[15px]">Toggle Theme</span>
-              </button>
-            </nav>
-          </div> */}
         </div>
 
-        <div className="mt-auto p-6 border-t border-slate-100">
-          <div className="flex items-center gap-3 px-2 mb-2 group cursor-pointer">
-            <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+
+        {/* User Profile Section */}
+        <div className={`mt-auto ${sidebarCollapsed ? 'p-3' : 'p-6'} border-t border-slate-100 transition-all duration-300`}>
+          <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : 'px-2'} mb-2 group cursor-pointer relative`}>
+            <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
               <img src="https://i.pravatar.cc/100?u=drb" alt="Dr. Baveja" className="w-full h-full object-cover" />
             </div>
-            <div className="overflow-hidden text-left">
+            <div className={`overflow-hidden text-left transition-all duration-300 ${
+              sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
+            }`}>
               <p className="text-sm font-bold text-slate-900 truncate">Dr. Baveja</p>
-              <p className="text-[11px] text-slate-500 font-medium truncate">General Practitioner</p>
+              <p className="text-xs text-slate-500 font-medium truncate">General Practitioner</p>
             </div>
+            {/* Tooltip for user when collapsed */}
+            {sidebarCollapsed && (
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
+                <p className="font-semibold">Dr. Baveja</p>
+                <p className="text-xs text-slate-300">General Practitioner</p>
+                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
+              </div>
+            )}
           </div>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-rose-600 transition-all duration-200 text-sm font-semibold">
-            <LogOut size={18} />
-            <span>Sign Out</span>
-          </button>
+          <div className="relative group">
+            <button className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 text-sm font-semibold`}>
+              <LogOut size={18} className="shrink-0" />
+              <span className={`transition-all duration-300 ${
+                sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
+              }`}>
+                Sign Out
+              </span>
+            </button>
+            {/* Tooltip for sign out when collapsed */}
+            {sidebarCollapsed && (
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
+                Sign Out
+                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -186,8 +266,8 @@ const DoctorPortal: React.FC = () => {
         {/* Top Header */}
         <header className="h-[80px] bg-white border-b border-slate-200 px-10 flex items-center justify-between shrink-0 z-20 sticky top-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Good Morning, Dr. Baveja</h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">You have 5 tasks pending today.</p>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, Dr. Baveja</h2>
+            {/* <p className="text-xs text-slate-500 font-medium mt-0.5">You have 5 tasks pending today.</p> */}
           </div>
 
           <div className="flex items-center gap-6">
@@ -196,7 +276,7 @@ const DoctorPortal: React.FC = () => {
               <input 
                 type="text" 
                 placeholder="Search patients, ID..." 
-                className="bg-transparent border-none outline-none text-[14px] w-full placeholder:text-slate-300 font-medium"
+                className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-300 font-medium"
               />
             </div>
             <button className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all relative group">

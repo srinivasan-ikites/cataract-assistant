@@ -104,6 +104,10 @@ export interface Clinic {
         parent_organization?: string;
         address?: any;
         contact_info?: { phone_work?: string; fax?: string };
+        branding?: {
+            logo_url?: string;
+            primary_color_hex?: string;
+        };
     };
     staff_directory?: Array<{
         provider_id: string;

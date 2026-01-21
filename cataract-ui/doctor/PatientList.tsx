@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { api, Patient } from '../services/api';
+import { Skeleton } from '../components/Loader';
 
 interface PatientListProps {
   onSelectPatient: (id: string, allPatientIds?: string[]) => void;
@@ -89,10 +90,13 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
   }, [clinicId]);
 
   const getStatusBadge = (status: PatientListItem['status'], pid?: string) => {
+    // Standardized badge styling
+    const badgeBase = 'inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide';
+
     // Mapping our status to the image status labels
     if (pid === '5512') {
       return (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-extrabold bg-rose-100 text-rose-700 uppercase tracking-tight shadow-[0_4px_12px_-6px_rgba(244,63,94,0.45)]">
+        <span className={`${badgeBase} bg-rose-100 text-rose-700 shadow-[0_4px_12px_-6px_rgba(244,63,94,0.45)]`}>
           CRITICAL
         </span>
       );
@@ -101,19 +105,19 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
     switch (status) {
       case 'new':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-extrabold bg-amber-100 text-amber-700 uppercase tracking-tight shadow-[0_4px_12px_-6px_rgba(251,191,36,0.35)]">
+          <span className={`${badgeBase} bg-amber-100 text-amber-700 shadow-[0_4px_12px_-6px_rgba(251,191,36,0.35)]`}>
             PENDING
           </span>
         );
       case 'extracted':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-extrabold bg-blue-100 text-blue-700 uppercase tracking-tight shadow-[0_4px_12px_-6px_rgba(37,99,235,0.35)]">
+          <span className={`${badgeBase} bg-blue-100 text-blue-700 shadow-[0_4px_12px_-6px_rgba(37,99,235,0.35)]`}>
             REVIEWED
           </span>
         );
       case 'reviewed':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-extrabold bg-emerald-100 text-emerald-700 uppercase tracking-tight shadow-[0_4px_12px_-6px_rgba(16,185,129,0.35)]">
+          <span className={`${badgeBase} bg-emerald-100 text-emerald-700 shadow-[0_4px_12px_-6px_rgba(16,185,129,0.35)]`}>
             STABLE
           </span>
         );
@@ -154,7 +158,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-white text-slate-500 text-[11px] font-extrabold uppercase tracking-[0.16em] border-b border-slate-100">
+            <tr className="bg-white text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
               <th className="px-10 py-6">PATIENT NAME</th>
               <th className="px-6 py-6">ID & AGE</th>
               <th className="px-6 py-6">STATUS</th>
@@ -164,14 +168,35 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              <tr>
-                <td colSpan={5} className="px-10 py-20 text-center text-slate-400">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-3 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                    <span className="text-sm font-medium">Loading patient directory...</span>
-                  </div>
-                </td>
-              </tr>
+              // Skeleton loading rows
+              [...Array(5)].map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-4">
+                      <Skeleton width="w-11" height="h-11" circle />
+                      <div className="space-y-2">
+                        <Skeleton width="w-32" height="h-4" />
+                        <Skeleton width="w-20" height="h-3" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="space-y-2">
+                      <Skeleton width="w-20" height="h-4" />
+                      <Skeleton width="w-24" height="h-3" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <Skeleton width="w-20" height="h-7" className="rounded-lg" />
+                  </td>
+                  <td className="px-6 py-6">
+                    <Skeleton width="w-24" height="h-4" />
+                  </td>
+                  <td className="px-10 py-6 text-right">
+                    <Skeleton width="w-10" height="h-10" className="rounded-xl ml-auto" />
+                  </td>
+                </tr>
+              ))
             ) : patients.map((patient) => (
               <tr
                 key={patient.patient_id}
@@ -191,7 +216,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                       <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                         {patient.name.first} {patient.name.last}
                       </p>
-                      <p className="text-[11px] text-slate-400 font-medium tracking-tight mt-0.5">
+                      <p className="text-xs text-slate-400 font-medium tracking-tight mt-0.5">
                         {patient.patient_id === '9921' ? 'OCR Scanned' : patient.patient_id === '1024' ? 'Lab Results' : patient.patient_id === '5512' ? 'Emergency' : 'Manual Entry'}
                       </p>
                     </div>
@@ -199,7 +224,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                 </td>
                 <td className="px-6 py-6">
                   <p className="text-sm font-bold text-slate-700">#{patient.patient_id}</p>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
                     {getAge(patient.dob)} Years • {patient.patient_id === '9921' ? 'Female' : 'Male'}
                   </p>
                 </td>

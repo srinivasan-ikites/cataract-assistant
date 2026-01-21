@@ -11,7 +11,7 @@ This document describes the clinic data management system implemented for the ca
 ### Location
 - **Base clinic configs:** `backend/data/clinic/{clinic_id}.json`
 - **Reviewed/saved configs:** `backend/data/reviewed/{clinic_id}/reviewed_clinic.json`
-- **Schema reference:** `docs/schemas/unified_clinic_schema.json`
+- **Schema reference:** `backend/adk_app/schemas/clinic_schema.json`
 
 ### Schema Structure
 
@@ -293,7 +293,7 @@ The UI provides quick-add buttons for these standard packages:
 | API Service | `cataract-ui/services/api.ts` |
 | Backend API | `backend/adk_app/api/app.py` |
 | Sample Clinic Data | `backend/data/clinic/VIC-MCLEAN-001.json` |
-| Schema Reference | `docs/schemas/unified_clinic_schema.json` |
+| Schema Reference | `backend/adk_app/schemas/clinic_schema.json` |
 
 ---
 

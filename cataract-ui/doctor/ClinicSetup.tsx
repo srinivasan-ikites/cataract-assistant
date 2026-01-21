@@ -21,11 +21,12 @@ import {
   Calendar,
   Clock,
   Award,
+  LayoutDashboard,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { PageLoader, ButtonLoader } from '../components/Loader';
+import { ClinicSetupSkeleton, ButtonLoader } from '../components/Loader';
 
 interface ClinicSetupProps {
   clinicId: string;
@@ -493,7 +494,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                 <p className="text-xs text-slate-500">Upload documents to auto-fill fields</p>
               </div>
             </div>
-            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase">Coming Soon</span>
+            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase tracking-wide">Coming Soon</span>
           </div>
           
           {/* Compact drop zone */}
@@ -917,7 +918,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                     <div className="text-left">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-slate-800">{cat?.display_name || catKey}</p>
-                        {isToric && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">TORIC</span>}
+                        {isToric && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold uppercase tracking-wide">TORIC</span>}
                 </div>
                       <p className="text-xs text-slate-400">{models.length} lens model{models.length !== 1 ? 's' : ''}</p>
                     </div>
@@ -1369,25 +1370,41 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
   };
 
   if (loading) {
-    return <PageLoader context="clinic" />;
+    return <ClinicSetupSkeleton />;
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-[fadeIn_0.4s_ease-out] max-w-[1400px] mx-auto pb-12">
+    <div className="flex flex-col gap-4 animate-[fadeIn_0.4s_ease-out] max-w-[1400px] mx-auto pb-12">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+        >
+          <LayoutDashboard size={14} className="group-hover:scale-110 transition-transform" />
+          <span className="font-medium">Dashboard</span>
+        </button>
+        <ChevronRight size={14} className="text-slate-300" />
+        <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
+          <Hospital size={14} className="text-blue-500" />
+          Clinic Configuration
+        </span>
+      </nav>
+
       {/* Header */}
-              <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-                <button
+          <button
             onClick={onBack}
             className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white shadow-sm transition-all"
-                >
+          >
             <ArrowLeft size={18} />
-                </button>
+          </button>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-900">Clinic Configuration</h1>
               {status === 'saved' && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 uppercase tracking-tight border border-emerald-100">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 uppercase tracking-wide border border-emerald-100">
                   <CheckCircle2 size={12} /> Saved
                 </span>
               )}

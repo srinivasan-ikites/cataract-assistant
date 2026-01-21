@@ -324,6 +324,251 @@ export const FormSkeleton: React.FC<{ rows?: number }> = ({ rows = 4 }) => (
   </div>
 );
 
+/**
+ * Patient list item skeleton
+ */
+export const PatientRowSkeleton: React.FC = () => (
+  <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-100">
+    <Skeleton width="w-12" height="h-12" circle />
+    <div className="flex-1 space-y-2">
+      <Skeleton width="w-32" height="h-4" />
+      <Skeleton width="w-48" height="h-3" />
+    </div>
+    <div className="flex items-center gap-3">
+      <Skeleton width="w-20" height="h-6" className="rounded-full" />
+      <Skeleton width="w-16" height="h-3" />
+    </div>
+  </div>
+);
+
+/**
+ * Patient list skeleton - multiple rows
+ */
+export const PatientListSkeleton: React.FC<{ count?: number }> = ({ count = 5 }) => (
+  <div className="space-y-3">
+    {Array.from({ length: count }).map((_, i) => (
+      <PatientRowSkeleton key={i} />
+    ))}
+  </div>
+);
+
+/**
+ * Collapsible card skeleton for form sections
+ */
+export const CollapsibleCardSkeleton: React.FC<{ expanded?: boolean }> = ({ expanded = true }) => (
+  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    {/* Header */}
+    <div className="flex items-center justify-between p-4 border-b border-slate-100">
+      <div className="flex items-center gap-3">
+        <Skeleton width="w-9" height="h-9" className="rounded-xl" />
+        <div className="space-y-1.5">
+          <Skeleton width="w-32" height="h-4" />
+          <Skeleton width="w-48" height="h-3" />
+        </div>
+      </div>
+      <Skeleton width="w-6" height="h-6" className="rounded" />
+    </div>
+    {/* Body */}
+    {expanded && (
+      <div className="p-5 space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton width="w-20" height="h-3" />
+              <Skeleton height="h-10" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton width="w-24" height="h-3" />
+              <Skeleton height="h-10" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+/**
+ * Patient onboarding page skeleton
+ */
+export const PatientOnboardingSkeleton: React.FC = () => (
+  <div className="space-y-4 animate-pulse">
+    {/* Breadcrumbs skeleton */}
+    <div className="flex items-center gap-2">
+      <Skeleton width="w-24" height="h-4" />
+      <Skeleton width="w-4" height="h-4" />
+      <Skeleton width="w-20" height="h-4" />
+      <Skeleton width="w-4" height="h-4" />
+      <Skeleton width="w-32" height="h-4" />
+    </div>
+
+    {/* Header skeleton */}
+    <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+      <div className="flex items-center gap-4">
+        <Skeleton width="w-10" height="h-10" className="rounded-xl" />
+        <div className="flex items-center gap-4">
+          <Skeleton width="w-12" height="h-12" className="rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton width="w-40" height="h-6" />
+            <div className="flex items-center gap-3">
+              <Skeleton width="w-24" height="h-4" />
+              <Skeleton width="w-16" height="h-5" className="rounded-full" />
+              <Skeleton width="w-20" height="h-5" className="rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Skeleton width="w-10" height="h-10" className="rounded-xl" />
+        <Skeleton width="w-10" height="h-10" className="rounded-xl" />
+        <Skeleton width="w-24" height="h-10" className="rounded-xl" />
+      </div>
+    </div>
+
+    {/* Content grid skeleton */}
+    <div className="grid grid-cols-12 gap-4">
+      <div className="col-span-8 space-y-4">
+        <CollapsibleCardSkeleton />
+        <CollapsibleCardSkeleton />
+        <CollapsibleCardSkeleton expanded={false} />
+      </div>
+      <div className="col-span-4 space-y-4">
+        {/* Upload panel skeleton */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center gap-3">
+            <Skeleton width="w-14" height="h-14" circle />
+            <Skeleton width="w-40" height="h-5" />
+            <Skeleton width="w-56" height="h-4" />
+            <Skeleton width="w-32" height="h-10" className="rounded-xl mt-2" />
+          </div>
+        </div>
+        {/* Recent uploads skeleton */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="px-4 py-3 border-b border-slate-100">
+            <Skeleton width="w-28" height="h-4" />
+          </div>
+          <div className="p-4 space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} height="h-10" className="rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Dashboard stats skeleton
+ */
+export const DashboardStatsSkeleton: React.FC = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex justify-between items-start mb-6">
+          <Skeleton width="w-12" height="h-12" className="rounded-2xl" />
+          <Skeleton width="w-16" height="h-5" className="rounded-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton width="w-16" height="h-8" />
+          <Skeleton width="w-28" height="h-4" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/**
+ * Clinic setup page skeleton
+ */
+export const ClinicSetupSkeleton: React.FC = () => (
+  <div className="flex flex-col gap-4 max-w-[1400px] mx-auto pb-12 animate-pulse">
+    {/* Breadcrumbs skeleton */}
+    <div className="flex items-center gap-2">
+      <Skeleton width="w-24" height="h-4" />
+      <Skeleton width="w-4" height="h-4" />
+      <Skeleton width="w-36" height="h-4" />
+    </div>
+
+    {/* Header skeleton */}
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <Skeleton width="w-10" height="h-10" className="rounded-xl" />
+        <div className="space-y-2">
+          <Skeleton width="w-48" height="h-7" />
+          <Skeleton width="w-32" height="h-4" />
+        </div>
+      </div>
+      <Skeleton width="w-24" height="h-10" className="rounded-xl" />
+    </div>
+
+    {/* Main layout skeleton */}
+    <div className="flex gap-6">
+      {/* Sidebar skeleton */}
+      <div className="w-56 shrink-0">
+        <div className="bg-white border border-slate-200 rounded-2xl p-2 space-y-1">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3">
+              <Skeleton width="w-5" height="h-5" className="rounded" />
+              <Skeleton width="w-20" height="h-4" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="flex-1 space-y-6">
+        {/* Section 1 */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Skeleton width="w-4" height="h-4" />
+            <Skeleton width="w-28" height="h-5" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton width="w-24" height="h-3" />
+                <Skeleton height="h-10" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 2 */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
+          <Skeleton width="w-36" height="h-5" />
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton width="w-20" height="h-3" />
+                <Skeleton height="h-10" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 3 */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Skeleton width="w-10" height="h-10" className="rounded-xl" />
+              <div className="space-y-1.5">
+                <Skeleton width="w-24" height="h-4" />
+                <Skeleton width="w-40" height="h-3" />
+              </div>
+            </div>
+            <Skeleton width="w-24" height="h-6" className="rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // Add keyframes to global styles (should be in your CSS or added via style tag)
 const GlobalStyles = () => (
   <style>{`

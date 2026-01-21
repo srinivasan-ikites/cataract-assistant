@@ -20,8 +20,8 @@
 - [ ] Summarize chat history after 10 turns to keep context window small
 
 ## Phase 3 (Doctor Upload + Extraction) – NEW
-- [x] Backend API: upload images (EMR + optional biometry) → Vision LLM extraction to patient schema (see `docs/schemas/patient_schema.json`)
-- [x] Backend API: upload clinic documents (one-time) → Vision LLM extraction to clinic schema (`docs/schemas/clinic_schema.json`)
+- [x] Backend API: upload images (EMR + optional biometry) → Vision LLM extraction to patient schema (see `backend/adk_app/schemas/extraction_schema_v2.json`)
+- [x] Backend API: upload clinic documents (one-time) → Vision LLM extraction to clinic schema (`backend/adk_app/schemas/clinic_schema.json`)
 - [x] Extraction prompt + schema-fill: constrain to schema, normalize dates/gender/lens; model infers doc types implicitly (no explicit classifier)
 - [ ] Confidence flags/doc-type scoring: add per-field confidence & explicit doc-type classification for UI highlighting
 - [x] Storage: save uploads under `backend/data/uploads/{clinic_id}/{patient_id}/` and keep raw extraction + reviewed JSON under `backend/data/reviewed/...`

@@ -28,11 +28,15 @@ import {
   DollarSign,
   Package,
   Sparkles,
+  LayoutDashboard,
+  Users,
 } from 'lucide-react';
 import { api, DoctorContextResponse } from '../services/api';
 import CollapsibleCard from './components/CollapsibleCard';
 import UploadPanel from './components/UploadPanel';
-import { PageLoader } from '../components/Loader';
+import { PatientOnboardingSkeleton } from '../components/Loader';
+import { useToast } from '../components/Toast';
+import DatePicker from '../components/DatePicker';
 
 interface PatientOnboardingProps {
   patientId: string;
@@ -71,7 +75,9 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
   const [showUploads, setShowUploads] = useState(true);
   const [showAllUploads, setShowAllUploads] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   // Clinic context - loaded from API
   const [clinicContext, setClinicContext] = useState<DoctorContextResponse | null>(null);
@@ -168,14 +174,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         onNavigate('next');
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        if (data && status !== 'saved') {
+        if (data && status !== 'saved' && !saving) {
           handleSave();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hasPrev, hasNext, onNavigate, data, status]);
+  }, [hasPrev, hasNext, onNavigate, data, status, saving]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -204,7 +210,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
   const handleSave = async () => {
     try {
-      setLoading(true);
+      setSaving(true);
       setError(null);
       const cleanData = (obj: any): any => {
         if (Array.isArray(obj)) {
@@ -228,11 +234,13 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       const finalData = cleanData(data) || {};
       await api.saveReviewedPatient(clinicId, patientId, finalData);
       setStatus('saved');
-      alert('Patient data saved successfully!');
+      toast.success('Saved', 'Patient data saved successfully');
     } catch (err: any) {
-      setError(err.message || 'Save failed');
+      const errorMsg = err.message || 'Save failed';
+      setError(errorMsg);
+      toast.error('Save Failed', errorMsg);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -246,9 +254,11 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       setFiles([]);
       setRecentUploads([]);
       setStatus('idle');
-      alert('Patient data deleted.');
+      toast.success('Deleted', 'Patient data has been deleted');
     } catch (err: any) {
-      setError(err.message || 'Delete failed');
+      const errorMsg = err.message || 'Delete failed';
+      setError(errorMsg);
+      toast.error('Delete Failed', errorMsg);
     } finally {
       setDeleting(false);
     }
@@ -366,6 +376,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
           </div>
+        ) : type === 'date' ? (
+          <DatePicker
+            value={val || ''}
+            onChange={(value) => updateNestedField(path, value)}
+            placeholder={placeholder || `Select ${label.toLowerCase()}...`}
+            disabled={disabled}
+            maxDate={path.includes('dob') ? new Date().toISOString().split('T')[0] : undefined}
+          />
         ) : (
           <input
             type={type}
@@ -398,7 +416,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
   };
 
   if (loading || loadingContext) {
-    return <PageLoader context="patient" />;
+    return <PatientOnboardingSkeleton />;
   }
 
   if (!data) {
@@ -438,6 +456,30 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+        >
+          <LayoutDashboard size={14} className="group-hover:scale-110 transition-transform" />
+          <span className="font-medium">Dashboard</span>
+        </button>
+        <ChevronRight size={14} className="text-slate-300" />
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+        >
+          <Users size={14} className="group-hover:scale-110 transition-transform" />
+          <span className="font-medium">Patients</span>
+        </button>
+        <ChevronRight size={14} className="text-slate-300" />
+        <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
+          <User size={14} className="text-blue-500" />
+          {fullName || 'Patient Details'}
+        </span>
+      </nav>
+
       {/* Header */}
       <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
@@ -482,8 +524,20 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
           <button onClick={() => setShowUploads((v) => !v)} className="p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all" title={showUploads ? 'Hide uploads' : 'Show uploads'}>
             {showUploads ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
           </button>
-          <button onClick={handleSave} disabled={!data || status === 'saved'} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${!data || status === 'saved' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`} title="Save (Ctrl+S)">
-            <Save size={16} />Save
+          <button onClick={handleSave} disabled={!data || status === 'saved' || saving} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${!data || status === 'saved' || saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`} title="Save (Ctrl+S)">
+            {saving ? (
+              <>
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />Save
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -694,6 +748,55 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               >
                 <div className={`w-6 h-6 rounded-full bg-white shadow-sm transform transition-transform ${data?.surgical_plan?.same_plan_both_eyes ? 'translate-x-7' : 'translate-x-0.5'}`} />
               </button>
+            </div>
+
+            {/* SURGERY SCHEDULING - Prominent Section */}
+            <div className="p-5 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border-2 border-rose-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-900">Surgery Scheduling</h4>
+                    <p className="text-xs text-rose-600">Set surgery dates for each eye</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* OD Surgery Date */}
+                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                    <span className="text-sm font-bold text-slate-800">Right Eye</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
+                    <DatePicker
+                      value={data?.surgical_plan?.operative_logistics?.od_right?.surgery_date || ''}
+                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.od_right.surgery_date', value)}
+                      placeholder="Select surgery date"
+                      minDate={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+                {/* OS Surgery Date */}
+                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                    <span className="text-sm font-bold text-slate-800">Left Eye</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
+                    <DatePicker
+                      value={data?.surgical_plan?.operative_logistics?.os_left?.surgery_date || ''}
+                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.os_left.surgery_date', value)}
+                      placeholder="Select surgery date"
+                      minDate={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* SECTION 1: Candidacy Assessment */}
@@ -1352,7 +1455,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             data?.surgical_plan?.operative_logistics?.os_left?.surgery_date) {
                           updateNestedField('surgical_plan.operative_logistics.os_left.status', 'scheduled');
                         }
-                        alert('Surgery scheduled successfully!');
+                        toast.success('Scheduled', 'Surgery has been scheduled successfully');
                       }}
                       className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all"
                     >
@@ -1495,7 +1598,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Taper Schedule Visualizer</p>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Taper Schedule Visualizer</p>
                       <div className="flex gap-2">
                         {(data?.medications_plan?.combination?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
                           <div key={i} className="flex-1 text-center">
@@ -1510,7 +1613,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Manual Frequency Adjustment</p>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Manual Frequency Adjustment</p>
                       <div className="grid grid-cols-2 gap-2">
                         {[0, 1, 2, 3].map((weekIdx) => (
                           <div key={weekIdx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -1734,7 +1837,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">1 Week</span>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Select Antibiotic</label>
+                        <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Select Antibiotic</label>
                         <div className="relative">
                           <select
                             value={data?.medications_plan?.post_op?.antibiotic?.name || ''}
@@ -1786,7 +1889,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Frequency</label>
+                          <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Frequency</label>
                           <div className="relative">
                             <select
                               value={data?.medications_plan?.post_op?.nsaid?.frequency || ''}
@@ -1808,7 +1911,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Duration</label>
+                          <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Duration</label>
                           <div className="relative">
                             <select
                               value={data?.medications_plan?.post_op?.nsaid?.weeks || 4}
@@ -1870,7 +1973,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Steroid Name</label>
+                          <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Steroid Name</label>
                           <div className="relative">
                             <select
                               value={data?.medications_plan?.post_op?.steroid?.name || ''}
@@ -1893,7 +1996,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         </div>
 
                         <div className="p-4 bg-slate-50 rounded-xl">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Taper Schedule Visualizer</p>
+                          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Taper Schedule Visualizer</p>
                           <div className="flex gap-2">
                             {(data?.medications_plan?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
                               <div key={i} className="flex-1 text-center">
@@ -1910,7 +2013,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Manual Frequency Adjustment</p>
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Manual Frequency Adjustment</p>
                         <div className="grid grid-cols-2 gap-2">
                           {[0, 1, 2, 3].map((weekIdx) => (
                             <div key={weekIdx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -2024,7 +2127,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         {/* Upload Panel */}
         {showUploads && (
           <div className="col-span-12 lg:col-span-4">
-            <UploadPanel fileInputRef={fileInputRef} files={files} setFiles={setFiles} startExtraction={startExtraction} extracting={extracting} handleFileChange={handleFileChange} recentUploads={recentUploads} showAllUploads={showAllUploads} setShowAllUploads={setShowAllUploads} />
+            <UploadPanel fileInputRef={fileInputRef} files={files} setFiles={setFiles} startExtraction={startExtraction} extracting={extracting} handleFileChange={handleFileChange} recentUploads={recentUploads} showAllUploads={showAllUploads} setShowAllUploads={setShowAllUploads} extractionError={error} extractionSuccess={status === 'extracted'} />
           </div>
         )}
       </div>
@@ -2037,7 +2140,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       )}
 
       {/* Keyboard hints */}
-      <div className="text-center text-[10px] text-slate-400 py-2">
+      {/* <div className="text-center text-[10px] text-slate-400 py-2">
         <span className="px-2 py-1 bg-slate-100 rounded text-slate-500 font-mono">Ctrl+S</span> Save
         {onNavigate && (
           <>
@@ -2047,7 +2150,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             <span className="px-2 py-1 bg-slate-100 rounded text-slate-500 font-mono">Alt+→</span> Next
           </>
         )}
-      </div>
+      </div> */}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
