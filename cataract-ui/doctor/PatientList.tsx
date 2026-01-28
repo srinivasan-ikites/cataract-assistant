@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   MoreHorizontal,
@@ -9,10 +9,12 @@ import {
   Filter,
   Users,
   Search,
-  ChevronRight
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 import { api, Patient } from '../services/api';
 import { Skeleton } from '../components/Loader';
+import RegisterPatientModal from './RegisterPatientModal';
 
 interface PatientListProps {
   onSelectPatient: (id: string, allPatientIds?: string[]) => void;
@@ -24,70 +26,78 @@ interface PatientListItem extends Patient {
   lastUpdated: string;
 }
 
+// Helper function to determine patient status based on data
+const determinePatientStatus = (patient: Patient): PatientListItem['status'] => {
+  // If patient has module_content, they've been reviewed
+  if (patient.module_content && Object.keys(patient.module_content).length > 0) {
+    return 'reviewed';
+  }
+  // If patient has surgical recommendations, they've been extracted
+  if (patient.surgical_recommendations_by_doctor?.recommended_lens_options?.length) {
+    return 'extracted';
+  }
+  // Otherwise, they're new
+  return 'new';
+};
+
+// Helper function to format last updated timestamp
+const formatLastUpdated = (timestamp?: string): string => {
+  if (!timestamp) return 'Unknown';
+
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return 'Today';
+  if (diffDays < 2) return 'Yesterday';
+  if (diffDays < 7) return `${Math.floor(diffDays)} days ago`;
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) => {
   const [patients, setPatients] = useState<PatientListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All Patients');
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+  const fetchPatients = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Fetch patients for this specific clinic
+      const rawPatients = await api.getPatients(clinicId);
+
+      // Transform patients - no more dummy data
+      const list: PatientListItem[] = rawPatients.map(p => ({
+        ...p,
+        status: determinePatientStatus(p),
+        lastUpdated: formatLastUpdated(p._updated_at)
+      }));
+
+      setPatients(list);
+    } catch (err) {
+      console.error('Failed to load patients', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [clinicId]);
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const rawPatients = await api.getPatients();
-
-        // Transform and add dummy patients for demo
-        const list: PatientListItem[] = [
-          ...rawPatients.map(p => ({
-            ...p,
-            status: (p.patient_id === '1245583' ? 'extracted' : 'reviewed') as any,
-            lastUpdated: 'Today, 9:41 AM'
-          })),
-          {
-            patient_id: '882190',
-            name: { first: 'John', last: 'Doe' },
-            dob: '1992-05-12', // 32 years
-            status: 'new',
-            lastUpdated: 'Today, 9:41 AM'
-          } as PatientListItem,
-          {
-            patient_id: '9921',
-            name: { first: 'Sarah', last: 'Smith' },
-            dob: '1996-11-20', // 28 years
-            status: 'reviewed', // Stable
-            lastUpdated: 'Yesterday'
-          } as PatientListItem,
-          {
-            patient_id: '1024',
-            name: { first: 'Michael', last: 'King' },
-            dob: '1979-05-12', // 45 years
-            status: 'reviewed',
-            lastUpdated: 'Oct 24'
-          } as PatientListItem,
-          {
-            patient_id: '5512',
-            name: { first: 'Robert', last: 'Fox' },
-            dob: '1963-05-12', // 61 years
-            status: 'new', // Critical in demo
-            lastUpdated: 'Oct 22'
-          } as PatientListItem,
-          {
-            patient_id: '1245583',
-            name: { first: 'Lata', last: 'Bhagia' },
-            dob: '1956-01-20', // 68 years
-            status: 'new',
-            lastUpdated: 'Just now'
-          } as PatientListItem
-        ];
-
-        setPatients(list);
-      } catch (err) {
-        console.error('Failed to load patients', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPatients();
-  }, [clinicId]);
+  }, [fetchPatients]);
+
+  // Handle successful patient registration
+  const handleRegisterSuccess = (patientId: string) => {
+    setIsRegisterModalOpen(false);
+    // Refresh the patient list and navigate to the new patient
+    fetchPatients().then(() => {
+      // Navigate to the newly created patient
+      onSelectPatient(patientId);
+    });
+  };
 
   const getStatusBadge = (status: PatientListItem['status'], pid?: string) => {
     // Standardized badge styling
@@ -133,27 +143,39 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
   const filters = ['All Patients', 'Pending Review', 'Recent', 'Critical'];
 
   return (
-    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-[fadeIn_0.5s_ease-out]">
-      <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-slate-900 tracking-tight">Recent Patients</h3>
-          <p className="text-sm text-slate-400 font-medium mt-1">Manage patient records and OCR status</p>
-        </div>
-        <div className="flex bg-slate-50 p-1.5 rounded-2xl gap-1">
-          {filters.map(filter => (
+    <>
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-[fadeIn_0.5s_ease-out]">
+        <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Recent Patients</h3>
+            <p className="text-sm text-slate-400 font-medium mt-1">Manage patient records and OCR status</p>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Register Patient Button */}
             <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeFilter === filter
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-50'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
             >
-              {filter}
+              <UserPlus size={18} />
+              Register Patient
             </button>
-          ))}
+            {/* Filters */}
+            <div className="flex bg-slate-50 p-1.5 rounded-2xl gap-1">
+              {filters.map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeFilter === filter
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-50'
+                    : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left">
@@ -197,6 +219,28 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                   </td>
                 </tr>
               ))
+            ) : patients.length === 0 ? (
+              // Empty state
+              <tr>
+                <td colSpan={5} className="px-10 py-16">
+                  <div className="text-center">
+                    <div className="w-20 h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                      <Users size={32} className="text-slate-400" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-700 mb-2">No patients yet</h4>
+                    <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                      Get started by registering your first patient. You can upload their EMR documents to auto-populate their profile.
+                    </p>
+                    <button
+                      onClick={() => setIsRegisterModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+                    >
+                      <UserPlus size={18} />
+                      Register Your First Patient
+                    </button>
+                  </div>
+                </td>
+              </tr>
             ) : patients.map((patient) => (
               <tr
                 key={patient.patient_id}
@@ -245,20 +289,31 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
         </table>
       </div>
 
-      <div className="px-10 py-6 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Showing 4 of 128 patients
-        </span>
-        <div className="flex gap-4">
-          <button className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
-            <ChevronRight size={18} className="rotate-180" />
-          </button>
-          <button className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
-            <ChevronRight size={18} />
-          </button>
-        </div>
+        {patients.length > 0 && (
+          <div className="px-10 py-6 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Showing {patients.length} patient{patients.length !== 1 ? 's' : ''}
+            </span>
+            <div className="flex gap-4">
+              <button className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
+                <ChevronRight size={18} className="rotate-180" />
+              </button>
+              <button className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Register Patient Modal */}
+      <RegisterPatientModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        clinicId={clinicId}
+        onSuccess={handleRegisterSuccess}
+      />
+    </>
   );
 };
 

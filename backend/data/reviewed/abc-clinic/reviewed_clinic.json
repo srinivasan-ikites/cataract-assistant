@@ -1,0 +1,341 @@
+{
+  "clinic_profile": {
+    "clinic_id": "abc-clinic",
+    "name": "abc-clinic",
+    "parent_organization": "",
+    "address": {
+      "street": "12",
+      "city": "bangalore",
+      "state": "bangalore",
+      "zip": "123"
+    },
+    "contact_info": {
+      "phone_main": "9999999990",
+      "phone_surgical_coordinator": "",
+      "fax": "",
+      "emergency_hotline": "",
+      "website": "",
+      "phone": null
+    },
+    "branding": {
+      "logo_url": "",
+      "primary_color_hex": ""
+    }
+  },
+  "staff_directory": [
+    {
+      "name": "surgeon1",
+      "role": "surgeon",
+      "specialty": "",
+      "provider_id": "",
+      "availability": {
+        "surgery_days": [
+          "Monday"
+        ],
+        "consultation_days": [],
+        "consultation_hours": ""
+      },
+      "qualifications": [],
+      "experience_years": 2
+    }
+  ],
+  "surgical_packages": [
+    {
+      "package_id": "PKG_STD",
+      "display_name": "Standard Monofocal",
+      "description": "Basic cataract surgery with standard monofocal IOL. Covered by most insurance plans.",
+      "price_cash": 0,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONOFOCAL"
+      ],
+      "insurance_coverage": "Fully covered by Medicare/most insurances"
+    },
+    {
+      "package_id": "PKG_LASER_LRI",
+      "display_name": "Monofocal + Laser",
+      "description": "Femtosecond laser-assisted surgery with limbal relaxing incisions for minor astigmatism.",
+      "price_cash": 1900,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONOFOCAL"
+      ],
+      "insurance_coverage": "Laser portion is out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF",
+      "display_name": "EDOF (Extended Depth)",
+      "description": "Extended Depth of Focus lens for excellent intermediate vision with minimal halos.",
+      "price_cash": 2500,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF_LASER",
+      "display_name": "EDOF + Laser",
+      "description": "Extended Depth of Focus lens with femtosecond laser precision for enhanced results.",
+      "price_cash": 3000,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL",
+      "display_name": "Multifocal",
+      "description": "Multifocal IOL for near, intermediate, and distance vision with reduced glasses dependence.",
+      "price_cash": 3500,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL_LASER",
+      "display_name": "Multifocal + Laser",
+      "description": "Multifocal IOL with femtosecond laser precision for optimal visual outcomes.",
+      "price_cash": 4000,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_LAL",
+      "display_name": "Light Adjustable Lens",
+      "description": "RxSight LAL - vision fine-tuned after surgery using UV light treatments.",
+      "price_cash": 4900,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "LAL"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC",
+      "display_name": "Toric (Astigmatism)",
+      "description": "Toric IOL for patients with significant corneal astigmatism. Can be combined with any base lens type.",
+      "price_cash": 1800,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC_LASER",
+      "display_name": "Toric + Laser",
+      "description": "Toric IOL with femtosecond laser precision for enhanced astigmatism correction.",
+      "price_cash": 2200,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    }
+  ],
+  "lens_inventory": {
+    "MONOFOCAL": {
+      "display_name": "Standard Monofocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "MONOFOCAL_TORIC": {
+      "display_name": "Monofocal Toric",
+      "description": "",
+      "parent_category": "MONOFOCAL",
+      "is_toric": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "toric_range": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "EDOF": {
+      "display_name": "Extended Depth of Focus",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "EDOF_TORIC": {
+      "display_name": "EDOF Toric",
+      "description": "",
+      "parent_category": "EDOF",
+      "is_toric": true,
+      "models": []
+    },
+    "MULTIFOCAL": {
+      "display_name": "Multifocal / Trifocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "MULTIFOCAL_TORIC": {
+      "display_name": "Multifocal Toric",
+      "description": "",
+      "parent_category": "MULTIFOCAL",
+      "is_toric": true,
+      "models": []
+    },
+    "LAL": {
+      "display_name": "Light Adjustable Lens",
+      "description": "",
+      "has_toric_variant": false,
+      "models": []
+    },
+    "NEW_CATEGORY_1769345198209": {
+      "models": [
+        {
+          "model": "qwer",
+          "model_code": "",
+          "description": "",
+          "manufacturer": "qwe"
+        }
+      ],
+      "description": "newwww",
+      "display_name": "New Category"
+    }
+  },
+  "medications": {
+    "pre_op": {
+      "antibiotics": [
+        {
+          "id": 1769345220173,
+          "name": "pre-antibio"
+        }
+      ],
+      "frequencies": [],
+      "default_start_days_before_surgery": 3
+    },
+    "post_op": {
+      "antibiotics": [
+        {
+          "id": 1769345506120,
+          "name": "post-antiobio1",
+          "default_weeks": 1,
+          "default_frequency": 4
+        },
+        {
+          "id": 1769345539718,
+          "name": "post-antiobio2",
+          "default_weeks": 1,
+          "default_frequency": 4
+        }
+      ],
+      "nsaids": [
+        {
+          "id": 1769345542485,
+          "name": "post-nsaids1",
+          "default_weeks": 4,
+          "frequency_label": "4x Daily",
+          "default_frequency": 4
+        },
+        {
+          "id": 1769345558944,
+          "name": "post-nsaids2",
+          "default_weeks": 4,
+          "frequency_label": "4x Daily",
+          "default_frequency": 4
+        }
+      ],
+      "steroids": [
+        {
+          "id": 1769345561925,
+          "name": "post-steroids1",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        },
+        {
+          "id": 1769345572270,
+          "name": "post-steroids",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        }
+      ],
+      "glaucoma_drops": [],
+      "combination_drops": [],
+      "dropless_option": {
+        "available": false,
+        "description": "",
+        "medications": []
+      }
+    },
+    "frequency_options": [
+      {
+        "id": 1769345582618,
+        "label": "",
+        "times_per_day": 4
+      }
+    ]
+  },
+  "standard_operating_procedures": {
+    "procedure_codes": [],
+    "risks_categorized": {
+      "common_minor": [],
+      "rare_serious": []
+    }
+  },
+  "billing_and_insurance": {
+    "payment_policy": "",
+    "post_op_refraction_fee": {
+      "amount": 0,
+      "description": ""
+    },
+    "anesthesia_billing": "",
+    "accepted_insurance_notes": "",
+    "payment_methods": [],
+    "financing": {
+      "available": false,
+      "providers": [],
+      "zero_interest_months": 0,
+      "minimum_amount": 0
+    }
+  },
+  "documents": {
+    "standard_forms": []
+  },
+  "metadata": {
+    "schema_version": "2.1.0",
+    "created_at": "",
+    "updated_at": "",
+    "updated_by": ""
+  },
+  "_uuid": "e996e989-58f0-42a3-8418-c9c971f1b6fa",
+  "_status": "active"
+}

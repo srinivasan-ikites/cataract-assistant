@@ -1062,22 +1062,22 @@ async def migrate():
 
 | # | Task | Subtasks | Status |
 |---|------|----------|--------|
-| 1.1 | Create Supabase Project | - Sign up for Supabase<br>- Create new project<br>- Note API keys and URLs | ⬜ |
-| 1.2 | Set Up Database Schema | - Create all tables<br>- Add indexes<br>- Set up RLS policies | ⬜ |
-| 1.3 | Configure Storage | - Create storage bucket<br>- Set up access policies | ⬜ |
-| 1.4 | Backend: Supabase Client | - Install supabase-py<br>- Create connection module<br>- Test connection | ⬜ |
-| 1.5 | Environment Configuration | - Add Supabase env vars<br>- Update Docker config<br>- Update GCP deployment | ⬜ |
+| 1.1 | Create Supabase Project | - Sign up for Supabase<br>- Create new project<br>- Note API keys and URLs | ✅ |
+| 1.2 | Set Up Database Schema | - Create all tables<br>- Add indexes<br>- Set up RLS policies | ✅ |
+| 1.3 | Configure Storage | - Create storage bucket<br>- Set up access policies | ✅ |
+| 1.4 | Backend: Supabase Client | - Install supabase-py<br>- Create connection module<br>- Test connection | ✅ |
+| 1.5 | Environment Configuration | - Add Supabase env vars<br>- Update Docker config<br>- Update GCP deployment | ✅ |
 
 ### Phase 2: Clinic User Authentication (Priority: HIGH)
 > Goal: Doctors/staff can log in
 
 | # | Task | Subtasks | Status |
 |---|------|----------|--------|
-| 2.1 | Backend: Auth Endpoints | - Login endpoint<br>- Logout endpoint<br>- Get current user endpoint | ⬜ |
-| 2.2 | Backend: Auth Middleware | - JWT validation<br>- Role extraction<br>- Clinic context injection | ⬜ |
-| 2.3 | Frontend: Login Page | - Design login UI<br>- Implement login form<br>- Handle errors | ⬜ |
-| 2.4 | Frontend: Auth State | - Create auth context<br>- Persist session<br>- Auto-refresh tokens | ⬜ |
-| 2.5 | Frontend: Protected Routes | - Redirect if not logged in<br>- Show loading state | ⬜ |
+| 2.1 | Backend: Auth Endpoints | - Login endpoint<br>- Logout endpoint<br>- Get current user endpoint | ✅ |
+| 2.2 | Backend: Auth Middleware | - JWT validation<br>- Role extraction<br>- Clinic context injection | ✅ |
+| 2.3 | Frontend: Login Page | - Design login UI<br>- Implement login form<br>- Handle errors | ✅ |
+| 2.4 | Frontend: Auth State | - Create auth context<br>- Persist session<br>- Auto-refresh tokens | ✅ |
+| 2.5 | Frontend: Protected Routes | - Redirect if not logged in<br>- Show loading state | ✅ |
 
 ### Phase 3: Data Migration (Priority: HIGH)
 > Goal: Move existing data to Supabase
@@ -1094,21 +1094,22 @@ async def migrate():
 
 | # | Task | Subtasks | Status |
 |---|------|----------|--------|
-| 4.1 | Backend: Clinic Scoping | - Add clinic_id to all queries<br>- Validate clinic access<br>- Test isolation | ⬜ |
-| 4.2 | Frontend: Clinic Context | - Load clinic on login<br>- Pass clinic_id in requests<br>- Show clinic name in UI | ⬜ |
-| 4.3 | Clinic Onboarding Flow | - Registration page<br>- Clinic creation endpoint<br>- Admin user creation | ⬜ |
-| 4.4 | Clinic Setup Wizard | - Profile form<br>- Config upload<br>- User invitation | ⬜ |
+| 4.1 | Backend: Clinic Scoping | - Add clinic_id to all queries<br>- Validate clinic access<br>- Test isolation | ✅ |
+| 4.2 | Frontend: Clinic Context | - Load clinic on login<br>- Pass clinic_id in requests<br>- Show clinic name in UI | ✅ |
+| 4.3 | Clinic Onboarding Flow | - Registration page<br>- Clinic creation endpoint<br>- Admin user creation | ✅ |
+| 4.4 | Clinic Setup Wizard | - Profile form<br>- Config upload<br>- User invitation | ✅ |
 
 ### Phase 5: Patient Authentication (Priority: MEDIUM)
 > Goal: Patients can log in with OTP
 
 | # | Task | Subtasks | Status |
 |---|------|----------|--------|
-| 5.1 | Set Up SMS Provider | - Choose provider (Twilio/Supabase)<br>- Configure credentials<br>- Test sending | ⬜ |
-| 5.2 | Backend: OTP Endpoints | - Send OTP endpoint<br>- Verify OTP endpoint<br>- Link to patient record | ⬜ |
-| 5.3 | Frontend: Patient Login | - Phone input UI<br>- OTP input UI<br>- Error handling | ⬜ |
-| 5.4 | Patient Linking | - Link auth user to patient<br>- Handle multiple clinics<br>- Clinic selector UI | ⬜ |
-| 5.5 | Patient Portal Auth | - Protect patient routes<br>- Load patient data<br>- Session management | ⬜ |
+| 5.1 | Set Up SMS Provider | - Choose provider (Twilio/Supabase)<br>- Configure credentials<br>- Test sending | ✅ |
+| 5.2 | Backend: OTP Endpoints | - Send OTP endpoint<br>- Verify OTP endpoint<br>- Link to patient record | ✅ |
+| 5.3 | Frontend: Patient Login | - Phone input UI<br>- OTP input UI<br>- Error handling | ✅ |
+| 5.4 | Patient Linking | - Link auth user to patient<br>- Handle multiple clinics<br>- Clinic selector UI | ✅ |
+| 5.5 | Patient Portal Auth | - Protect patient routes<br>- Load patient data<br>- Session management | ✅ |
+| 5.6 | Patient Medication Tracking | - Pre-op medication progress API<br>- Post-op medication progress API<br>- Frontend integration | ✅ |
 
 ### Phase 6: File Storage Migration (Priority: MEDIUM)
 > Goal: Move files to cloud storage
@@ -1250,5 +1251,17 @@ CREATE INDEX idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
 
 | Date | Changes |
 |------|---------|
+| Jan 26, 2025 | **Patient Portal Medication Tracking Implementation** |
+| | - Created `PUT /api/patient/auth/me/medications` endpoint for patients to update pre-op/post-op medication progress |
+| | - Updated `BeforeSurgeryModal` and `AfterSurgeryModal` to use patient auth API when patient is logged in |
+| | - Fixed data persistence: modals now fetch fresh patient data from API on mount |
+| | - Fixed surgery date mapping to use v2 schema path: `surgical_plan.operative_logistics.od_right.surgery_date` |
+| | - Added toast notifications for medication update errors |
+| | - Fixed 500 error by using correct `medications_plan` JSONB column |
+| Jan 2025 | **Module Content Optimization & IOL Options Implementation** |
+| | - Optimized module content generation (only "My Diagnosis" uses LLM) |
+| | - Created IOLOptionsModal for patient-specific IOL recommendations with pricing |
+| | - Implemented surgical packages display from clinic configuration |
+| | - Fixed data flow for surgical_plan in patient records |
 | Jan 2025 | Initial architecture document created |
 

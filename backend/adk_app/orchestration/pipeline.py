@@ -8,7 +8,8 @@ import json
 from adk_app.prompting.prompt_builder import build_prompt_block, parse_router_payload
 from adk_app.tools.general_kb_tool import general_kb_search_tool
 from adk_app.tools.router_tool import router_tool
-from adk_app.utils.data_loader import get_patient_data, get_clinic_data
+# Use Supabase data loader instead of JSON-based one
+from adk_app.utils.supabase_data_loader import get_patient_data, get_clinic_data
 
 
 @dataclass

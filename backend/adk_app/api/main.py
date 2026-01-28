@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from adk_app.core.config import get_cors_origins
 from adk_app.services.extraction_service import init_vision_client
 from adk_app.services.qdrant_service import init_qdrant_client
+from adk_app.services.supabase_service import init_supabase_client
 from adk_app.tools.router_tool import init_router_client
 
 from .routes import api_router
@@ -37,6 +38,9 @@ async def lifespan(app: FastAPI):
 
         # 3. Warm up Vision extraction (Google AI Studio)
         init_vision_client()
+
+        # 4. Initialize Supabase client (Database + Storage)
+        init_supabase_client()
 
         print("[Startup] All clients ready.\n")
     except Exception as e:

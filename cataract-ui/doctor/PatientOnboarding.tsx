@@ -444,8 +444,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
   // Get medications from clinic context (matches doctor-context endpoint response)
   const preOpAntibiotics = clinicContext?.medications?.pre_op?.antibiotics || [];
-  const preOpFrequencies = clinicContext?.medications?.pre_op?.frequencies || [];
-  const preOpDefaultDays = clinicContext?.medications?.pre_op?.default_start_days || 3;
+  const preOpDefaultDays = clinicContext?.medications?.pre_op?.default_start_days_before_surgery || clinicContext?.medications?.pre_op?.default_start_days || 3;
   const postOpAntibiotics = clinicContext?.medications?.post_op?.antibiotics || [];
   const postOpNsaids = clinicContext?.medications?.post_op?.nsaids || [];
   const postOpSteroids = clinicContext?.medications?.post_op?.steroids || [];
@@ -629,6 +628,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   <span className="font-bold text-slate-800">Right Eye</span>
                 </div>
                 {renderField('clinical_context.od_right.pathology', 'Pathology')}
+                {renderField('clinical_context.od_right.primary_cataract_type', 'Primary Cataract Type', 'select', ['nuclear_sclerosis', 'cortical', 'posterior_subcapsular', 'combined', 'congenital'])}
                 {renderField('clinical_context.od_right.visual_acuity.bcva', 'BCVA (Best Corrected)')}
                 <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
                   <p className="text-xs font-bold text-blue-700">IOL Master Biometry</p>
@@ -665,6 +665,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   <span className="font-bold text-slate-800">Left Eye</span>
                 </div>
                 {renderField('clinical_context.os_left.pathology', 'Pathology')}
+                {renderField('clinical_context.os_left.primary_cataract_type', 'Primary Cataract Type', 'select', ['nuclear_sclerosis', 'cortical', 'posterior_subcapsular', 'combined', 'congenital'])}
                 {renderField('clinical_context.os_left.visual_acuity.bcva', 'BCVA (Best Corrected)')}
                 <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 space-y-3">
                   <p className="text-xs font-bold text-emerald-700">IOL Master Biometry</p>
@@ -1700,18 +1701,21 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Frequency</label>
                       <div className="relative">
                         <select
-                          value={data?.medications_plan?.pre_op?.frequency_id || ''}
+                          value={data?.medications_plan?.pre_op?.frequency || ''}
                           onChange={(e) => {
-                            const id = parseInt(e.target.value);
-                            const freq = preOpFrequencies.find((f: any) => f.id === id);
-                            updateNestedField('medications_plan.pre_op.frequency_id', id);
-                            updateNestedField('medications_plan.pre_op.frequency', freq?.name || '');
+                            updateNestedField('medications_plan.pre_op.frequency', e.target.value);
                           }}
                           className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select...</option>
-                          {preOpFrequencies.map((f: any) => (
-                            <option key={f.id} value={f.id}>{f.name}</option>
+                          {(frequencyOptions.length > 0 ? frequencyOptions : [
+                            { label: '2x Daily', times_per_day: 2 },
+                            { label: '3x Daily', times_per_day: 3 },
+                            { label: '4x Daily', times_per_day: 4 },
+                          ]).map((f: any, idx: number) => (
+                            <option key={idx} value={f.label || `${f.times_per_day}x Daily`}>
+                              {f.label || `${f.times_per_day}x Daily`}
+                            </option>
                           ))}
                         </select>
                         <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -1776,18 +1780,21 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Frequency</label>
                       <div className="relative">
                         <select
-                          value={data?.medications_plan?.pre_op?.frequency_id || ''}
+                          value={data?.medications_plan?.pre_op?.frequency || ''}
                           onChange={(e) => {
-                            const id = parseInt(e.target.value);
-                            const freq = preOpFrequencies.find((f: any) => f.id === id);
-                            updateNestedField('medications_plan.pre_op.frequency_id', id);
-                            updateNestedField('medications_plan.pre_op.frequency', freq?.name || '');
+                            updateNestedField('medications_plan.pre_op.frequency', e.target.value);
                           }}
                           className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select frequency...</option>
-                          {preOpFrequencies.map((f: any) => (
-                            <option key={f.id} value={f.id}>{f.name}</option>
+                          {(frequencyOptions.length > 0 ? frequencyOptions : [
+                            { label: '2x Daily', times_per_day: 2 },
+                            { label: '3x Daily', times_per_day: 3 },
+                            { label: '4x Daily', times_per_day: 4 },
+                          ]).map((f: any, idx: number) => (
+                            <option key={idx} value={f.label || `${f.times_per_day}x Daily`}>
+                              {f.label || `${f.times_per_day}x Daily`}
+                            </option>
                           ))}
                         </select>
                         <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   LogOut,
@@ -7,27 +7,58 @@ import {
   LayoutDashboard,
   Hospital,
   Scan,
-  Upload,
   AlertCircle,
   PanelLeftClose,
-  Building2
+  Building2,
+  Loader2,
+  UserCog,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Eye,
+  RefreshCw,
 } from 'lucide-react';
 import PatientList from './PatientList';
 import PatientOnboarding from './PatientOnboarding';
 import ClinicSetup from './ClinicSetup';
-import { api, Clinic } from '../services/api';
+import UserManagement from './UserManagement';
+import { api, Clinic, DashboardResponse } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
-type View = 'dashboard' | 'onboarding' | 'clinic' | 'patients' | 'appointments';
+type View = 'dashboard' | 'onboarding' | 'clinic' | 'patients' | 'appointments' | 'team';
 
 // Sidebar localStorage key
 const SIDEBAR_COLLAPSED_KEY = 'medcore_sidebar_collapsed';
 
-const DoctorPortal: React.FC = () => {
+// =============================================================================
+// PROPS INTERFACE
+// =============================================================================
+
+interface DoctorPortalProps {
+  clinicId: string;
+}
+
+interface DoctorPortalContentProps {
+  clinicId: string;
+}
+
+// =============================================================================
+// MAIN PORTAL CONTENT (Authenticated View)
+// =============================================================================
+
+const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: urlClinicId }) => {
+  const { user, logout } = useAuth();
+
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [clinicId] = useState('VIC-MCLEAN-001'); // Default clinic
+  // Use clinic_id from URL (passed down), fallback to user's clinic
+  const clinicId = urlClinicId || user?.clinic_id || 'VIC-MCLEAN-001';
   const [patientList, setPatientList] = useState<string[]>([]); // Track patient IDs for navigation
   const [clinicData, setClinicData] = useState<Clinic | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  console.log('[DoctorPortal] Rendering for user:', user?.name, '| Clinic:', user?.clinic_name);
 
   // Sidebar collapsed state - default to true (collapsed/icon-only mode)
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -48,6 +79,30 @@ const DoctorPortal: React.FC = () => {
     fetchClinicData();
   }, [clinicId]);
 
+  // Fetch dashboard stats
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      setDashboardLoading(true);
+      const data = await api.getDashboardStats();
+      setDashboardData(data);
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [clinicId, fetchDashboardStats]);
+
+  // Refresh stats when returning to dashboard view
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      fetchDashboardStats();
+    }
+  }, [currentView, fetchDashboardStats]);
+
   // Persist sidebar state to localStorage
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(sidebarCollapsed));
@@ -55,8 +110,15 @@ const DoctorPortal: React.FC = () => {
 
   const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
 
-  // Get clinic name with fallback
-  const clinicName = clinicData?.clinic_profile?.name || 'MedCore';
+  // Get clinic name - prefer from auth user, then from clinic data
+  const clinicName = user?.clinic_name || clinicData?.clinic_profile?.name || 'MedCore';
+
+  // Handle logout
+  const handleLogout = async () => {
+    console.log('[DoctorPortal] User clicked logout');
+    await logout();
+    // The parent component will handle showing the login page
+  };
 
   const navigateToOnboarding = (pid: string, allPatients?: string[]) => {
     setSelectedPatientId(pid);
@@ -86,15 +148,67 @@ const DoctorPortal: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
+        // Get stats from API or use defaults
+        const stats = dashboardData?.stats || {
+          total_patients: 0,
+          todays_surgeries: 0,
+          pending_review: 0,
+          alerts: 0,
+        };
+        const todaysSurgeries = dashboardData?.todays_surgery_schedule || [];
+
+        // Get current date formatted nicely
+        const today = new Date();
+        const dateString = today.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
         return (
-          <div className="space-y-10 animate-[fadeIn_0.5s_ease-out]">
+          <div className="space-y-8 animate-[fadeIn_0.5s_ease-out]">
             {/* Stat Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'OCR Reviews Pending', value: '5', icon: <Scan size={24} />, badge: 'High Prio', color: 'text-blue-600', bg: 'bg-blue-50', badgeBg: 'bg-blue-100', badgeText: 'text-blue-600' },
-                { label: 'New Uploads', value: '12', icon: <Upload size={24} />, badge: '+2 Today', color: 'text-emerald-600', bg: 'bg-emerald-50', badgeBg: 'bg-emerald-100', badgeText: 'text-emerald-600' },
-                { label: 'Total Patients', value: '428', icon: <Users size={24} />, color: 'text-purple-600', bg: 'bg-purple-50', badge: null },
-                { label: 'Critical Alerts', value: '3', icon: <AlertCircle size={24} />, badge: 'Action Req', color: 'text-rose-600', bg: 'bg-rose-50', badgeBg: 'bg-rose-100', badgeText: 'text-rose-600' },
+                {
+                  label: "Today's Surgeries",
+                  value: dashboardLoading ? '...' : stats.todays_surgeries.toString(),
+                  icon: <Calendar size={24} />,
+                  badge: todaysSurgeries.length > 0 ? 'Scheduled' : null,
+                  color: 'text-blue-600',
+                  bg: 'bg-blue-50',
+                  badgeBg: 'bg-blue-100',
+                  badgeText: 'text-blue-600'
+                },
+                {
+                  label: 'Pending Review',
+                  value: dashboardLoading ? '...' : stats.pending_review.toString(),
+                  icon: <Scan size={24} />,
+                  badge: stats.pending_review > 0 ? 'Action Req' : null,
+                  color: 'text-amber-600',
+                  bg: 'bg-amber-50',
+                  badgeBg: 'bg-amber-100',
+                  badgeText: 'text-amber-600'
+                },
+                {
+                  label: 'Total Patients',
+                  value: dashboardLoading ? '...' : stats.total_patients.toString(),
+                  icon: <Users size={24} />,
+                  color: 'text-purple-600',
+                  bg: 'bg-purple-50',
+                  badge: null
+                },
+                {
+                  label: 'Alerts',
+                  value: dashboardLoading ? '...' : stats.alerts.toString(),
+                  icon: <AlertCircle size={24} />,
+                  badge: stats.alerts > 0 ? 'High Risk' : null,
+                  color: 'text-rose-600',
+                  bg: 'bg-rose-50',
+                  badgeBg: 'bg-rose-100',
+                  badgeText: 'text-rose-600'
+                },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group cursor-pointer relative overflow-hidden">
                   <div className="flex justify-between items-start mb-6">
@@ -115,6 +229,126 @@ const DoctorPortal: React.FC = () => {
               ))}
             </div>
 
+            {/* Today's Surgery Schedule */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-50">
+                    <Calendar size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Today's Surgery Schedule</h3>
+                    <p className="text-sm text-slate-400 font-medium">{dateString}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {todaysSurgeries.length > 0 && (
+                    <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">
+                      {todaysSurgeries.length} {todaysSurgeries.length === 1 ? 'Surgery' : 'Surgeries'}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); fetchDashboardStats(); }}
+                    disabled={dashboardLoading}
+                    className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                    title="Refresh"
+                  >
+                    <RefreshCw size={16} className={dashboardLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+              </div>
+
+              {dashboardLoading ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500">Loading schedule...</p>
+                </div>
+              ) : todaysSurgeries.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Calendar size={28} className="text-slate-400" />
+                  </div>
+                  <h4 className="text-lg font-bold text-slate-700 mb-2">No Surgeries Today</h4>
+                  <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                    There are no surgeries scheduled for today. Check back tomorrow or review pending patients.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <th className="px-8 py-4 text-left">Time</th>
+                        <th className="px-6 py-4 text-left">Patient</th>
+                        <th className="px-6 py-4 text-left">Eye</th>
+                        <th className="px-6 py-4 text-left">Procedure</th>
+                        <th className="px-6 py-4 text-left">IOL</th>
+                        <th className="px-8 py-4 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {todaysSurgeries.map((surgery, idx) => (
+                        <tr
+                          key={`${surgery.patient_id}-${surgery.eye}-${idx}`}
+                          className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                          onClick={() => navigateToOnboarding(surgery.patient_id)}
+                        >
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-2">
+                              <Clock size={16} className="text-slate-400" />
+                              <span className="text-sm font-bold text-slate-900">{surgery.arrival_time || 'TBD'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                {surgery.patient_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900">{surgery.patient_name}</p>
+                                <p className="text-xs text-slate-400">#{surgery.patient_id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2">
+                              <Eye size={16} className="text-slate-400" />
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                surgery.eye === 'OD'
+                                  ? 'bg-indigo-50 text-indigo-600'
+                                  : 'bg-violet-50 text-violet-600'
+                              }`}>
+                                {surgery.eye} ({surgery.eye === 'OD' ? 'Right' : 'Left'})
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-medium text-slate-700">{surgery.surgery_type}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm text-slate-600">{surgery.lens}</span>
+                          </td>
+                          <td className="px-8 py-5">
+                            {surgery.is_ready ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold">
+                                <CheckCircle2 size={14} />
+                                Ready
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 text-xs font-bold">
+                                <Clock size={14} />
+                                Pre-Op Pending
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             <PatientList onSelectPatient={navigateToOnboarding} clinicId={clinicId} />
           </div>
         );
@@ -133,6 +367,8 @@ const DoctorPortal: React.FC = () => {
         return <ClinicSetup clinicId={clinicId} onBack={() => setCurrentView('dashboard')} />;
       case 'patients':
         return <PatientList onSelectPatient={navigateToOnboarding} clinicId={clinicId} />;
+      case 'team':
+        return <UserManagement />;
       default:
         return <PatientList onSelectPatient={navigateToOnboarding} clinicId={clinicId} />;
     }
@@ -181,13 +417,14 @@ const DoctorPortal: React.FC = () => {
               { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
               { id: 'patients', label: 'Patients', icon: <Users size={20} /> },
               { id: 'clinic', label: 'Clinic Data', icon: <Hospital size={20} /> },
+              { id: 'team', label: 'Team', icon: <UserCog size={20} /> },
             ].map((item) => {
               const isActive = currentView === item.id || (item.id === 'dashboard' && currentView === 'onboarding');
               return (
                 <div key={item.id} className="relative group">
                   <button
                     onClick={() => {
-                      if (item.id === 'dashboard' || item.id === 'clinic' || item.id === 'patients') {
+                      if (item.id === 'dashboard' || item.id === 'clinic' || item.id === 'patients' || item.id === 'team') {
                         setCurrentView(item.id as View);
                       }
                     }}
@@ -223,26 +460,31 @@ const DoctorPortal: React.FC = () => {
         {/* User Profile Section */}
         <div className={`mt-auto ${sidebarCollapsed ? 'p-3' : 'p-6'} border-t border-slate-100 transition-all duration-300`}>
           <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : 'px-2'} mb-2 group cursor-pointer relative`}>
-            <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
-              <img src="https://i.pravatar.cc/100?u=drb" alt="Dr. Baveja" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border border-slate-200 shrink-0">
+              <span className="text-white font-bold text-sm">
+                {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+              </span>
             </div>
             <div className={`overflow-hidden text-left transition-all duration-300 ${
               sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
             }`}>
-              <p className="text-sm font-bold text-slate-900 truncate">Dr. Baveja</p>
-              <p className="text-xs text-slate-500 font-medium truncate">General Practitioner</p>
+              <p className="text-sm font-bold text-slate-900 truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-slate-500 font-medium truncate capitalize">{user?.role?.replace('_', ' ') || 'Staff'}</p>
             </div>
             {/* Tooltip for user when collapsed */}
             {sidebarCollapsed && (
               <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
-                <p className="font-semibold">Dr. Baveja</p>
-                <p className="text-xs text-slate-300">General Practitioner</p>
+                <p className="font-semibold">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-300 capitalize">{user?.role?.replace('_', ' ') || 'Staff'}</p>
                 <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800"></div>
               </div>
             )}
           </div>
           <div className="relative group">
-            <button className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 text-sm font-semibold`}>
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 text-sm font-semibold`}
+            >
               <LogOut size={18} className="shrink-0" />
               <span className={`transition-all duration-300 ${
                 sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
@@ -266,8 +508,11 @@ const DoctorPortal: React.FC = () => {
         {/* Top Header */}
         <header className="h-[80px] bg-white border-b border-slate-200 px-10 flex items-center justify-between shrink-0 z-20 sticky top-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, Dr. Baveja</h2>
-            {/* <p className="text-xs text-slate-500 font-medium mt-0.5">You have 5 tasks pending today.</p> */}
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, {user?.name || 'Doctor'}</h2>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {dashboardData?.stats.todays_surgeries ? ` • ${dashboardData.stats.todays_surgeries} surgery today` : ''}
+            </p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -302,6 +547,16 @@ const DoctorPortal: React.FC = () => {
       `}</style>
     </div>
   );
+};
+
+// =============================================================================
+// MAIN EXPORT - Just renders the portal content
+// Auth is handled by DoctorRoute in App.tsx
+// =============================================================================
+
+const DoctorPortal: React.FC<DoctorPortalProps> = ({ clinicId }) => {
+  console.log('[DoctorPortal] Rendering for clinic:', clinicId);
+  return <DoctorPortalContent clinicId={clinicId} />;
 };
 
 export default DoctorPortal;

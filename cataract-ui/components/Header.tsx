@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Calendar, Building2, ShieldCheck } from 'lucide-react';
+import { User, Calendar, Building2, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from '../theme';
 
 interface HeaderProps {
@@ -7,13 +7,15 @@ interface HeaderProps {
   patientName?: string;
   patientId?: string;
   patientDob?: string;
+  onLogout?: () => void; // Optional logout handler for authenticated patients
 }
 
 const Header: React.FC<HeaderProps> = ({
   onProfileClick,
   patientName = "Jane Doe",
   patientId = "MRN-882401",
-  patientDob = "Jan 15, 1954"
+  patientDob = "Jan 15, 1954",
+  onLogout,
 }) => {
   const { classes, currentTheme } = useTheme();
 
@@ -88,6 +90,17 @@ const Header: React.FC<HeaderProps> = ({
             <ShieldCheck size={14} className={accent.badgeIcon} />
             <span>Education Portal</span>
           </div>
+          {/* Logout button - only shown when onLogout is provided */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={14} />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

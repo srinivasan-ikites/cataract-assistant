@@ -20,7 +20,8 @@
     },
     "clinical_context": {
       "od_right": {
-        "pathology": "string", 
+        "pathology": "string",
+        "primary_cataract_type": "string (nuclear_sclerosis|cortical|posterior_subcapsular|combined|congenital)",
         "visual_acuity": { "ucva": "string", "bcva": "string" },
         "biometry": {
           "iol_master": {
@@ -44,6 +45,7 @@
       },
       "os_left": {
         "pathology": "string",
+        "primary_cataract_type": "string (nuclear_sclerosis|cortical|posterior_subcapsular|combined|congenital)",
         "visual_acuity": { "ucva": "string", "bcva": "string" },
         "biometry": {
           "iol_master": { "axial_length_mm": "number", "acd_mm": "number", "wtw_mm": "number", "cct_um": "number", "flat_k_k1": "number", "steep_k_k2": "number", "astigmatism_power": "number", "axis": "number", "k_type": "string" },

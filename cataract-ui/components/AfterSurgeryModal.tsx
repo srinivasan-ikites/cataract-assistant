@@ -9,18 +9,151 @@ import {
     MessageCircle,
     Info,
     Calendar,
-    X
+    X,
+    Phone,
+    AlertTriangle,
+    Eye,
+    Sparkles
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Patient, api } from '../services/api';
+import { Patient, api, patientAuthStorage, patientAuthApi } from '../services/api';
 import { useTheme } from '../theme';
+import { useToast } from './Toast';
 
 interface AfterSurgeryModalProps {
     patient: Patient | null;
     onClose: () => void;
     moduleContent?: any;
     onOpenChat?: (question: string) => void;
+    isLoading?: boolean;
 }
+
+// Skeleton content component for After Surgery Modal
+const AfterSurgerySkeletonContent: React.FC = () => (
+    <div className="flex-1 overflow-y-auto p-6 space-y-8 animate-pulse">
+        {/* Hero Section Skeleton */}
+        <div className="bg-gradient-to-br from-slate-200 to-slate-300 rounded-[40px] p-8 h-56" />
+
+        {/* Medication Cards Skeleton */}
+        <div className="space-y-6">
+            <div className="flex items-center justify-between px-1">
+                <div className="h-4 bg-slate-200 rounded w-36" />
+                <div className="h-6 bg-blue-100 rounded-full w-32" />
+            </div>
+
+            {/* Medication Card */}
+            <div className="bg-white rounded-[32px] p-8 border border-slate-100">
+                <div className="flex items-start justify-between mb-8">
+                    <div className="flex gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-blue-100" />
+                        <div className="space-y-2">
+                            <div className="h-7 bg-slate-200 rounded w-40" />
+                            <div className="flex gap-3">
+                                <div className="h-6 bg-slate-100 rounded-lg w-24" />
+                                <div className="h-6 bg-blue-100 rounded w-28" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-10 h-10 bg-slate-100 rounded-full" />
+                </div>
+
+                {/* Dose Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="p-6 rounded-2xl border-2 border-slate-200 bg-white flex flex-col items-center gap-4">
+                            <div className="h-4 bg-slate-200 rounded w-16" />
+                            <div className="w-12 h-12 rounded-full bg-slate-100" />
+                            <div className="h-4 bg-slate-200 rounded w-20" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        {/* When Should I Call Section Skeleton */}
+        <div className="space-y-6">
+            <div className="flex items-center gap-3 px-1">
+                <div className="w-5 h-5 bg-slate-200 rounded" />
+                <div className="h-6 bg-slate-200 rounded w-64" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Normal Card */}
+                <div className="bg-emerald-50 rounded-[28px] p-7 border border-emerald-100">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-200" />
+                        <div className="h-5 bg-emerald-200 rounded w-36" />
+                    </div>
+                    <div className="space-y-3">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex items-start gap-3">
+                                <div className="w-5 h-5 rounded-full bg-emerald-200" />
+                                <div className="h-4 bg-emerald-100 rounded w-3/4" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Warning Card */}
+                <div className="bg-rose-50 rounded-[28px] p-7 border border-rose-200">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 rounded-xl bg-rose-200" />
+                        <div className="h-5 bg-rose-200 rounded w-36" />
+                    </div>
+                    <div className="space-y-3">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="flex items-start gap-3">
+                                <div className="w-5 h-5 rounded-full bg-rose-200" />
+                                <div className="h-4 bg-rose-100 rounded w-3/4" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* FAQ Skeleton */}
+        <div className="space-y-6 pt-4">
+            <div className="h-5 bg-slate-200 rounded w-56" />
+            <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white rounded-[28px] border border-slate-100 p-6 flex justify-between items-center">
+                        <div className="h-5 bg-slate-200 rounded w-3/4" />
+                        <div className="w-8 h-8 bg-slate-100 rounded-full" />
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Chat CTA Skeleton */}
+        <div className="p-10 rounded-[40px] bg-violet-50 border border-violet-100 text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 bg-white rounded-3xl mx-auto mb-6" />
+            <div className="h-7 bg-slate-200 rounded w-48 mx-auto mb-3" />
+            <div className="h-4 bg-slate-100 rounded w-64 mx-auto mb-8" />
+            <div className="h-14 bg-violet-200 rounded-3xl w-56 mx-auto" />
+        </div>
+    </div>
+);
+
+// Hardcoded FAQs for "After Surgery" module
+const afterSurgeryFaqs = [
+    {
+        question: "When can I shower or wash my hair? Can water get in my eye?",
+        answer: "You can shower the **day after surgery**, but you must be careful to **avoid getting water directly in your eye** for the first 1-2 weeks. When washing your hair, tilt your head back so water runs away from your face, or use a washcloth to protect your eye. Avoid swimming pools, hot tubs, and lakes for at least 2 weeks to prevent infection."
+    },
+    {
+        question: "How long until my vision stabilizes? Why is it still blurry?",
+        answer: "Vision improvement begins within **24-48 hours**, but your vision may fluctuate for **4-6 weeks** as your eye heals. Blurriness in the first few days is completely normal — caused by dilating drops, mild swelling, and your brain adjusting to the new lens. Most patients notice significant improvement within the first week, with final results by 4-8 weeks."
+    },
+    {
+        question: "Can I bend over, lift things, or exercise after surgery?",
+        answer: "For the first **1-2 weeks**, avoid bending below your waist, lifting anything over 10-15 pounds, and strenuous exercise. These activities increase pressure in your eye. Light walking is fine. After 2 weeks, you can gradually resume normal activities. Avoid contact sports and swimming for at least 4 weeks."
+    },
+    {
+        question: "Is it normal to see floaters, flashes, or have a scratchy feeling?",
+        answer: "**Mild scratchiness** (like an eyelash in your eye) is normal for a few days. **A few floaters** are common and usually settle down. However, **contact your doctor immediately** if you see: a sudden increase in floaters, flashing lights, a curtain or shadow in your vision, severe pain not relieved by over-the-counter medication, or significant vision loss. These could indicate a serious complication."
+    }
+];
 
 const CircularProgress = ({ progress, size = 40, strokeWidth = 3, color = "text-blue-600" }: { progress: number, size?: number, strokeWidth?: number, color?: string }) => {
     const radius = (size - strokeWidth) / 2;
@@ -64,14 +197,18 @@ const SESSIONS = [
     { label: 'Night', time: '8:00 PM', icon: 'Moon' }
 ];
 
-const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: AfterSurgeryModalProps) => {
+const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoading = false }: AfterSurgeryModalProps) => {
     const { classes } = useTheme();
+    const toast = useToast();
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
     const [updating, setUpdating] = useState(false);
 
     // 1. Calculate Progress & Timing
-    // const surgeryDateStr = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date || "2025-12-23";
-    const surgeryDateStr = "2026-1-15";
+    // Get surgery date from v2 schema: surgical_plan.operative_logistics
+    const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
+    const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
+    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
+    const surgeryDateStr = "2026-01-25";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dateKey = today.toISOString().split('T')[0];
@@ -93,6 +230,25 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
     // 2. Local State for Instant UI Feedback
     const initialProgress = patient?.medications?.post_op?.progress || {};
     const [localProgress, setLocalProgress] = useState(initialProgress);
+
+    // Fetch fresh medication data when modal opens (to get latest from DB)
+    React.useEffect(() => {
+        const fetchFreshData = async () => {
+            // Only fetch if patient is logged in (not doctor view)
+            if (patientAuthStorage.isAuthenticated() && patient?.patient_id) {
+                try {
+                    const freshPatient = await patientAuthApi.getMyData();
+                    if (freshPatient?.medications?.post_op?.progress) {
+                        setLocalProgress(freshPatient.medications.post_op.progress);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch fresh medication data:", err);
+                    // Fall back to prop data
+                }
+            }
+        };
+        fetchFreshData();
+    }, []); // Only run on mount
 
     // Sync local state if patient prop changes significantly (e.g. from parent refresh)
     React.useEffect(() => {
@@ -170,21 +326,32 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
         if (!patient) return;
         setUpdating(true);
         try {
-            const updatedPatient = {
-                ...patient,
-                medications: {
-                    ...patient.medications,
-                    post_op: {
-                        ...patient.medications?.post_op,
-                        progress: updatedProgress
+            // Check if patient is logged in (patient portal) vs doctor viewing
+            if (patientAuthStorage.isAuthenticated()) {
+                // Patient is logged in - use patient API
+                await patientAuthApi.updateMedicationProgress('post_op', updatedProgress);
+            } else {
+                // Doctor is viewing - use doctor API (requires doctor auth)
+                const updatedPatient = {
+                    ...patient,
+                    medications: {
+                        ...patient.medications,
+                        post_op: {
+                            ...patient.medications?.post_op,
+                            progress: updatedProgress
+                        }
                     }
-                }
-            };
-            const clinicId = patient.clinic_id || 'VIC-MCLEAN-001';
-            await api.saveReviewedPatient(clinicId, patient.patient_id, updatedPatient);
-        } catch (err) {
+                };
+                const clinicId = patient.clinic_id || 'VIC-MCLEAN-001';
+                await api.saveReviewedPatient(clinicId, patient.patient_id, updatedPatient);
+            }
+        } catch (err: any) {
             console.error("Failed to sync post-op progress:", err);
-            // Optional: Revert local state on error
+            toast.error(
+                "Failed to save",
+                err?.message || "Could not save your medication progress. Please try again."
+            );
+            // Revert local state on error
             setLocalProgress(patient?.medications?.post_op?.progress || {});
         } finally {
             setUpdating(false);
@@ -226,30 +393,31 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
             />
 
             {/* Modal Container */}
-            <div className="relative w-full max-w-4xl max-h-[92vh] bg-slate-50 rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-[scaleIn_0.2s_ease-out]">
+            <div className="relative w-full max-w-5xl max-h-[96vh] bg-gradient-to-b from-white to-slate-50 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-[scaleIn_0.2s_ease-out]">
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-5 right-5 z-10 p-2.5 bg-white/20 hover:bg-white/30 rounded-full transition-all text-white hover:text-white"
+                >
+                    <X size={22} />
+                </button>
+
                 {/* Header */}
-                <div className="bg-white border-b border-slate-100 px-10 py-6 flex items-center justify-between shrink-0">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Recovery Tracker</h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Calendar size={14} className="text-blue-500" />
-                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                                {isSurgeryDay
-                                    ? 'Surgery Day'
-                                    : diffInDays < 0
-                                        ? `Surgery in ${Math.abs(diffInDays)} ${Math.abs(diffInDays) === 1 ? 'day' : 'days'}`
-                                        : `Day ${diffInDays} of Recovery`}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2.5 bg-slate-100 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all shadow-sm"
-                    >
-                        <X size={24} />
-                    </button>
+                <div className="px-8 pt-6 pb-4 bg-gradient-to-r from-violet-600 to-purple-600 shrink-0">
+                    <h1 className="text-2xl font-bold mb-1 text-white">After Surgery</h1>
+                    <p className="text-base text-white/80">
+                        {isSurgeryDay
+                            ? 'Surgery Day - Your recovery begins today'
+                            : diffInDays < 0
+                                ? `Surgery in ${Math.abs(diffInDays)} ${Math.abs(diffInDays) === 1 ? 'day' : 'days'}`
+                                : `Day ${diffInDays} of Recovery - Track your progress`}
+                    </p>
                 </div>
 
+                {/* Content Area - shows skeleton or actual content */}
+                {isLoading ? (
+                    <AfterSurgerySkeletonContent />
+                ) : (
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                     {/* Hero Section with Healing Progress */}
                     <div className="bg-gradient-to-br from-blue-700 via-indigo-800 to-violet-900 rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden group">
@@ -442,47 +610,145 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
                         </div>
                     )}
 
-                    {/* FAQ Section */}
-                    {moduleContent?.faqs && moduleContent.faqs.length > 0 && (
-                        <div className="space-y-6 pt-4">
-                            <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] px-1">Common Questions</h3>
-                            <div className="grid grid-cols-1 gap-4">
-                                {moduleContent.faqs.map((faq: any, index: number) => {
-                                    const isOpen = openFaqIndex === index;
-                                    return (
-                                        <div key={index} className={`
-                                            group rounded-[28px] border transition-all duration-500 overflow-hidden
-                                            ${isOpen
-                                                ? 'bg-white border-blue-200 shadow-xl shadow-blue-50'
-                                                : 'bg-white/50 border-slate-100 hover:border-blue-200 hover:bg-white backdrop-blur-sm'
-                                            }
-                                        `}>
-                                            <button
-                                                onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                                                className="w-full text-left p-6 flex justify-between items-center gap-4"
-                                            >
-                                                <div className={`font-black text-lg leading-snug transition-colors ${isOpen ? 'text-blue-900' : 'text-slate-800 group-hover:text-blue-600'}`}>
-                                                    <ReactMarkdown components={{ p: Fragment }}>{faq.question}</ReactMarkdown>
-                                                </div>
-                                                <div className={`
-                                                    shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500
-                                                    ${isOpen ? 'bg-blue-600 text-white rotate-180 shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500'}
-                                                `}>
-                                                    <ChevronDown size={14} />
-                                                </div>
-                                            </button>
-                                            <div className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                                <div className="p-6 pt-0 text-base text-slate-700 leading-relaxed font-bold bg-gradient-to-b from-transparent to-slate-50/50">
-                                                    <div className="h-[1px] w-full bg-slate-200 mb-6" />
-                                                    <ReactMarkdown>{faq.answer}</ReactMarkdown>
-                                                </div>
-                                            </div>
+                    {/* When Should I Call My Doctor? Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 px-1">
+                            <Phone size={18} className="text-slate-600" />
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">When Should I Call My Doctor?</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Normal/Expected Symptoms */}
+                            <div className="bg-emerald-50 rounded-[28px] p-7 border border-emerald-100">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+                                        <CheckCircle2 size={22} />
+                                    </div>
+                                    <h4 className="text-base font-black text-emerald-900 uppercase tracking-wide">Normal & Expected</h4>
+                                </div>
+                                <p className="text-sm font-semibold text-emerald-800 mb-4">
+                                    These symptoms are common during the first few days of recovery:
+                                </p>
+                                <ul className="space-y-3">
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <CheckCircle2 size={12} className="text-emerald-700" />
                                         </div>
-                                    );
-                                })}
+                                        <span className="text-sm font-medium text-emerald-800">Vision may fluctuate, especially during the first few days</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <CheckCircle2 size={12} className="text-emerald-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-emerald-800">Mild tearing</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <CheckCircle2 size={12} className="text-emerald-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-emerald-800">Scratchiness or gritty feeling</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <CheckCircle2 size={12} className="text-emerald-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-emerald-800">Some mild redness</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Warning Signs - Call Immediately */}
+                            <div className="bg-rose-50 rounded-[28px] p-7 border border-rose-200">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center">
+                                        <AlertTriangle size={22} />
+                                    </div>
+                                    <h4 className="text-base font-black text-rose-900 uppercase tracking-wide">Call Immediately</h4>
+                                </div>
+                                <p className="text-sm font-semibold text-rose-800 mb-4">
+                                    Contact your doctor right away if you experience:
+                                </p>
+                                <ul className="space-y-3">
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">Significant pain not improving with Advil or Tylenol</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">Severe nausea</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">Flashes of light</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">New floaters or additional floaters</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">A curtain or veil in your vision</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <AlertCircle size={12} className="text-rose-700" />
+                                        </div>
+                                        <span className="text-sm font-medium text-rose-800">Significant decline or change in vision</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* FAQ Section - Always render with hardcoded FAQs */}
+                    <div className="space-y-6 pt-4">
+                        <h3 className="text-base font-bold text-slate-700 uppercase tracking-wider px-1">Frequently Asked Questions</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            {afterSurgeryFaqs.map((faq, index) => {
+                                const isOpen = openFaqIndex === index;
+                                return (
+                                    <div key={index} className={`
+                                        group rounded-[28px] border transition-all duration-500 overflow-hidden
+                                        ${isOpen
+                                            ? 'bg-white border-blue-200 shadow-xl shadow-blue-50'
+                                            : 'bg-white/50 border-slate-100 hover:border-blue-200 hover:bg-white backdrop-blur-sm'
+                                        }
+                                    `}>
+                                        <button
+                                            onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                                            className="w-full text-left p-6 flex justify-between items-center gap-4"
+                                        >
+                                            <div className={`font-semibold text-base leading-snug transition-colors ${isOpen ? 'text-blue-900' : 'text-slate-800 group-hover:text-blue-600'}`}>
+                                                {faq.question}
+                                            </div>
+                                            <div className={`
+                                                shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500
+                                                ${isOpen ? 'bg-blue-600 text-white rotate-180 shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500'}
+                                            `}>
+                                                <ChevronDown size={14} />
+                                            </div>
+                                        </button>
+                                        <div className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                            <div className="p-6 pt-0 text-base text-slate-700 leading-relaxed bg-gradient-to-b from-transparent to-slate-50/50">
+                                                <div className="h-[1px] w-full bg-slate-200 mb-6" />
+                                                <ReactMarkdown>{faq.answer}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {/* Bot Action Section (Centered Consistency) */}
                     <div className="mt-12 p-10 rounded-[40px] bg-violet-50/50 border border-violet-100 text-center max-w-2xl mx-auto shadow-sm">
@@ -508,6 +774,7 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat }: Afte
                         </button>
                     </div>
                 </div>
+                )}
 
                 <style>{`
                 .animate-fadeIn {

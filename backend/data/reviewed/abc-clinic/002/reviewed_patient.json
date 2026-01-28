@@ -1,0 +1,247 @@
+{
+  "patient_identity": {
+    "patient_id": "1245583",
+    "clinic_ref_id": null,
+    "first_name": "Lata",
+    "middle_name": "",
+    "last_name": "Bhagia",
+    "dob": "1956-01-20",
+    "gender": "Female"
+  },
+  "medical_profile": {
+    "systemic_conditions": [
+      "No diabetes"
+    ],
+    "medications_systemic": [
+      "Adults Multivitamin",
+      "Calcium"
+    ],
+    "allergies": [
+      "codeine"
+    ],
+    "review_of_systems": [
+      "No Artificial Joints",
+      "No Fever",
+      "No Chills",
+      "No Weight Loss",
+      "No Stuffy Nose",
+      "No Ear Ache",
+      "No Dry Mouth",
+      "No Upset Stomach",
+      "No Diarrhea",
+      "No Constipation",
+      "No Urinary Frequency",
+      "No Joint Swelling",
+      "No Decreased Range Of Motion",
+      "No Anxiety",
+      "No Insomnia",
+      "No Allergic Reactions",
+      "No Hives"
+    ],
+    "surgical_history": {
+      "non_ocular": [
+        "None"
+      ],
+      "ocular": [
+        "None"
+      ]
+    }
+  },
+  "clinical_context": {
+    "od_right": {
+      "pathology": "1-2+ nuclear sclerosis, 2+ cortical, abnormal tear break up time, spk inferiorly",
+      "primary_cataract_type": "combined",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.32,
+          "acd_mm": 3.77,
+          "wtw_mm": 11.6,
+          "cct_um": 495,
+          "flat_k_k1": 42.88,
+          "steep_k_k2": 45.6,
+          "astigmatism_power": -2.72,
+          "axis": 102,
+          "k_type": "KERATOMETRY"
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 1.7,
+          "axis": 12,
+          "cct_um": 521,
+          "belin_ambrosio_score": 0.93
+        }
+      }
+    },
+    "os_left": {
+      "pathology": "1+ cortical, 1-2+ nuclear sclerosis, abnormal tear break up time, spk inferiorly",
+      "primary_cataract_type": "combined",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.23,
+          "acd_mm": 3.73,
+          "wtw_mm": 11.7,
+          "cct_um": 494,
+          "flat_k_k1": 43.76,
+          "steep_k_k2": 44.66,
+          "astigmatism_power": -0.9,
+          "axis": 51,
+          "k_type": "KERATOMETRY"
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": null,
+          "axis": null,
+          "cct_um": 526,
+          "belin_ambrosio_score": 1.31
+        }
+      }
+    },
+    "ocular_comorbidities": [
+      "Dry Eye Syndrome",
+      "Myopia",
+      "Senile Cataract",
+      "No glaucoma"
+    ],
+    "clinical_alerts": [
+      {
+        "trigger": "OD (Right) Biometry Discrepancy",
+        "alert_msg": "IOL Master (-2.72D) vs Pentacam (1.7D) differ by 4.42D - Consider intraoperative aberrometry"
+      }
+    ]
+  },
+  "lifestyle_profile": {
+    "occupation": "Teacher",
+    "hobbies": [
+      "Reading",
+      "Walking",
+      "Music"
+    ],
+    "visual_goals": {
+      "primary_zone": "Distance",
+      "spectacle_independence_desire": "High"
+    },
+    "personality_traits": {
+      "perfectionism_score": 7,
+      "risk_tolerance": ""
+    },
+    "symptoms_impact": {
+      "night_driving_difficulty": true,
+      "glare_halos": true
+    }
+  },
+  "surgical_plan": {
+    "candidacy_profile": {
+      "od_right": {
+        "is_candidate_multifocal": true,
+        "is_candidate_toric": true,
+        "is_candidate_lal": true
+      },
+      "os_left": {
+        "is_candidate_multifocal": true,
+        "is_candidate_toric": true,
+        "is_candidate_lal": true
+      }
+    },
+    "offered_packages": [
+      "PKG_STD",
+      "PKG_LASER_LRI",
+      "PKG_TORIC_LASER",
+      "PKG_EDOF",
+      "PKG_MULTIFOCAL",
+      "PKG_TORIC",
+      "PKG_LAL",
+      "PKG_EDOF_LASER",
+      "PKG_MULTIFOCAL_LASER"
+    ],
+    "patient_selection": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "operative_logistics": {
+      "od_right": {
+        "status": "",
+        "surgery_date": "2026-01-30",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      },
+      "os_left": {
+        "status": "",
+        "surgery_date": "2026-01-30",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      }
+    },
+    "same_plan_both_eyes": true
+  },
+  "medications_plan": {
+    "settings": {
+      "pre_op_protocol_type": "",
+      "post_op_protocol_type": "",
+      "glaucoma_meds_instruction": ""
+    },
+    "pre_op_schedule": {
+      "instruction": "",
+      "medications": []
+    },
+    "post_op_schedule": {
+      "instruction": "",
+      "medications": []
+    },
+    "pre_op": {
+      "antibiotic_id": 1769345220173,
+      "antibiotic_name": "pre-antibio"
+    },
+    "post_op": {
+      "antibiotic": {
+        "name": "post-antiobio2",
+        "frequency": 4,
+        "weeks": 1
+      },
+      "nsaid": {
+        "name": "post-nsaids2",
+        "frequency": 4,
+        "frequency_label": "4x Daily",
+        "weeks": 4
+      },
+      "steroid": {
+        "taper_type": "short",
+        "taper_schedule": [
+          2,
+          1,
+          0,
+          0
+        ],
+        "name": "post-steroids"
+      },
+      "glaucoma": {
+        "resume": true
+      }
+    }
+  },
+  "documents": null,
+  "chat_history": [],
+  "module_content": {}
+}

@@ -375,12 +375,12 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'user' ? (
                     <div
-                      className={`max-w-[92%] p-4 rounded-[20px] text-[17px] leading-[1.8] text-slate-800 shadow-sm ${classes.userBubble} rounded-br-sm`}
+                      className={`max-w-[92%] p-4 rounded-[20px] text-[17px] leading-[1.8] shadow-sm ${classes.userBubble} rounded-br-sm`}
                     >
                       <ReactMarkdown
                         components={{
                           p: ({ children }) => <p className="text-[17px] leading-[1.8] m-0">{children}</p>,
-                          strong: ({ children }) => <strong className="font-bold text-slate-900">{children}</strong>,
+                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                         }}
                       >
                         {msg.text}

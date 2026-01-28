@@ -1,5 +1,7 @@
 """
 Chat and module content routes for the patient assistant.
+
+Updated to use Supabase instead of JSON files.
 """
 import time
 
@@ -14,8 +16,12 @@ from adk_app.services.module_service import (
     normalize_module_title,
     get_missing_modules,
     generate_and_save_missing,
+    generate_diagnosis_if_needed,
+    should_generate_diagnosis_module,
+    DIAGNOSIS_MODULE_TITLE,
 )
-from adk_app.utils.data_loader import (
+# Use Supabase data loader instead of JSON-based one
+from adk_app.utils.supabase_data_loader import (
     get_patient_data,
     save_patient_chat_history,
 )
@@ -105,70 +111,77 @@ def module_content_endpoint(
     payload: ModuleContentRequest,
     runtime: AgentRuntime = Depends(get_runtime),
 ) -> ModuleContentResponse:
-    """Get or generate personalized module content for a patient."""
+    """
+    Get or generate personalized module content for a patient.
+
+    NOTE: Only "My Diagnosis" module is LLM-generated.
+    Other modules return a minimal response - the frontend uses static content for those.
+    """
     raw_title = payload.module_title or ""
     key = normalize_module_title(raw_title)
+    diagnosis_key = normalize_module_title(DIAGNOSIS_MODULE_TITLE)
 
-    print(f"[ModuleContent] REQUEST - module_title='{raw_title}' normalized_key='{key}' patient_id={payload.patient_id}")
+    print(f"[ModuleContent] REQUEST - module_title='{raw_title}' patient_id={payload.patient_id}")
 
     try:
         patient = get_patient_data(payload.patient_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
-    # Debug patient structure
-    extra = patient.get("extra")
+    # Get module cache
     module_content_top = patient.get("module_content")
-    print(f"[ModuleContent] PATIENT EXTRA TYPE: {type(extra)} keys={list(extra.keys()) if isinstance(extra, dict) else 'n/a'}")
-    print(f"[ModuleContent] PATIENT module_content type: {type(module_content_top)} keys={list(module_content_top.keys()) if isinstance(module_content_top, dict) else 'n/a'}")
+    extra = patient.get("extra")
 
-    # Check for cached content
-    print("[ModuleContent] CACHE CHECK - Looking for cached content...")
-    print(f"[ModuleContent] CACHE CHECK - extra exists: {extra is not None and isinstance(extra, dict)}")
-
-    # Prefer top-level module_content; fallback to extra.module_content
     module_cache = None
     if isinstance(module_content_top, dict):
         module_cache = module_content_top
-        print("[ModuleContent] CACHE CHECK - using top-level module_content")
     elif isinstance(extra, dict) and isinstance(extra.get("module_content"), dict):
         module_cache = extra.get("module_content")
-        print("[ModuleContent] CACHE CHECK - using extra.module_content")
     else:
-        print(f"[ModuleContent] CACHE CHECK - module_content missing or not dict (top-level={isinstance(module_content_top, dict)}, extra_has={isinstance(extra, dict) and isinstance(extra.get('module_content'), dict)})")
+        module_cache = {}
 
-    if isinstance(module_cache, dict):
-        print(f"[ModuleContent] CACHE CHECK - Available keys in cache: {list(module_cache.keys())}")
-        print(f"[ModuleContent] CACHE CHECK - Looking for key: '{raw_title}' or '{key}'")
-
-        cached = module_cache.get(raw_title)
-        if cached:
-            print(f"[ModuleContent] ✓ CACHE HIT (raw_title) - Found content for '{raw_title}'")
-            return ModuleContentResponse(**cached)
-
-        cached = module_cache.get(key)
-        if cached:
-            print(f"[ModuleContent] ✓ CACHE HIT (normalized_key) - Found content for '{key}'")
-            return ModuleContentResponse(**cached)
-
-        print(f"[ModuleContent] ✗ CACHE MISS - No content found for '{raw_title}' or '{key}'")
-
-    # If missing, batch-generate all missing modules to avoid duplicate calls
-    missing, module_cache = get_missing_modules(patient, module_cache)
-    print(f"[ModuleContent] GENERATING batch for missing={missing}")
-    generate_and_save_missing(payload.patient_id, patient, missing, runtime.config)
-
-    # Reload cache for this patient after save
-    patient = get_patient_data(payload.patient_id)
-    module_cache = patient.get("module_content") if isinstance(patient.get("module_content"), dict) else {}
-
+    # Check for cached content first
     cached = module_cache.get(raw_title) or module_cache.get(key)
     if cached:
-        print(f"[ModuleContent] ✓ CACHE HIT after batch - Found content for '{raw_title}'")
+        print(f"[ModuleContent] ✓ CACHE HIT - Found content for '{raw_title}'")
         return ModuleContentResponse(**cached)
 
-    print(f"[ModuleContent] ✗ CACHE MISS after batch for '{raw_title}' (unexpected)")
-    raise HTTPException(status_code=500, detail="Failed to generate module content")
+    # Only generate if this is the "My Diagnosis" module
+    is_diagnosis_module = (key == diagnosis_key or raw_title == DIAGNOSIS_MODULE_TITLE)
+
+    if not is_diagnosis_module:
+        # For non-diagnosis modules, return minimal response
+        # Frontend will use static content
+        print(f"[ModuleContent] Static module '{raw_title}' - returning minimal response")
+        return ModuleContentResponse(
+            title=raw_title,
+            summary="",
+            details=[],
+            faqs=[],
+            videoScriptSuggestion="",
+            botStarterPrompt=f"Tell me more about {raw_title}"
+        )
+
+    # Generate "My Diagnosis" module
+    print(f"[ModuleContent] Generating diagnosis module for patient={payload.patient_id}")
+    generated = generate_diagnosis_if_needed(
+        patient_id=payload.patient_id,
+        patient=patient,
+        config=runtime.config,
+        force=False
+    )
+
+    if generated:
+        # Reload to get the newly saved content
+        patient = get_patient_data(payload.patient_id)
+        module_cache = patient.get("module_content", {})
+        cached = module_cache.get(raw_title) or module_cache.get(key)
+        if cached:
+            print(f"[ModuleContent] ✓ Generated and returning diagnosis content")
+            return ModuleContentResponse(**cached)
+
+    print(f"[ModuleContent] ✗ Failed to generate diagnosis content")
+    raise HTTPException(status_code=500, detail="Failed to generate diagnosis content")
 
 
 @router.post("/pregenerate-modules")
@@ -176,19 +189,49 @@ def pregenerate_modules_endpoint(
     payload: PreGenerateModulesRequest,
     runtime: AgentRuntime = Depends(get_runtime),
 ) -> dict:
-    """Pre-generate all module content for a patient."""
-    from adk_app.core.config import MODULE_TITLES
+    """
+    Pre-generate module content for a patient.
 
+    NOTE: Only generates "My Diagnosis" module via LLM.
+    Other modules use static content and don't need pre-generation.
+    """
     try:
         patient = get_patient_data(payload.patient_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
-    missing, module_cache = get_missing_modules(patient)
-    if not missing:
-        return {"status": "ok", "generated": 0, "missing": [], "skipped": len(MODULE_TITLES)}
+    # Check if diagnosis module needs generation
+    if not should_generate_diagnosis_module(patient):
+        print(f"[ModuleContent] Pregen skipped - diagnosis module exists for patient={payload.patient_id}")
+        return {
+            "status": "ok",
+            "generated": 0,
+            "message": "Diagnosis module already exists",
+            "module": DIAGNOSIS_MODULE_TITLE
+        }
 
-    print(f"[ModuleContent] Pregen start patient={payload.patient_id} missing={missing}")
-    saved = generate_and_save_missing(payload.patient_id, patient, missing, runtime.config)
-    print(f"[ModuleContent] Pregen done patient={payload.patient_id} saved={saved}")
-    return {"status": "ok", "generated": len(saved), "missing": missing, "saved": saved}
+    print(f"[ModuleContent] Pregen start patient={payload.patient_id}")
+
+    # Generate diagnosis module
+    generated = generate_diagnosis_if_needed(
+        patient_id=payload.patient_id,
+        patient=patient,
+        config=runtime.config,
+        force=False
+    )
+
+    if generated:
+        print(f"[ModuleContent] Pregen done patient={payload.patient_id}")
+        return {
+            "status": "ok",
+            "generated": 1,
+            "saved": [DIAGNOSIS_MODULE_TITLE],
+            "module": DIAGNOSIS_MODULE_TITLE
+        }
+    else:
+        return {
+            "status": "ok",
+            "generated": 0,
+            "message": "Generation skipped or failed",
+            "module": DIAGNOSIS_MODULE_TITLE
+        }

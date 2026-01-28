@@ -1,17 +1,29 @@
 """
 Module content generation service for patient education modules.
+
+OPTIMIZED: Only generates "My Diagnosis" module via LLM.
+Other modules use static content or templates with dynamic data insertion.
+
+Updated to use Supabase instead of JSON files.
 """
 from __future__ import annotations
 
 import json
 import traceback
+from typing import Optional
 
 import litellm
 from fastapi import HTTPException
 
 from adk_app.config import ModelConfig
+# Note: MODULE_TITLES kept for reference but only "My Diagnosis" is LLM-generated
 from adk_app.core.config import MODULE_TITLES
-from adk_app.utils.data_loader import get_clinic_data, save_patient_module_content, clear_patient_cache, get_patient_data
+# Use Supabase data loader
+from adk_app.utils.supabase_data_loader import save_patient_module_content, clear_patient_cache, get_patient_data
+
+
+# The only module that requires LLM generation
+DIAGNOSIS_MODULE_TITLE = "My Diagnosis"
 
 
 def normalize_module_title(title: str) -> str:
@@ -19,8 +31,95 @@ def normalize_module_title(title: str) -> str:
     return (title or "").strip().lower()
 
 
+def get_diagnosis_fields(patient: dict) -> dict:
+    """
+    Extract diagnosis-related fields from patient data.
+
+    The v2 schema stores pathology per-eye:
+    - clinical_context.od_right.pathology
+    - clinical_context.os_left.pathology
+    """
+    clinical_context = patient.get("clinical_context", {}) or {}
+
+    # Extract per-eye pathology (v2 schema)
+    od_right = clinical_context.get("od_right", {}) or {}
+    os_left = clinical_context.get("os_left", {}) or {}
+
+    od_pathology = od_right.get("pathology", "")
+    os_pathology = os_left.get("pathology", "")
+
+    # Also check legacy single-field locations
+    legacy_diagnosis = clinical_context.get("diagnosis", {}) or {}
+    if not legacy_diagnosis:
+        legacy_diagnosis = clinical_context.get("primary_diagnosis", {}) or {}
+
+    return {
+        "od_pathology": od_pathology,
+        "os_pathology": os_pathology,
+        "type": legacy_diagnosis.get("type", ""),
+        "pathology": legacy_diagnosis.get("pathology", ""),
+    }
+
+
+def has_diagnosis_changed(old_patient: dict, new_patient: dict) -> bool:
+    """
+    Check if diagnosis fields have changed between old and new patient data.
+
+    Checks per-eye pathology (v2 schema) and legacy fields.
+    """
+    old_diagnosis = get_diagnosis_fields(old_patient)
+    new_diagnosis = get_diagnosis_fields(new_patient)
+
+    # Check per-eye pathology (primary fields in v2 schema)
+    od_changed = old_diagnosis.get("od_pathology") != new_diagnosis.get("od_pathology")
+    os_changed = old_diagnosis.get("os_pathology") != new_diagnosis.get("os_pathology")
+
+    # Also check legacy fields
+    type_changed = old_diagnosis.get("type") != new_diagnosis.get("type")
+    pathology_changed = old_diagnosis.get("pathology") != new_diagnosis.get("pathology")
+
+    if od_changed or os_changed or type_changed or pathology_changed:
+        print(f"[ModuleService] Diagnosis changed: OD={od_changed}, OS={os_changed}, type={type_changed}, pathology={pathology_changed}")
+        print(f"[ModuleService] Old: {old_diagnosis}")
+        print(f"[ModuleService] New: {new_diagnosis}")
+        return True
+
+    return False
+
+
+def should_generate_diagnosis_module(patient: dict, force: bool = False) -> bool:
+    """
+    Determine if "My Diagnosis" module should be generated.
+
+    Returns True if:
+    - force=True (explicit regeneration request)
+    - module_content is empty or missing
+    - "My Diagnosis" module is missing
+    """
+    if force:
+        return True
+
+    module_content = patient.get("module_content", {})
+    if not isinstance(module_content, dict) or not module_content:
+        return True
+
+    # Check if "My Diagnosis" exists (try both normalized and original keys)
+    diagnosis_key = normalize_module_title(DIAGNOSIS_MODULE_TITLE)
+    has_diagnosis = (
+        DIAGNOSIS_MODULE_TITLE in module_content or
+        diagnosis_key in module_content
+    )
+
+    return not has_diagnosis
+
+
 def get_missing_modules(patient: dict, module_cache: dict | None = None) -> tuple[list[str], dict]:
-    """Return (missing_titles, module_cache) for the patient."""
+    """
+    Return (missing_titles, module_cache) for the patient.
+
+    NOTE: This now only checks for "My Diagnosis" module since other modules
+    are static and don't need LLM generation.
+    """
     if module_cache is None:
         if isinstance(patient.get("module_content"), dict):
             module_cache = patient["module_content"]
@@ -33,152 +132,157 @@ def get_missing_modules(patient: dict, module_cache: dict | None = None) -> tupl
         key = normalize_module_title(title)
         return bool(module_cache.get(title) or module_cache.get(key))
 
-    missing = [t for t in MODULE_TITLES if not has_module(t)]
+    # Only check for "My Diagnosis" - other modules are static
+    missing = []
+    if not has_module(DIAGNOSIS_MODULE_TITLE):
+        missing.append(DIAGNOSIS_MODULE_TITLE)
+
     return missing, module_cache
 
 
-def generate_all_modules_content(module_titles: list[str], patient: dict, config: ModelConfig) -> dict:
-    """Generate content for multiple modules in a single LLM call."""
+def generate_diagnosis_module_content(patient: dict, config: ModelConfig) -> dict:
+    """
+    Generate content for "My Diagnosis" module only.
+
+    This is the only module that requires LLM generation.
+    Passes full patient context sections as JSON for personalization.
+    Returns a dict with the module content.
+    """
     model_ref = (
         f"{config.provider}/{config.model}" if config.provider != "gemini" else f"gemini/{config.model}"
     )
 
-    # Build a slimmed patient payload for the prompt (drop chat_history, module_content, extra)
-    patient_copy = dict(patient)
-    patient_copy.pop("chat_history", None)
-    patient_copy.pop("module_content", None)
-    patient_copy.pop("extra", None)
-    patient_json = json.dumps(patient_copy, indent=2)[:4000]
+    # Get the main sections directly - pass as JSON to LLM
+    patient_identity = patient.get("patient_identity", {}) or {}
+    medical_profile = patient.get("medical_profile", {}) or {}
+    clinical_context = patient.get("clinical_context", {}) or {}
+    lifestyle_profile = patient.get("lifestyle_profile", {}) or {}
 
-    modules_block = "\n".join([f"- {title}" for title in module_titles])
+    # Also check for 'name' field (legacy format)
+    name_obj = patient.get("name", {}) or {}
 
-    # Pull key patient facts to anchor personalization
-    identity = patient.get("patient_identity", {}) or {}
-    dx = (patient.get("clinical_context", {}) or {}).get("primary_diagnosis", {}) or {}
-    surgery = patient.get("surgical_selection", {}) or {}
-    lens_cfg = surgery.get("lens_configuration", {}) or {}
+    # Get first name for fallback reference (LLM will use JSON data primarily)
+    first_name = (
+        patient_identity.get("first_name") or
+        name_obj.get("first") or
+        patient.get("first_name") or
+        ""
+    ).strip()
 
-    patient_facts = {
-        "patient_name": f"{identity.get('first_name','')} {identity.get('last_name','')}".strip(),
-        "diagnosis_type": dx.get("type"),
-        "diagnosis_pathology": dx.get("pathology"),
-        "clinic_ref_id": identity.get("clinic_ref_id"),
-        "selected_package": surgery.get("selected_package_name"),
-        "lens_type": lens_cfg.get("lens_type"),
-        "decision_date": surgery.get("decision_date"),
-        "astigmatism_right": (dx.get("astigmatism_power") if dx else None) or lens_cfg.get("astigmatism_power"),
-    }
-    patient_facts_json = json.dumps(patient_facts, indent=2)
+    # Get pathology for logging and fallback
+    od_right = clinical_context.get("od_right", {}) or {}
+    os_left = clinical_context.get("os_left", {}) or {}
+    od_pathology = od_right.get("pathology", "")
+    os_pathology = os_left.get("pathology", "")
 
-    # Load clinic data to provide real SOPs and pricing
-    clinic_id = identity.get("clinic_ref_id")
-    clinic_data = {}
-    if clinic_id:
-        try:
-            clinic_data = get_clinic_data(clinic_id)
-        except ValueError:
-            print(f"Clinic {clinic_id} not found, proceeding without clinic data.")
+    print(f"[ModuleService] Generating diagnosis module")
+    print(f"[ModuleService] Patient identity: {json.dumps(patient_identity)}")
+    print(f"[ModuleService] Name object: {json.dumps(name_obj)}")
+    print(f"[ModuleService] First name extracted: '{first_name}'")
+    print(f"[ModuleService] OD pathology: {od_pathology}")
+    print(f"[ModuleService] OS pathology: {os_pathology}")
 
-    # Extract relevant clinic SOPs
-    sops = clinic_data.get("standard_operating_procedures", {})
-    pricing = clinic_data.get("standard_pricing_packages", {})
+    # Convert sections to JSON strings for the prompt
+    patient_identity_json = json.dumps(patient_identity, indent=2)
+    medical_profile_json = json.dumps(medical_profile, indent=2)
+    clinical_context_json = json.dumps(clinical_context, indent=2)
+    lifestyle_profile_json = json.dumps(lifestyle_profile, indent=2)
 
-    clinic_context = {
-        "pre_op": sops.get("pre_op_checklist", []),
-        "post_op": sops.get("post_op_checklist", []),
-        "timeline": sops.get("surgery_day_timeline", []),
-        "risks": sops.get("risks_categorized", {}),
-        "pricing_options": pricing.get("options", []),
-        "pricing_note": pricing.get("note", "")
-    }
-    clinic_context_json = json.dumps(clinic_context, indent=2)
+    # Also include legacy name field if present
+    name_json = json.dumps(name_obj, indent=2) if name_obj else "{}"
 
-    system_prompt = """
-You are a cataract surgery counselling assistant for elderly patients. Create warm, patient-specific module content.
-Return ONLY valid JSON matching the schema.
+    system_prompt = """You are a cataract surgery counselling assistant helping elderly patients understand their diagnosis.
 
-TONE: Warm, compassionate, reassuring - speak like a caring nurse.
-LANGUAGE: Conversational, clear, easy to understand.
-FORMATTING: Use **bold** for all medical terms, diagnosis names, procedures, and the patient's specific choices.
-  Examples: **Nuclear Sclerosis**, **Monofocal Toric IOL**, **astigmatism**, **cataract surgery**
-NO citations, section headers, or technical jargon.
-"""
+CRITICAL RULES:
+- Be direct and specific - patients already know they have cataracts, explain the TYPE
+- Find the patient's first name from patient_identity.first_name OR name.first
+- Only use data actually present in the provided context
+- Use **bold** for medical terms
+- Keep language simple and easy to understand
 
-    user_prompt = f"""
-Generate content for these modules (keys must match exactly as listed):
-{modules_block}
+CATARACT TYPES (identify from pathology):
+- Nuclear Sclerosis: Yellowing/hardening of lens center
+- Cortical Cataract: Spoke-like opacities from lens edge
+- Posterior Subcapsular: Clouding at back of lens
+- Combined/Senile Cataract: Multiple types present
+- Congenital Cataract: Present from birth
 
-Patient facts (MUST USE for personalization):
-{patient_facts_json}
+Return ONLY valid JSON matching the exact schema."""
 
-Clinic Standard Procedures & Pricing (MUST USE for checklists/timelines):
-{clinic_context_json}
+    user_prompt = f"""Generate structured diagnosis content for the patient.
 
-Full patient data (for additional context):
-{patient_json}
+=== PATIENT IDENTITY ===
+{patient_identity_json}
 
-CRITICAL REQUIREMENTS FOR EACH MODULE:
+=== PATIENT NAME (ALTERNATE FORMAT) ===
+{name_json}
 
-1. **My Diagnosis**:
-   - SUMMARY: State "You have **[exact pathology]**" (e.g., "**Nuclear Sclerosis (2+)**"). Explain what this means for vision.
-   - FAQs: About their diagnosis type only.
+=== MEDICAL PROFILE ===
+{medical_profile_json}
 
-2. **What is Cataract Surgery?**:
-   - SUMMARY: Explain procedure; mention it will address their **[pathology]**.
-   - FAQs: About surgery process only.
+=== CLINICAL CONTEXT ===
+{clinical_context_json}
 
-3. **What is an IOL?**:
-   - SUMMARY: Explain IOLs; explicitly mention "For you, a **[their lens type]**" (e.g., **Monofocal Toric IOL**).
-   - FAQs: About IOLs and their specific lens type.
+=== LIFESTYLE PROFILE ===
+{lifestyle_profile_json}
 
-4. **My IOL Options**:
-   - SUMMARY: State "You've chosen **[package name]**". Compare standard/toric/multifocal; explain why theirs is best.
-   - FAQs: About lens choices, why theirs fits, glasses needs.
+=== TASK ===
 
-5. **Risks & Complications**:
-   - SUMMARY: Reassure first ("very safe"), then acknowledge risks exist.
-   - "risks": Use the provided 'risks_categorized' from clinic data. Map to schema: [{{"category": "Common Minor Risks", "items": [...]}}, {{"category": "Rare Serious Complications", "items": [...]}}]
-   - FAQs: About risks/complications only.
+Analyze the pathology for each eye (od_right.pathology and os_left.pathology) and generate:
 
-6. **Before Surgery**:
-   - SUMMARY: (Keep it brief) "Getting ready is simple. Here is your checklist:"
-   - "checklist": Use the 'pre_op' list from clinic data. Add any patient-specifics if needed.
-   - FAQs: About pre-op prep.
+1. **primary_diagnosis_type**: Determine the overall diagnosis type:
+   - If patient has multiple cataract types → "Combined form of senile cataract"
+   - If only nuclear sclerosis → "Nuclear Sclerosis"
+   - If only cortical → "Cortical Cataract"
+   - If only posterior subcapsular → "Posterior Subcapsular Cataract"
+   - Match to patient's actual condition
 
-7. **Day of Surgery**:
-   - SUMMARY: "Here is your journey for the big day:"
-   - "timeline": Use the 'timeline' from clinic data. Schema: [{{"step": "Arrival", "description": "..."}}, ...]
-   - FAQs: About surgery day.
+2. **cataract_types**: Array of specific cataract types found (for display as tags)
+   - e.g., ["Nuclear sclerosis", "Cortical"] or ["Posterior subcapsular"]
 
-8. **After Surgery**:
-   - SUMMARY: "To ensure a quick recovery, please follow these steps:"
-   - "checklist": Use the 'post_op' list from clinic data.
-   - FAQs: About recovery.
+3. **eyes_same_condition**: Boolean - true if both eyes have similar conditions, false if different
 
-9. **Costs & Insurance**:
-   - SUMMARY: Acknowledge **[package]** choice.
-   - "costBreakdown": Generate a breakdown based on 'pricing_options' for their specific package ({surgery.get('selected_package_id')}).
-     Schema: [{{"category": "Physician Fee", "amount": "$3626", "covered": false, "note": "Out of pocket"}}, ...].
-     If exact fees aren't listed for their package, give best estimate or "Variable" with note.
-   - FAQs: About costs/insurance.
+4. **right_eye** and **left_eye**: Per-eye details
+   - Only include if that eye has a condition
+   - Include: condition name, severity if mentioned, brief description
 
-FORMATTING RULES:
-- Use **bold** for medical terms.
-- Keep FAQs strictly module-specific.
-- Summaries: Warm and personal.
+5. **summary**: Direct, concise explanation (2-3 sentences max)
+   - Address patient by first name
+   - State the specific diagnosis type
+   - Briefly explain what it means for their vision
+   - NO fluff like "I want to gently explain..."
 
-Return ONE JSON object where each key is the module title, value is:
-- title: string
-- summary: string
-- details: array of strings (generic details)
-- faqs: array of {{question, answer}}
-- checklist: array of strings (for Before/After surgery)
-- timeline: array of {{step, description}} (for Day of Surgery)
-- risks: array of {{category, items}} (for Risks)
-- costBreakdown: array of {{category, amount, covered, note}} (for Costs)
-- videoScriptSuggestion: string
-- botStarterPrompt: string
-"""
+6. **additional_conditions**: Array of non-cataract conditions (separate from main diagnosis)
+   - e.g., ["Dry Eye Syndrome", "Myopia", "Glaucoma"]
+   - Extract from ocular_comorbidities and pathology text
+
+7. **faqs**: 3-4 questions specific to THEIR cataract type
+
+Return JSON in this EXACT format:
+{{
+  "title": "My Diagnosis",
+  "primary_diagnosis_type": "Combined form of senile cataract",
+  "cataract_types": ["Nuclear sclerosis", "Cortical"],
+  "eyes_same_condition": false,
+  "right_eye": {{
+    "condition": "2+ nuclear sclerosis, 1+ cortical",
+    "description": "Your right eye has moderate nuclear sclerosis (yellowing in the center of the lens) and mild cortical cataract (clouding around the edges)."
+  }},
+  "left_eye": {{
+    "condition": "1+ nuclear sclerosis, 2+ cortical",
+    "description": "Your left eye has mild nuclear sclerosis and moderate cortical cataract."
+  }},
+  "summary": "You have **Combined form of senile cataract**, [Name]. Specifically, you have both **nuclear sclerosis** and **cortical** cataracts affecting your eyes. This means the natural lenses in your eyes have become cloudy in multiple areas, causing blurred vision, faded colors, and difficulty with glare.",
+  "additional_conditions": ["Dry Eye Syndrome", "Myopia"],
+  "faqs": [
+    {{"question": "What is nuclear sclerosis?", "answer": "Nuclear sclerosis is when the center of your eye's lens gradually yellows and hardens. This is the most common type of age-related cataract and can make colors appear faded or yellowish."}},
+    {{"question": "What is a cortical cataract?", "answer": "Cortical cataracts form as white, wedge-shaped opacities that start at the outer edge of your lens and work their way inward. They can cause glare and difficulty with contrast."}},
+    {{"question": "Why do I have multiple types?", "answer": "It's common to have more than one type of cataract, especially as we age. This is called a combined or senile cataract. The good news is that surgery effectively treats all types at once."}},
+    {{"question": "Will surgery fix both types?", "answer": "Yes! During cataract surgery, the entire cloudy lens is removed and replaced with a clear artificial lens. This treats all types of cataract in that eye at once."}}
+  ],
+  "videoScriptSuggestion": "Video explaining combined cataracts and how surgery helps",
+  "botStarterPrompt": "Tell me more about my cataract diagnosis"
+}}"""
 
     try:
         response = litellm.completion(
@@ -190,8 +294,8 @@ Return ONE JSON object where each key is the module title, value is:
             temperature=config.temperature,
         )
     except Exception as exc:
-        print(f"[ModuleContent Batch Error] {exc}")
-        raise HTTPException(status_code=500, detail="Module batch generation failed") from exc
+        print(f"[ModuleContent] Diagnosis generation error: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to generate diagnosis content") from exc
 
     try:
         content_text = response["choices"][0]["message"]["content"]
@@ -201,49 +305,132 @@ Return ONE JSON object where each key is the module title, value is:
             if cleaned.startswith("json"):
                 cleaned = cleaned[4:].strip()
         parsed = json.loads(cleaned)
+
+        # Ensure required fields exist
         if not isinstance(parsed, dict):
-            raise ValueError("Parsed batch response is not a dict")
+            raise ValueError("Parsed response is not a dict")
+
+        # Add defaults for any missing fields
+        friendly_name = first_name or "there"
+        parsed.setdefault("title", DIAGNOSIS_MODULE_TITLE)
+        parsed.setdefault("summary", f"Hello {friendly_name}, you have **{od_pathology or os_pathology or 'cataracts'}**. This is a treatable condition.")
+        parsed.setdefault("details", [])
+        parsed.setdefault("faqs", [])
+        parsed.setdefault("videoScriptSuggestion", "")
+        parsed.setdefault("botStarterPrompt", "Tell me more about my diagnosis")
+
         return parsed
+
     except Exception as exc:
-        print(f"[ModuleContent Batch Parse Error] {exc}")
-        # Fallback: generate a minimal map with placeholders
-        fallback = {}
-        for title in module_titles:
-            fallback[title] = {
-                "title": title,
-                "summary": "Unable to load personalized content right now.",
-                "details": ["Please try again soon.", "If urgent, ask your care team."],
-                "faqs": [],
-                "videoScriptSuggestion": "Standard medical disclaimer video.",
-                "botStarterPrompt": f"Tell me more about {title}",
-            }
-        return fallback
+        print(f"[ModuleContent] Diagnosis parse error: {exc}")
+        # Return fallback content with personalization
+        friendly_name = first_name or "there"
+        primary_pathology = od_pathology or os_pathology or "cataract"
+
+        diagnosis_desc = f"{od_pathology} (right eye)" if od_pathology else ""
+        if os_pathology:
+            diagnosis_desc += f" and {os_pathology} (left eye)" if diagnosis_desc else f"{os_pathology} (left eye)"
+        if not diagnosis_desc:
+            diagnosis_desc = "cataracts"
+
+        return {
+            "title": DIAGNOSIS_MODULE_TITLE,
+            "summary": f"Hello {friendly_name}, you have **{diagnosis_desc}**. This is a type of cataract that affects your vision. The good news is that cataract surgery can restore your clear vision.",
+            "details": [
+                f"Your diagnosis: {diagnosis_desc}",
+                "Cataracts cause the lens in your eye to become cloudy",
+                "Surgery replaces the cloudy lens with a clear artificial lens",
+                "Most patients see significant improvement after surgery"
+            ],
+            "faqs": [
+                {
+                    "question": f"What is {primary_pathology}?",
+                    "answer": f"{primary_pathology} is a type of cataract where the lens of your eye becomes cloudy, making your vision blurry or hazy."
+                },
+                {
+                    "question": "Is cataract surgery safe?",
+                    "answer": "Yes, cataract surgery is one of the most common and safest procedures performed. Millions of people have this surgery every year with excellent results."
+                }
+            ],
+            "videoScriptSuggestion": f"Video explaining {primary_pathology}",
+            "botStarterPrompt": "Tell me more about my diagnosis"
+        }
 
 
-def generate_and_save_missing(patient_id: str, patient: dict, missing_titles: list[str], config: ModelConfig) -> list[str]:
-    """Generate all missing modules and save them. Returns list of titles saved."""
-    if not missing_titles:
-        return []
-    generated_map = generate_all_modules_content(missing_titles, patient, config)
-    saved = []
-    for title, content in generated_map.items():
-        key = normalize_module_title(title)
-        try:
-            save_patient_module_content(patient_id, key, content)
-            saved.append(title)
-        except Exception as exc:
-            print(f"[ModuleContent] Save failed for '{title}': {exc}")
-    return saved
-
-
-def generate_modules_background(patient_id: str, config: ModelConfig) -> None:
+def generate_and_save_diagnosis(patient_id: str, patient: dict, config: ModelConfig) -> bool:
     """
-    Background task to generate module content for a patient.
+    Generate and save the "My Diagnosis" module for a patient.
+
+    Returns True if successfully generated and saved, False otherwise.
+    """
+    try:
+        print(f"[ModuleService] Generating diagnosis module for patient: {patient_id}")
+
+        # Generate the diagnosis content
+        content = generate_diagnosis_module_content(patient, config)
+
+        # Save with normalized key
+        key = normalize_module_title(DIAGNOSIS_MODULE_TITLE)
+        save_patient_module_content(patient_id, key, content)
+
+        print(f"[ModuleService] Saved diagnosis module for patient: {patient_id}")
+        return True
+
+    except Exception as exc:
+        print(f"[ModuleService] Failed to generate/save diagnosis module: {exc}")
+        traceback.print_exc()
+        return False
+
+
+def generate_diagnosis_if_needed(
+    patient_id: str,
+    patient: dict,
+    config: ModelConfig,
+    old_patient: dict = None,
+    force: bool = False
+) -> bool:
+    """
+    Generate "My Diagnosis" module if needed.
+
+    Generates if:
+    - force=True
+    - Module doesn't exist
+    - Diagnosis fields changed (if old_patient provided)
+
+    Returns True if generation was triggered, False if skipped.
+    """
+    # Check if module exists
+    needs_generation = should_generate_diagnosis_module(patient, force=force)
+
+    # If module exists and we have old data, check if diagnosis changed
+    if not needs_generation and old_patient is not None:
+        if has_diagnosis_changed(old_patient, patient):
+            print(f"[ModuleService] Diagnosis changed, will regenerate module")
+            needs_generation = True
+
+    if not needs_generation:
+        print(f"[ModuleService] Diagnosis module exists and unchanged, skipping generation")
+        return False
+
+    return generate_and_save_diagnosis(patient_id, patient, config)
+
+
+def generate_modules_background(
+    patient_id: str,
+    config: ModelConfig,
+    old_patient: dict = None,
+    force: bool = False
+) -> None:
+    """
+    Background task to generate "My Diagnosis" module for a patient.
     Called after doctor saves patient data.
 
+    Only generates if:
+    - Module is missing
+    - Diagnosis fields changed (if old_patient provided)
+    - force=True
+
     This runs asynchronously so the doctor doesn't have to wait.
-    If generation fails, the patient frontend has a fallback that will
-    trigger generation on first load.
     """
     try:
         print(f"[Background Module Gen] Starting for patient: {patient_id}")
@@ -254,22 +441,42 @@ def generate_modules_background(patient_id: str, config: ModelConfig) -> None:
         # Get the patient data
         patient = get_patient_data(patient_id)
 
-        # Get list of missing modules
-        missing, module_cache = get_missing_modules(patient)
+        # Generate diagnosis module if needed
+        generated = generate_diagnosis_if_needed(
+            patient_id=patient_id,
+            patient=patient,
+            config=config,
+            old_patient=old_patient,
+            force=force
+        )
 
-        if not missing:
-            print(f"[Background Module Gen] All modules already exist for patient: {patient_id}")
-            return
-
-        print(f"[Background Module Gen] Generating {len(missing)} modules for patient: {patient_id}")
-
-        # Generate and save
-        saved = generate_and_save_missing(patient_id, patient, missing, config)
-
-        print(f"[Background Module Gen] Completed for patient: {patient_id} - Saved: {saved}")
+        if generated:
+            print(f"[Background Module Gen] Completed for patient: {patient_id}")
+        else:
+            print(f"[Background Module Gen] Skipped for patient: {patient_id} (already exists)")
 
     except Exception as exc:
         # Log error but don't raise - this is a background task
         # The frontend fallback will handle generation if this fails
         print(f"[Background Module Gen] ERROR for patient {patient_id}: {exc}")
         traceback.print_exc()
+
+
+# Legacy function for backward compatibility with existing endpoints
+def generate_and_save_missing(patient_id: str, patient: dict, missing_titles: list[str], config: ModelConfig) -> list[str]:
+    """
+    Generate missing modules and save them.
+
+    NOTE: Now only generates "My Diagnosis" module. Other modules are static.
+    """
+    if not missing_titles:
+        return []
+
+    saved = []
+
+    # Only generate "My Diagnosis" if it's in the missing list
+    if DIAGNOSIS_MODULE_TITLE in missing_titles:
+        if generate_and_save_diagnosis(patient_id, patient, config):
+            saved.append(DIAGNOSIS_MODULE_TITLE)
+
+    return saved

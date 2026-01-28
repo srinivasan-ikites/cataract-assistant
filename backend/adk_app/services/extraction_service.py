@@ -115,6 +115,13 @@ FIELD-SPECIFIC INSTRUCTIONS:
 
 **clinical_context:**
 - pathology: Extract graded severity (e.g., "2+ Nuclear Sclerosis", "1+ Cortical Spoking")
+- primary_cataract_type: REQUIRED - Based on the pathology text, classify into ONE of these exact values:
+  * "nuclear_sclerosis" - if primarily nuclear sclerosis/nuclear cataract is mentioned
+  * "cortical" - if primarily cortical cataract/cortical spoking is mentioned
+  * "posterior_subcapsular" - if primarily PSC/posterior subcapsular cataract is mentioned
+  * "combined" - if BOTH nuclear sclerosis AND cortical are present together
+  * "congenital" - if congenital/infantile/pediatric cataract is mentioned
+  IMPORTANT: Output one of these exact strings only. If pathology shows both nuclear AND cortical changes, use "combined".
 - visual_acuity: Extract BCVA if available (e.g., "20/40", "20/25"). UCVA is optional.
 - biometry.iol_master: REQUIRED - Extract all IOL Master fields
   * source: Device name (e.g., "IOL Master 700")

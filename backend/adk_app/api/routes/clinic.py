@@ -1,33 +1,38 @@
 """
 Clinic routes for clinic configuration and data.
+
+Updated to use Supabase instead of JSON files.
+
+Note: Basic clinic routes are public (Patient UI needs them).
+The /doctor-context endpoint requires authentication.
 """
-import json
+from fastapi import APIRouter, Depends, HTTPException
 
-from fastapi import APIRouter, HTTPException
-
-from adk_app.core.config import REVIEW_ROOT
-from adk_app.utils.data_loader import get_clinic_data
+# Use Supabase data loader instead of JSON-based one
+from adk_app.utils.supabase_data_loader import get_clinic_data
+# Authentication middleware
+from adk_app.api.middleware.auth import (
+    AuthenticatedUser,
+    require_clinic_user,
+    validate_clinic_access,
+)
 
 router = APIRouter(prefix="/clinics", tags=["Clinics"])
 
 
 def _get_clinic_with_reviewed(clinic_id: str) -> dict:
-    """Get clinic data, preferring reviewed data if available."""
-    # First check if there's reviewed clinic data
-    reviewed_path = REVIEW_ROOT / clinic_id / "reviewed_clinic.json"
-    if reviewed_path.exists():
-        try:
-            with open(reviewed_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[Clinic] Failed to load reviewed clinic: {e}")
+    """
+    Get clinic data from Supabase.
 
-    # Fall back to base clinic data
+    Previously read from JSON files, now fetches from database.
+    """
+    print(f"[Clinic API] Getting clinic data for: {clinic_id}")
     try:
         clinic = get_clinic_data(clinic_id)
-        # Return the original schema from 'extra' key
-        return clinic.get("extra") or clinic
+        print(f"[Clinic API] Found clinic: {clinic.get('clinic_profile', {}).get('name')}")
+        return clinic
     except ValueError as err:
+        print(f"[Clinic API] Clinic not found: {err}")
         raise HTTPException(status_code=404, detail=str(err))
 
 
@@ -74,12 +79,20 @@ def get_clinic_lens_inventory(clinic_id: str, category: str = None) -> dict:
 
 
 @router.get("/{clinic_id}/doctor-context")
-def get_doctor_context(clinic_id: str) -> dict:
+def get_doctor_context(
+    clinic_id: str,
+    user: AuthenticatedUser = Depends(require_clinic_user),  # AUTHENTICATION REQUIRED
+) -> dict:
     """
     Get all clinic configuration needed for the Doctor's View in a single call.
     This provides medications, packages, staff, and lens inventory in one request,
     optimizing for frontend performance and making future PostgreSQL migration easier.
+
+    Requires authentication. User can only access their own clinic's context.
     """
+    # Validate clinic access - doctors can only access their own clinic's config
+    validate_clinic_access(user, clinic_id)
+
     clinic_data = _get_clinic_with_reviewed(clinic_id)
 
     # Extract medications configuration

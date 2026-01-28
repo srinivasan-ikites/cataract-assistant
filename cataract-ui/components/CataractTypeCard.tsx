@@ -65,8 +65,8 @@ const CataractTypeCard: React.FC<CataractTypeCardProps> = ({
                     <h3 className="text-lg font-bold text-slate-800 leading-tight mb-1">
                         {cataract.name}
                     </h3>
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Cataract Type
+                    <p className="text-sm text-slate-600 leading-snug line-clamp-2">
+                        {cataract.tagline}
                     </p>
                 </div>
             </div>

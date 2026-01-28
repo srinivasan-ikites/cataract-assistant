@@ -5,7 +5,8 @@ from typing import List, Literal
 from google.adk.tools import FunctionTool
 
 from adk_app.telemetry.logger import get_logger
-from adk_app.utils.data_loader import get_clinic_data, get_patient_data
+# Use Supabase data loader instead of JSON-based one
+from adk_app.utils.supabase_data_loader import get_clinic_data, get_patient_data
 
 logger = get_logger(__name__)  # noqa: F401
 

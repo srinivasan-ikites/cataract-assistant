@@ -59,3 +59,38 @@ This repository contains the Phase 1 ingestion pipeline for the multi-tenant ca
 
 Each stage logs counts and outputs JSONL artifacts so you can inspect or rerun individual steps without re-crawling.
 
+
+<!-- superadmin -->
+admin@cataract.com
+admin
+
+<!-- clinic1 -->
+name-McLean Eye Clinic
+<!-- clinic admin -->
+doctor@mclean.com
+Test@123
+
+<!-- clinic user -->
+newdoctor@clinic.com
+"role": "clinic_user",
+      "password": "temp12345"
+
+
+<!-- clinic2 -->
+name - testing-clinic2
+doctor@testing.com
+Test2@123
+
+
+<!-- clinic3 -->
+name - abc-clinic
+abc@gmail.com
+abcbabc
+latha patient - 99999999999
+
+<!-- clinic4 -->
+name- qwerty-clinic
+qwerty@gmail.com
+qwerty
+
+qwe-latha patient-5555555555

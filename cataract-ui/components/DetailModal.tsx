@@ -1,15 +1,18 @@
 import React, { useEffect, useState, Fragment } from 'react';
 import { ModuleItem, GeminiContentResponse } from '../types';
 import { generateModuleContent } from '../services/gemini';
-import { Patient } from '../services/api';
+import { Patient, api } from '../services/api';
 import { X, Loader2, ChevronDown, CheckCircle2, AlertTriangle, DollarSign } from 'lucide-react';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
 import DiagnosisModal from './DiagnosisModal';
 import SurgeryModal from './SurgeryModal';
 import IOLModal from './IOLModal';
+import IOLOptionsModal from './IOLOptionsModal';
 import BeforeSurgeryModal from './BeforeSurgeryModal';
 import AfterSurgeryModal from './AfterSurgeryModal';
+import RiskComplicationsModal from './RiskComplicationsModal';
+import CostInsuranceModal from './CostInsuranceModal';
 
 interface DetailModalProps {
   item: ModuleItem | null;
@@ -19,13 +22,17 @@ interface DetailModalProps {
 }
 
 const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpenChat }) => {
-  // ... existing hooks ...
   const [content, setContent] = useState<GeminiContentResponse | null>(null);
+  const [contentItemId, setContentItemId] = useState<string | null>(null); // Track which item content belongs to
   const [loading, setLoading] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [surgicalPackages, setSurgicalPackages] = useState<any[]>([]);
   const { classes } = useTheme();
 
-  // ... sanitizeQuestion function ...
+  // Determine if we're effectively in a loading state
+  // This is true if: loading is in progress OR content doesn't match current item
+  const isEffectivelyLoading = loading || (item !== null && contentItemId !== item.id);
+
   const sanitizeQuestion = (q?: string) =>
     (q || "")
       .replace(/\*\*/g, "")
@@ -34,82 +41,152 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
       .replace(/\s+/g, " ")
       .trim();
 
+  // Fetch module content
   useEffect(() => {
-    // ... existing useEffect ...
     if (item) {
       setLoading(true);
+      // Note: We don't clear contentItemId here - isEffectivelyLoading handles the stale check
       const pid = patient?.patient_id;
       generateModuleContent(item.title, pid || "")
         .then(data => {
           setContent(data);
+          setContentItemId(item.id); // Mark this content as belonging to this item
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          setContentItemId(item.id); // Even on error, mark as loaded for this item
+          setLoading(false);
+        });
     } else {
       setContent(null);
+      setContentItemId(null);
     }
   }, [item, patient]);
 
+  // Fetch surgical packages for IOL Options modal
+  useEffect(() => {
+    const isIOLOptions = item?.title.toLowerCase().includes('my iol') ||
+                         item?.title.toLowerCase().includes('iol options');
+    const clinicId = patient?.clinic_id;
+
+    if (isIOLOptions && clinicId) {
+      api.getClinicPackages(clinicId)
+        .then(data => {
+          // API returns { status: "ok", packages: [...] }
+          if (data?.packages) {
+            setSurgicalPackages(data.packages);
+          } else if (Array.isArray(data)) {
+            setSurgicalPackages(data);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch surgical packages:', err);
+          setSurgicalPackages([]);
+        });
+    }
+  }, [item, patient?.clinic_id]);
+
   if (!item) return null;
 
+  // Route to specialized modals IMMEDIATELY (pass loading state for internal handling)
+  // This prevents flickering and size mismatch issues
+
+  const titleLower = item.title.toLowerCase();
+
   // Route "My Diagnosis" to the specialized DiagnosisModal
-  const isDiagnosisModule = item.title.toLowerCase().includes('diagnosis');
-  if (isDiagnosisModule && !loading) {
+  if (titleLower.includes('diagnosis')) {
     return (
       <DiagnosisModal
         patient={patient}
         moduleContent={content}
         onClose={onClose}
         onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
       />
     );
   }
 
-  // Route "Before Surgery" to the new BeforeSurgeryModal
-  // Note: the tile title is "Before Surgery"
-  const isBeforeSurgery = item.title.toLowerCase().includes('before surgery');
-  if (isBeforeSurgery && !loading) {
+  // Route "My IOL Options" to the specialized IOLOptionsModal
+  if (titleLower.includes('my iol') || titleLower.includes('iol options')) {
+    return (
+      <IOLOptionsModal
+        patient={patient}
+        surgicalPackages={surgicalPackages}
+        moduleContent={content}
+        onClose={onClose}
+        onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
+      />
+    );
+  }
+
+  // Route "Before Surgery" to BeforeSurgeryModal
+  if (titleLower.includes('before surgery')) {
     return (
       <BeforeSurgeryModal
         onClose={onClose}
         patient={patient}
         moduleContent={content}
         onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
       />
     );
   }
 
-  // Route "What is an IOL?" to the IOLModal
-  // IMPORTANT: Do NOT route "My IOL Options" here, so it can render its own content
-  const titleLower = item.title.toLowerCase();
-  const isIOLModule = titleLower.includes('iol') && !titleLower.includes('options');
-  if (isIOLModule && !loading) {
+  // Route "What is an IOL?" to IOLModal (not "My IOL Options")
+  if (titleLower.includes('iol') && !titleLower.includes('options')) {
     return (
       <IOLModal
         onClose={onClose}
         moduleContent={content}
         onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
       />
     );
   }
 
-  // Route "After Surgery" or "Recovery" to the new AfterSurgeryModal
-  const isPostOpModule = item.title.toLowerCase().includes('after surgery') || item.title.toLowerCase().includes('recovery');
-  if (isPostOpModule && !loading) {
+  // Route "After Surgery" or "Recovery" to AfterSurgeryModal
+  if (titleLower.includes('after surgery') || titleLower.includes('recovery')) {
     return (
       <AfterSurgeryModal
         patient={patient}
         onClose={onClose}
         moduleContent={content}
         onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
       />
     );
   }
 
-  // Route "Surgery" related modules to the new SurgeryModal
-  const isSurgeryModule = item.title.toLowerCase().includes('surgery');
-  if (isSurgeryModule && !loading) {
-    const isDayOfSurgery = item.title.toLowerCase().includes('day of');
+  // Route "Risks & Complications" to RiskComplicationsModal
+  if (titleLower.includes('risk') || titleLower.includes('complication')) {
+    return (
+      <RiskComplicationsModal
+        patient={patient}
+        onClose={onClose}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
+      />
+    );
+  }
+
+  // Route "Cost & Insurance" to CostInsuranceModal
+  if (titleLower.includes('cost') || titleLower.includes('insurance')) {
+    return (
+      <CostInsuranceModal
+        patient={patient}
+        onClose={onClose}
+        moduleContent={content}
+        onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
+      />
+    );
+  }
+
+  // Route "Surgery" related modules (What is Cataract Surgery, Day of Surgery) to SurgeryModal
+  if (titleLower.includes('surgery')) {
+    const isDayOfSurgery = titleLower.includes('day of');
     return (
       <SurgeryModal
         patient={patient}
@@ -117,6 +194,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
         isDayOfSurgery={isDayOfSurgery}
         moduleContent={content}
         onOpenChat={onOpenChat}
+        isLoading={isEffectivelyLoading}
       />
     );
   }

@@ -21,6 +21,7 @@
   "clinical_context": {
     "od_right": {
       "pathology": "",
+      "primary_cataract_type": "",
       "visual_acuity": {
         "ucva": "",
         "bcva": ""
@@ -49,6 +50,7 @@
     },
     "os_left": {
       "pathology": "",
+      "primary_cataract_type": "",
       "visual_acuity": {
         "ucva": "",
         "bcva": ""

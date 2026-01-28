@@ -1,7 +1,8 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle2, ChevronDown, Clock, Phone, ArrowRight, ShieldCheck, MapPin, Coffee, Utensils, Car, Shirt, Droplets, MessageCircle } from 'lucide-react';
 import { useTheme } from '../theme';
-import { Patient, api } from '../services/api';
+import { useToast } from './Toast';
+import { Patient, api, patientAuthStorage, patientAuthApi } from '../services/api';
 import { getAntibioticName, getFrequencyName } from '../constants/medications';
 import { GeminiContentResponse } from '../types';
 import ReactMarkdown from 'react-markdown';
@@ -11,7 +12,132 @@ interface BeforeSurgeryModalProps {
     patient: Patient | null;
     moduleContent: GeminiContentResponse | null;
     onOpenChat: (msg?: string) => void;
+    isLoading?: boolean;
 }
+
+// Skeleton content component (inner content only, no wrapper - matches actual modal layout)
+const BeforeSurgerySkeletonContent: React.FC = () => (
+    <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8 animate-pulse">
+        {/* Hero Section Skeleton - matches CircularProgress + Info Cards layout */}
+        <div className="flex flex-col md:flex-row gap-8 items-stretch">
+            {/* Left: Circular Progress placeholder */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-center min-w-[240px]">
+                <div className="relative w-48 h-48">
+                    <div className="w-48 h-48 bg-slate-100 rounded-full border-[12px] border-slate-200" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="h-3 w-16 bg-slate-200 rounded mb-2" />
+                        <div className="h-12 w-16 bg-slate-200 rounded mb-1" />
+                        <div className="h-4 w-10 bg-slate-200 rounded" />
+                    </div>
+                </div>
+            </div>
+            {/* Right: Info cards */}
+            <div className="flex-1 flex flex-col gap-4">
+                {/* Action Required Card */}
+                <div className="bg-violet-50 rounded-[24px] p-6 border border-violet-100 flex items-start gap-4">
+                    <div className="w-10 h-10 bg-white rounded-xl" />
+                    <div className="flex-1 space-y-2">
+                        <div className="h-5 bg-violet-200 rounded w-48" />
+                        <div className="h-4 bg-violet-100 rounded w-64" />
+                    </div>
+                </div>
+                {/* Date/Time Cards */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-[24px] p-4 border border-slate-100">
+                        <div className="h-3 bg-slate-200 rounded w-24 mb-2" />
+                        <div className="h-5 bg-slate-300 rounded w-16" />
+                    </div>
+                    <div className="bg-white rounded-[24px] p-4 border border-slate-100">
+                        <div className="h-3 bg-slate-200 rounded w-16 mb-2" />
+                        <div className="h-5 bg-slate-300 rounded w-20" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Eye Drop Tracker Skeleton */}
+        <div className="space-y-6">
+            <div className="h-7 bg-slate-200 rounded w-44" />
+            <div className="space-y-6">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex gap-6">
+                        {/* Date Node */}
+                        <div className="w-14 h-14 bg-slate-200 rounded-2xl shrink-0 flex flex-col items-center justify-center">
+                            <div className="h-2 w-8 bg-slate-300 rounded mb-1" />
+                            <div className="h-5 w-6 bg-slate-300 rounded" />
+                        </div>
+                        {/* Day Accordion */}
+                        <div className="flex-1 bg-white rounded-[24px] border border-slate-100 overflow-hidden">
+                            <div className="px-6 py-4 flex items-center justify-between">
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-slate-200 rounded w-40" />
+                                    <div className="h-3 bg-slate-100 rounded w-28" />
+                                </div>
+                                <div className="w-5 h-5 bg-slate-200 rounded" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Night Before Rules Skeleton */}
+        <div className="space-y-6">
+            <div className="h-7 bg-slate-200 rounded w-48" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white rounded-[24px] p-6 border border-slate-100 flex flex-col items-center text-center space-y-4">
+                        <div className="w-12 h-12 bg-violet-100 rounded-xl" />
+                        <div className="space-y-2 w-full">
+                            <div className="h-4 bg-slate-200 rounded w-3/4 mx-auto" />
+                            <div className="h-3 bg-slate-100 rounded w-5/6 mx-auto" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* FAQ Skeleton */}
+        <div className="space-y-6 pt-10 border-t border-slate-100">
+            <div className="h-5 bg-slate-200 rounded w-56 mx-auto" />
+            <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 flex justify-between items-center">
+                        <div className="h-4 bg-slate-200 rounded w-3/4" />
+                        <div className="w-8 h-8 bg-slate-100 rounded-full" />
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Chat CTA Skeleton */}
+        <div className="p-6 rounded-[28px] bg-slate-50 border border-slate-200 text-center max-w-2xl mx-auto">
+            <div className="h-5 bg-slate-200 rounded w-40 mx-auto mb-2" />
+            <div className="h-4 bg-slate-100 rounded w-72 mx-auto mb-4" />
+            <div className="h-12 bg-violet-200 rounded-full w-48 mx-auto" />
+        </div>
+    </div>
+);
+
+// Hardcoded FAQs for "Before Surgery" module
+const beforeSurgeryFaqs = [
+    {
+        question: "What medications should I stop taking before surgery?",
+        answer: "**Blood thinners** (like Aspirin, Warfarin, Eliquis, Plavix) may need to be stopped 3-7 days before surgery, but **only if your prescribing doctor approves**. Never stop blood thinners without consulting the doctor who prescribed them. Continue all other medications as normal, including blood pressure and diabetes medications, unless specifically told otherwise."
+    },
+    {
+        question: "Why do I need to fast before surgery? What if I accidentally eat or drink?",
+        answer: "Fasting is required because the sedation used during surgery can cause nausea. If your stomach isn't empty, there's a risk of aspiration (inhaling stomach contents). If you accidentally eat or drink, **call the surgery center immediately** — your surgery may need to be rescheduled for your safety. Typically, no food for 8 hours and no clear liquids for 2 hours before surgery."
+    },
+    {
+        question: "What if I get sick (cold, cough, fever) before my scheduled surgery?",
+        answer: "**Contact your surgeon's office right away.** A minor cold may be okay, but fever, productive cough, or respiratory infection usually means the surgery should be postponed. Operating while sick increases the risk of complications and may affect your healing. It's better to reschedule than to risk a poor outcome."
+    },
+    {
+        question: "Should I continue using my regular eye drops (like glaucoma drops) before surgery?",
+        answer: "**Usually yes** — continue your glaucoma drops and other eye medications unless your doctor specifically tells you to stop. However, you'll be given special antibiotic drops to start 1-3 days before surgery. If you use multiple eye drops, wait at least 5 minutes between each drop to ensure proper absorption."
+    }
+];
 
 const CircularProgress = ({ days, totalDays = 10 }: { days: number, totalDays?: number }) => {
     const radius = 70;
@@ -48,9 +174,9 @@ const CircularProgress = ({ days, totalDays = 10 }: { days: number, totalDays?: 
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Until Surgery</span>
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">Until Surgery</span>
                 <span className="text-5xl font-black text-slate-900 leading-none">{days}</span>
-                <span className="text-sm font-bold text-slate-500 mt-1">Days</span>
+                <span className="text-base font-bold text-slate-700 mt-1">Days</span>
             </div>
             {/* Inner shadow effect from image */}
             <div className="absolute inset-4 rounded-full shadow-[inset_0_4px_12px_rgba(0,0,0,0.05)] pointer-events-none"></div>
@@ -58,34 +184,43 @@ const CircularProgress = ({ days, totalDays = 10 }: { days: number, totalDays?: 
     );
 };
 
-const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patient, moduleContent, onOpenChat }) => {
+const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patient, moduleContent, onOpenChat, isLoading = false }) => {
     const { classes } = useTheme();
+    const toast = useToast();
     const [checklist, setChecklist] = useState<Record<string, Record<string, boolean>>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
     const [lockedMessageDate, setLockedMessageDate] = useState<string | null>(null);
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-    // const surgeryDateStr = "2026-01-07"
-    // const surgeryDateStr = patient?.surgical_recommendations_by_doctor?.scheduling?.surgery_date;
-    const surgeryDateStr = "2026-01-19"
-    const arrivalTime = patient?.surgical_recommendations_by_doctor?.scheduling?.arrival_time || "7:00 AM";
+    // Get surgery date from v2 schema: surgical_plan.operative_logistics
+    // If both eyes have different dates, show the earlier one (right eye by default)
+    const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
+    const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
+    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
+    const surgeryDateStr = "2026-01-30";
+    const arrivalTime = rightEyeLogistics?.arrival_time || leftEyeLogistics?.arrival_time || "7:00 AM";
 
     // Use fallback lookups if strings are missing
     const antibioticName = patient?.medications?.pre_op?.antibiotic_name || getAntibioticName(patient?.medications?.pre_op?.antibiotic_id);
     const frequency = patient?.medications?.pre_op?.frequency || getFrequencyName(patient?.medications?.pre_op?.frequency_id);
 
-    // Load initial progress and set initial expanded day
+    // Helper to convert progress record to checklist format
+    const progressToChecklist = (progress: Record<string, string[]>) => {
+        const checklist: Record<string, Record<string, boolean>> = {};
+        Object.entries(progress).forEach(([d, items]) => {
+            checklist[d] = {};
+            items.forEach(id => {
+                checklist[d][id] = true;
+            });
+        });
+        return checklist;
+    };
+
+    // Load initial progress from prop
     useEffect(() => {
         if (patient?.medications?.pre_op?.progress) {
-            const initialChecklist: Record<string, Record<string, boolean>> = {};
-            Object.entries(patient.medications.pre_op.progress).forEach(([d, items]) => {
-                initialChecklist[d] = {};
-                items.forEach(id => {
-                    initialChecklist[d][id] = true;
-                });
-            });
-            setChecklist(initialChecklist);
+            setChecklist(progressToChecklist(patient.medications.pre_op.progress));
         }
 
         // Set today as expanded by default
@@ -99,6 +234,25 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
             }
         }
     }, [patient, surgeryDateStr]);
+
+    // Fetch fresh medication data when modal opens (to get latest from DB)
+    useEffect(() => {
+        const fetchFreshData = async () => {
+            // Only fetch if patient is logged in (not doctor view)
+            if (patientAuthStorage.isAuthenticated() && patient?.patient_id) {
+                try {
+                    const freshPatient = await patientAuthApi.getMyData();
+                    if (freshPatient?.medications?.pre_op?.progress) {
+                        setChecklist(progressToChecklist(freshPatient.medications.pre_op.progress));
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch fresh medication data:", err);
+                    // Fall back to prop data
+                }
+            }
+        };
+        fetchFreshData();
+    }, []); // Only run on mount
 
     // Derived states
     const hasSurgeryScheduled = !!surgeryDateStr;
@@ -163,6 +317,7 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         if (!patient) return;
         setIsSaving(true);
         try {
+            // Convert checklist format to progress record (array of IDs per date)
             const progressRecord: Record<string, string[]> = {};
             Object.entries(newChecklist).forEach(([d, items]) => {
                 progressRecord[d] = Object.entries(items)
@@ -170,20 +325,30 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                     .map(([id, _]) => id);
             });
 
-            const updatedPatient = {
-                ...patient,
-                medications: {
-                    ...patient.medications,
-                    pre_op: {
-                        ...patient.medications?.pre_op,
-                        progress: progressRecord
+            // Check if patient is logged in (patient portal) vs doctor viewing
+            if (patientAuthStorage.isAuthenticated()) {
+                // Patient is logged in - use patient API
+                await patientAuthApi.updateMedicationProgress('pre_op', progressRecord);
+            } else {
+                // Doctor is viewing - use doctor API (requires doctor auth)
+                const updatedPatient = {
+                    ...patient,
+                    medications: {
+                        ...patient.medications,
+                        pre_op: {
+                            ...patient.medications?.pre_op,
+                            progress: progressRecord
+                        }
                     }
-                }
-            };
-
-            await api.saveReviewedPatient(patient.clinic_id || 'VIC-MCLEAN-001', patient.patient_id, updatedPatient);
-        } catch (err) {
+                };
+                await api.saveReviewedPatient(patient.clinic_id || 'VIC-MCLEAN-001', patient.patient_id, updatedPatient);
+            }
+        } catch (err: any) {
             console.error("Failed to save progress:", err);
+            toast.error(
+                "Failed to save",
+                err?.message || "Could not save your medication progress. Please try again."
+            );
         } finally {
             setIsSaving(false);
         }
@@ -290,24 +455,37 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         );
     }
 
+    // Single persistent modal wrapper - only inner content changes
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-            <div className="relative w-full max-w-4xl h-[90vh] bg-[#f8f9fc] rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
-                {/* Dynamic Header */}
-                <div className="flex items-center justify-between px-10 py-6 bg-white shrink-0">
-                    <div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                            {activeCase === 'SURGERY_DAY' ? 'Surgery Day Dashboard' :
-                                activeCase === 'POST_SURGERY' ? 'Preparation Complete' :
-                                    'Before Surgery Preparation'}
-                        </h1>
-                    </div>
-                    <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-400">
-                        <X size={24} />
-                    </button>
+            <div className="relative w-full max-w-5xl max-h-[96vh] bg-gradient-to-b from-white to-slate-50 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-[scaleIn_0.2s_ease-out]">
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-5 right-5 z-10 p-2.5 bg-white/20 hover:bg-white/30 rounded-full transition-all text-white hover:text-white"
+                >
+                    <X size={22} />
+                </button>
+
+                {/* Header */}
+                <div className="px-8 pt-6 pb-4 bg-gradient-to-r from-violet-600 to-purple-600 shrink-0">
+                    <h1 className="text-2xl font-bold mb-1 text-white">
+                        {activeCase === 'SURGERY_DAY' ? 'Surgery Day Dashboard' :
+                            activeCase === 'POST_SURGERY' ? 'Preparation Complete' :
+                                'Before Surgery Preparation'}
+                    </h1>
+                    <p className="text-base text-white/80">
+                        {activeCase === 'SURGERY_DAY' ? 'Everything you need for today' :
+                            activeCase === 'POST_SURGERY' ? 'You\'re ready for your procedure' :
+                                'Get ready for your upcoming cataract surgery'}
+                    </p>
                 </div>
 
+                {/* Content Area - shows skeleton or actual content */}
+                {isLoading ? (
+                    <BeforeSurgerySkeletonContent />
+                ) : (
                 <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8">
                     {/* Case 3: Surgery Day Banner */}
                     {activeCase === 'SURGERY_DAY' && (
@@ -319,14 +497,14 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
                                         <div className="flex items-center gap-3">
                                             <Clock size={20} className="text-blue-200" />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Arrival</span>
+                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-100">Arrival</span>
                                         </div>
                                         <p className="text-xl font-black mt-1">{arrivalTime}</p>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
                                         <div className="flex items-center gap-3">
                                             <MapPin size={20} className="text-blue-200" />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Location</span>
+                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-100">Location</span>
                                         </div>
                                         <p className="text-xl font-black mt-1">Surgery Center</p>
                                     </div>
@@ -341,7 +519,7 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                         <div className="bg-emerald-600 rounded-[32px] p-8 text-white flex items-center justify-between overflow-hidden relative">
                             <div className="space-y-4 relative z-10">
                                 <h2 className="text-4xl font-black">Preparation Complete</h2>
-                                <p className="text-emerald-100 font-bold">You've successfully completed your pre-op routine.</p>
+                                <p className="text-emerald-50 font-bold text-lg">You've successfully completed your pre-op routine.</p>
                                 <button className="bg-white text-emerald-600 px-6 py-3 rounded-xl font-black flex items-center gap-2 shadow-lg">
                                     Go to After Surgery Module <ArrowRight size={20} />
                                 </button>
@@ -363,9 +541,9 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                                             <ShieldCheck size={20} className="text-amber-600" />
                                         </div>
                                         <div className="space-y-1">
-                                            <h3 className="font-black text-slate-900 text-lg">Next Step: Pharmacy</h3>
-                                            <p className="text-slate-500 text-sm">
-                                                Ensure you have picked up your <strong className="text-slate-700">{antibioticName}</strong> drops from the pharmacy.
+                                            <h3 className="font-black text-slate-900 text-xl">Next Step: Pharmacy</h3>
+                                            <p className="text-slate-700 text-base">
+                                                Ensure you have picked up your <strong className="text-slate-900">{antibioticName}</strong> drops from the pharmacy.
                                             </p>
                                         </div>
                                     </div>
@@ -375,19 +553,19 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                                             <AlertCircle size={20} className="text-violet-600" />
                                         </div>
                                         <div className="space-y-1">
-                                            <h3 className="font-black text-slate-900 text-lg">Action Required: Drops</h3>
-                                            <p className="text-slate-500 text-sm">Please follow your {antibioticName} schedule below.</p>
+                                            <h3 className="font-black text-slate-900 text-xl">Action Required: Drops</h3>
+                                            <p className="text-slate-700 text-base">Please follow your {antibioticName} schedule below.</p>
                                         </div>
                                     </div>
                                 )}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white rounded-[24px] p-4 border border-slate-100">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">SURGERY DATE</span>
-                                        <p className="font-black text-slate-900">{new Date(surgeryDateStr!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                                    <div className="bg-white rounded-[24px] p-5 border border-slate-100">
+                                        <span className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">SURGERY DATE</span>
+                                        <p className="font-black text-slate-900 text-lg">{new Date(surgeryDateStr!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                                     </div>
-                                    <div className="bg-white rounded-[24px] p-4 border border-slate-100">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">TIME</span>
-                                        <p className="font-black text-slate-900">{arrivalTime}</p>
+                                    <div className="bg-white rounded-[24px] p-5 border border-slate-100">
+                                        <span className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">TIME</span>
+                                        <p className="font-black text-slate-900 text-lg">{arrivalTime}</p>
                                     </div>
                                 </div>
                             </div>
@@ -397,7 +575,7 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                     {/* Dynamic Tracker: Timeline vs Upcoming */}
                     {(activeCase === 'TIMELINE' || activeCase === 'PHARMACY') && (
                         <div className="space-y-6">
-                            <h2 className="text-xl font-black text-slate-900">Eye Drop Tracker</h2>
+                            <h2 className="text-2xl font-black text-slate-900">Eye Drop Tracker</h2>
                             <div className="space-y-6">
                                 {timelineDays.map((date, index) => {
                                     const dateKey = formatDateKey(date);
@@ -409,15 +587,15 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
 
                                     return (
                                         <div key={dateKey} className={`relative flex gap-6 transition-all duration-300 ${isFuture ? 'hover:translate-x-1' : ''}`}>
-                                            {/* Vertical Line */}
-                                            {index < 2 && <div className="absolute left-[27px] top-14 bottom-[-24px] w-0.5 bg-slate-200" />}
+                                            {/* Vertical Line - behind date nodes */}
+                                            {index < 2 && <div className="absolute left-[31px] top-16 bottom-[-24px] w-0.5 bg-slate-200 z-0" />}
 
                                             {/* Date Node */}
-                                            <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 transition-all ${isTodayDay && activeCase !== 'PHARMACY' ? 'bg-violet-600 border-violet-600 text-white' :
-                                                dayCompleted ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white border-slate-100 text-slate-400'
+                                            <div className={`relative z-10 w-16 h-16 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 transition-all ${isTodayDay && activeCase !== 'PHARMACY' ? 'bg-violet-600 border-violet-600 text-white' :
+                                                dayCompleted ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white border-slate-200 text-slate-700'
                                                 }`}>
-                                                <span className="text-[10px] font-black uppercase leading-none mb-1">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
-                                                <span className="text-xl font-black leading-none">{date.getDate()}</span>
+                                                <span className="text-xs font-black uppercase leading-none mb-1">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
+                                                <span className="text-2xl font-black leading-none">{date.getDate()}</span>
                                             </div>
 
                                             {/* Day Accordion */}
@@ -428,10 +606,10 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                                                         }`}
                                                 >
                                                     <div>
-                                                        <span className={`text-sm font-black ${isFuture ? 'text-slate-400' : 'text-slate-900'}`}>
+                                                        <span className={`text-base font-black ${isFuture ? 'text-slate-500' : 'text-slate-900'}`}>
                                                             Day {3 - index} before Surgery {isTodayDay ? '(Today)' : isPast ? '(Past Day)' : '(Upcoming)'}
                                                         </span>
-                                                        <p className="text-xs font-bold text-slate-400">{dayProgress}/{trackerItems.length} drops taken</p>
+                                                        <p className="text-sm font-bold text-slate-600">{dayProgress}/{trackerItems.length} drops taken</p>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         {isPast && dayCompleted && <CheckCircle2 className="text-emerald-500" size={20} />}
@@ -441,9 +619,9 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
 
                                                 {/* Locked Status Message */}
                                                 {lockedMessageDate === dateKey && (
-                                                    <div className="px-6 py-2 bg-amber-50 border-y border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-                                                        <AlertCircle size={14} className="text-amber-600" />
-                                                        <p className="text-[11px] font-bold text-amber-700">
+                                                    <div className="px-6 py-3 bg-amber-50 border-y border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                                        <AlertCircle size={16} className="text-amber-600" />
+                                                        <p className="text-sm font-bold text-amber-800">
                                                             This tracker starts 3 days before surgery on {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.
                                                         </p>
                                                     </div>
@@ -467,15 +645,15 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                                                                             {checklist[dateKey]?.[item.id] && <CheckCircle2 size={14} />}
                                                                         </button>
                                                                         <div>
-                                                                            <p className="text-sm font-bold text-slate-900">{item.label}</p>
-                                                                            <p className="text-xs text-slate-400">{item.time} • {item.sub}</p>
+                                                                            <p className="text-base font-bold text-slate-900">{item.label}</p>
+                                                                            <p className="text-sm text-slate-600">{item.time} • {item.sub}</p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             ))
                                                         ) : (
                                                             <div className="py-4">
-                                                                <p className="text-sm text-slate-400 italic">No medication frequency set.</p>
+                                                                <p className="text-base text-slate-600 italic">No medication frequency set.</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -506,7 +684,7 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                     {/* Night Before: Visible for Surgery Day and Timeline */}
                     {(activeCase === 'TIMELINE' || activeCase === 'SURGERY_DAY') && (
                         <div className="space-y-6">
-                            <h3 className="text-xl font-black text-slate-900">Night Before Rules</h3>
+                            <h3 className="text-2xl font-black text-slate-900">Night Before Rules</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <RuleCard icon={<Utensils />} title="Fast after Midnight" desc="No food or water after 12:00 AM." />
                                 <RuleCard icon={<Car />} title="Arrange a Driver" desc="Ensure a ride is confirmed for home." />
@@ -515,49 +693,44 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                         </div>
                     )}
 
-                    {/* FAQ Section */}
-                    {moduleContent?.faqs && moduleContent.faqs.length > 0 && (
-                        <div className="space-y-6 pt-10 border-t border-slate-100">
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider text-center">Frequently Asked Questions</h3>
-                            <div className="space-y-3">
-                                {moduleContent.faqs.map((faq, index) => {
-                                    const isOpen = openFaqIndex === index;
-                                    return (
-                                        <div key={index} className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
-                                            <button
-                                                onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                                                className="w-full text-left p-5 flex justify-between items-start gap-4 transition-colors"
-                                            >
-                                                <div className={`font-medium text-base transition-colors ${isOpen ? 'text-blue-800' : 'text-slate-700'}`}>
-                                                    <ReactMarkdown components={{ p: Fragment }}>{faq.question}</ReactMarkdown>
-                                                </div>
-                                                <span className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-300 ${isOpen ? 'rotate-180 bg-blue-200 text-blue-700' : 'bg-slate-50 text-slate-400 shadow-sm'}`}>
-                                                    <ChevronDown size={18} />
-                                                </span>
-                                            </button>
+                    {/* FAQ Section - Always render with hardcoded FAQs */}
+                    <div className="space-y-6 pt-10 border-t border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800 uppercase tracking-wider text-center">Frequently Asked Questions</h3>
+                        <div className="space-y-3">
+                            {beforeSurgeryFaqs.map((faq, index) => {
+                                const isOpen = openFaqIndex === index;
+                                return (
+                                    <div key={index} className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                                        <button
+                                            onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                                            className="w-full text-left p-5 flex justify-between items-start gap-4 transition-colors"
+                                        >
+                                            <div className={`font-medium text-base transition-colors ${isOpen ? 'text-blue-800' : 'text-slate-700'}`}>
+                                                {faq.question}
+                                            </div>
+                                            <span className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-300 ${isOpen ? 'rotate-180 bg-blue-200 text-blue-700' : 'bg-slate-50 text-slate-400 shadow-sm'}`}>
+                                                <ChevronDown size={18} />
+                                            </span>
+                                        </button>
 
-                                            <div
-                                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-                                                    }`}
-                                            >
-                                                <div className="p-5 pt-0 text-slate-600 leading-relaxed text-sm">
-                                                    <div className="h-px w-full bg-slate-200/60 mb-4"></div>
-                                                    <ReactMarkdown>{faq.answer || ""}</ReactMarkdown>
-                                                </div>
+                                        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                            <div className="p-5 pt-0 text-slate-600 leading-relaxed text-base">
+                                                <div className="h-px w-full bg-slate-200/60 mb-4"></div>
+                                                <ReactMarkdown>{faq.answer}</ReactMarkdown>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    )}
+                    </div>
 
                     {/* Bot Action Section */}
-                    <div className={`mt-8 p-6 rounded-[28px] ${classes.surfaceVariant} border border-slate-200 text-center max-w-2xl mx-auto`}>
-                        <h3 className={`text-lg font-semibold ${classes.primaryText} mb-2`}>
+                    <div className={`mt-8 p-8 rounded-[28px] ${classes.surfaceVariant} border border-slate-200 text-center max-w-2xl mx-auto`}>
+                        <h3 className={`text-xl font-semibold ${classes.primaryText} mb-2`}>
                             Still have questions?
                         </h3>
-                        <p className="text-slate-600 mb-4 text-sm">
+                        <p className="text-slate-700 mb-4 text-base">
                             Our AI assistant can explain pre-operative instructions in more detail based on your personal medical records.
                         </p>
                         <button
@@ -574,6 +747,7 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                         </button>
                     </div>
                 </div>
+                )}
             </div>
         </div>
     );
@@ -581,10 +755,10 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
 
 const RuleCard = ({ icon, title, desc }: { icon: any, title: string, desc: string }) => (
     <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-4">
-        <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center">{icon}</div>
+        <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center">{icon}</div>
         <div>
-            <h4 className="font-black text-slate-900 text-sm">{title}</h4>
-            <p className="text-slate-400 text-[11px] leading-relaxed mt-1 font-bold">{desc}</p>
+            <h4 className="font-black text-slate-900 text-base">{title}</h4>
+            <p className="text-slate-700 text-sm leading-relaxed mt-1 font-semibold">{desc}</p>
         </div>
     </div>
 );

@@ -86,11 +86,25 @@ const VisionSlider: React.FC<VisionSliderProps> = ({
                     }}
                 />
 
-                {/* Labels */}
-                <div className="absolute top-3 left-3 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-xs font-semibold text-slate-700 shadow-sm">
+                {/* Labels - fade based on slider position */}
+                {/* Left label: visible when slider is right (showing left/healthy image) */}
+                <div
+                    className="absolute top-3 left-3 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-sm font-semibold text-slate-700 shadow-sm transition-opacity duration-200"
+                    style={{
+                        opacity: sliderPosition > 30 ? Math.min(1, (sliderPosition - 30) / 40) : 0,
+                        pointerEvents: sliderPosition > 30 ? 'auto' : 'none'
+                    }}
+                >
                     {leftLabel}
                 </div>
-                <div className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/80 backdrop-blur-sm rounded-lg text-xs font-semibold text-white shadow-sm">
+                {/* Right label: visible when slider is left (showing right/affected image) */}
+                <div
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/80 backdrop-blur-sm rounded-lg text-sm font-semibold text-white shadow-sm transition-opacity duration-200"
+                    style={{
+                        opacity: sliderPosition < 70 ? Math.min(1, (70 - sliderPosition) / 40) : 0,
+                        pointerEvents: sliderPosition < 70 ? 'auto' : 'none'
+                    }}
+                >
                     {rightLabel}
                 </div>
 

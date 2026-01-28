@@ -15,6 +15,12 @@ class AskResponse(BaseModel):
     sources: list[dict] = []  # Source URLs/links from retrieved chunks
 
 
+class EyeDetails(BaseModel):
+    """Per-eye condition details."""
+    condition: str
+    description: str
+
+
 class ModuleContentResponse(BaseModel):
     """Response model for the /module-content endpoint."""
     title: str
@@ -27,3 +33,11 @@ class ModuleContentResponse(BaseModel):
     timeline: list[dict] = []
     risks: list[dict] = []
     costBreakdown: list[dict] = []
+
+    # Diagnosis module specific fields (LLM-generated)
+    primary_diagnosis_type: str | None = None      # "Combined form of senile cataract"
+    cataract_types: list[str] = []                 # ["Nuclear sclerosis", "Cortical"]
+    eyes_same_condition: bool | None = None        # true if both eyes have same condition
+    right_eye: EyeDetails | None = None            # Right eye details
+    left_eye: EyeDetails | None = None             # Left eye details
+    additional_conditions: list[str] = []          # ["Dry Eye Syndrome", "Myopia"]

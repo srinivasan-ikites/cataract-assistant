@@ -146,8 +146,16 @@ const DatePicker: React.FC<DatePickerProps> = ({
     });
   };
 
+  // Helper to format date as YYYY-MM-DD using LOCAL time (not UTC)
+  const formatDateLocal = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const isDateDisabled = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(date);
     if (minDate && dateStr < minDate) return true;
     if (maxDate && dateStr > maxDate) return true;
     return false;
@@ -160,7 +168,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
     if (isDateDisabled(selected)) return;
 
-    const formatted = selected.toISOString().split('T')[0];
+    // Use local date formatting instead of toISOString() which converts to UTC
+    const formatted = formatDateLocal(selected);
     onChange(formatted);
     setIsOpen(false);
   };
@@ -400,8 +409,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => {
-                const todayStr = new Date().toISOString().split('T')[0];
-                if (!isDateDisabled(new Date())) {
+                const todayDate = new Date();
+                const todayStr = formatDateLocal(todayDate);
+                if (!isDateDisabled(todayDate)) {
                   onChange(todayStr);
                   setIsOpen(false);
                 }

@@ -131,8 +131,92 @@ const ArrayField = memo(({ items, onAdd, onRemove, label }: ArrayFieldProps) => 
     );
 });
 
+// Memoized medication item row - MUST be outside main component to prevent focus loss
+interface MedItemProps {
+  item: any;
+  index: number;
+  path: string;
+  showCategory?: boolean;
+  onUpdateField: (path: string, value: any) => void;
+  onRemove: () => void;
+}
+
+const MedItem = memo(({
+  item,
+  index,
+  path,
+  showCategory = false,
+  onUpdateField,
+  onRemove
+}: MedItemProps) => (
+  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl group">
+    <input
+      type="text"
+      value={item.name || ''}
+      onChange={(e) => onUpdateField(`${path}.${index}.name`, e.target.value)}
+      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+      placeholder="Medication name..."
+    />
+    {showCategory && (
+      <input
+        type="text"
+        value={item.category || ''}
+        onChange={(e) => onUpdateField(`${path}.${index}.category`, e.target.value)}
+        className="w-32 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+        placeholder="Category..."
+      />
+    )}
+    <button
+      onClick={onRemove}
+      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded opacity-0 group-hover:opacity-100 transition-all"
+    >
+      <Trash2 size={14} />
+    </button>
+  </div>
+));
+
+// Memoized medication list - MUST be outside main component to prevent focus loss
+interface MedListProps {
+  path: string;
+  label: string;
+  items: any[];
+  template: any;
+  showCategory?: boolean;
+  onUpdateField: (path: string, value: any) => void;
+}
+
+const MedList = memo(({ path, label, items, template, showCategory = false, onUpdateField }: MedListProps) => (
+  <div className="space-y-3">
+    <div className="flex items-center justify-between">
+      <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
+      <button
+        onClick={() => onUpdateField(path, [...items, { ...template, id: Date.now() }])}
+        className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+      >
+        + Add
+      </button>
+    </div>
+    {items.length === 0 ? (
+      <p className="text-xs text-slate-400 italic py-2">No {label.toLowerCase()} configured</p>
+    ) : (
+      items.map((item: any, idx: number) => (
+        <MedItem
+          key={item.id || `med-${idx}`}
+          item={item}
+          index={idx}
+          path={path}
+          showCategory={showCategory}
+          onUpdateField={onUpdateField}
+          onRemove={() => onUpdateField(path, items.filter((_: any, i: number) => i !== idx))}
+        />
+      ))
+    )}
+  </div>
+));
+
 // Preset package templates that clinics can quickly add
 const PRESET_PACKAGES = [
+  // === STANDARD (Insurance Covered) ===
   {
     package_id: 'PKG_STD',
     display_name: 'Standard Monofocal',
@@ -144,49 +228,52 @@ const PRESET_PACKAGES = [
   },
   {
     package_id: 'PKG_LASER_LRI',
-    display_name: 'Laser with LRI',
+    display_name: 'Monofocal + Laser',
     description: 'Femtosecond laser-assisted surgery with limbal relaxing incisions for minor astigmatism.',
     price_cash: 1900,
     includes_laser: true,
     allowed_lens_codes: ['MONOFOCAL'],
     insurance_coverage: 'Laser portion is out-of-pocket',
   },
-  {
-    package_id: 'PKG_TORIC',
-    display_name: 'Toric (Astigmatism)',
-    description: 'Monofocal toric IOL for patients with significant corneal astigmatism.',
-    price_cash: 1800,
-    includes_laser: false,
-    allowed_lens_codes: ['MONOFOCAL_TORIC'],
-    insurance_coverage: 'Premium portion out-of-pocket',
-  },
-  {
-    package_id: 'PKG_TORIC_LASER',
-    display_name: 'Toric + Laser',
-    description: 'Toric IOL with femtosecond laser precision for enhanced astigmatism correction.',
-    price_cash: 2000,
-    includes_laser: true,
-    allowed_lens_codes: ['MONOFOCAL_TORIC'],
-    insurance_coverage: 'Premium portion out-of-pocket',
-  },
+  // === PREMIUM - EDOF ===
   {
     package_id: 'PKG_EDOF',
     display_name: 'EDOF (Extended Depth)',
     description: 'Extended Depth of Focus lens for excellent intermediate vision with minimal halos.',
-    price_cash: 500,
+    price_cash: 2500,
     includes_laser: false,
     allowed_lens_codes: ['EDOF', 'EDOF_TORIC'],
     insurance_coverage: 'Premium portion out-of-pocket',
   },
   {
-    package_id: 'PKG_MULTIFOCAL',
-    display_name: 'Multifocal / Presbyopic',
-    description: 'Multifocal IOL for near, intermediate, and distance vision.',
+    package_id: 'PKG_EDOF_LASER',
+    display_name: 'EDOF + Laser',
+    description: 'Extended Depth of Focus lens with femtosecond laser precision for enhanced results.',
     price_cash: 3000,
+    includes_laser: true,
+    allowed_lens_codes: ['EDOF', 'EDOF_TORIC'],
+    insurance_coverage: 'Premium portion out-of-pocket',
+  },
+  // === PREMIUM - MULTIFOCAL ===
+  {
+    package_id: 'PKG_MULTIFOCAL',
+    display_name: 'Multifocal',
+    description: 'Multifocal IOL for near, intermediate, and distance vision with reduced glasses dependence.',
+    price_cash: 3500,
     includes_laser: false,
     allowed_lens_codes: ['MULTIFOCAL', 'MULTIFOCAL_TORIC'],
     insurance_coverage: 'Premium portion out-of-pocket',
   },
+  {
+    package_id: 'PKG_MULTIFOCAL_LASER',
+    display_name: 'Multifocal + Laser',
+    description: 'Multifocal IOL with femtosecond laser precision for optimal visual outcomes.',
+    price_cash: 4000,
+    includes_laser: true,
+    allowed_lens_codes: ['MULTIFOCAL', 'MULTIFOCAL_TORIC'],
+    insurance_coverage: 'Premium portion out-of-pocket',
+  },
+  // === PREMIUM - LAL ===
   {
     package_id: 'PKG_LAL',
     display_name: 'Light Adjustable Lens',
@@ -194,6 +281,26 @@ const PRESET_PACKAGES = [
     price_cash: 4900,
     includes_laser: true,
     allowed_lens_codes: ['LAL'],
+    insurance_coverage: 'Premium portion out-of-pocket',
+  },
+  // === ASTIGMATISM ADD-ON (Toric) ===
+  // Note: Toric is an add-on that can be combined with Monofocal, EDOF, or Multifocal
+  {
+    package_id: 'PKG_TORIC',
+    display_name: 'Toric (Astigmatism)',
+    description: 'Toric IOL for patients with significant corneal astigmatism. Can be combined with any base lens type.',
+    price_cash: 1800,
+    includes_laser: false,
+    allowed_lens_codes: ['MONOFOCAL_TORIC', 'EDOF_TORIC', 'MULTIFOCAL_TORIC'],
+    insurance_coverage: 'Premium portion out-of-pocket',
+  },
+  {
+    package_id: 'PKG_TORIC_LASER',
+    display_name: 'Toric + Laser',
+    description: 'Toric IOL with femtosecond laser precision for enhanced astigmatism correction.',
+    price_cash: 2200,
+    includes_laser: true,
+    allowed_lens_codes: ['MONOFOCAL_TORIC', 'EDOF_TORIC', 'MULTIFOCAL_TORIC'],
     insurance_coverage: 'Premium portion out-of-pocket',
   },
 ];
@@ -1003,218 +1110,144 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
     const glaucomaDrops = getValue('medications.post_op.glaucoma_drops') || [];
     const combinationDrops = getValue('medications.post_op.combination_drops') || [];
 
-    const MedList = ({ path, label, items, template, showCategory = false }: { path: string; label: string; items: any[]; template: any; showCategory?: boolean }) => (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
-                <button
-            onClick={() => updateNestedField(path, [...items, { ...template, id: Date.now() }])}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                >
-            + Add
-                </button>
-              </div>
-        {items.length === 0 ? (
-          <p className="text-xs text-slate-400 italic py-2">No {label.toLowerCase()} configured</p>
-        ) : (
-          items.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl group">
-              <input
-                type="text"
-                value={item.name || ''}
-                onChange={(e) => updateNestedField(`${path}.${idx}.name`, e.target.value)}
-                className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
-                placeholder="Medication name..."
-              />
-              {showCategory && (
-                <input
-                  type="text"
-                  value={item.category || ''}
-                  onChange={(e) => updateNestedField(`${path}.${idx}.category`, e.target.value)}
-                  className="w-32 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
-                  placeholder="Category..."
-                />
-              )}
-                  <button
-                onClick={() => updateNestedField(path, items.filter((_: any, i: number) => i !== idx))}
-                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                <Trash2 size={14} />
-                  </button>
-                </div>
-          ))
-        )}
-              </div>
+    // Helper to render accordion header (not a component - just returns JSX)
+    const renderAccordionHeader = (id: string, title: string, icon: React.ReactNode, bgColor: string, itemCount: number) => (
+      <button
+        onClick={() => setExpandedMedSection(expandedMedSection === id ? null : id)}
+        className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgColor}`}>
+            {icon}
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-bold text-slate-800">{title}</p>
+            <p className="text-xs text-slate-400">{itemCount} item{itemCount !== 1 ? 's' : ''} configured</p>
+          </div>
+        </div>
+        {expandedMedSection === id ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+      </button>
     );
 
-    // Accordion section component
-    const MedAccordion = ({ 
-      id, 
-      title, 
-      icon, 
-      iconColor, 
-      bgColor,
-      itemCount, 
-      children 
-    }: { 
-      id: string; 
-      title: string; 
-      icon: React.ReactNode; 
-      iconColor: string;
-      bgColor: string;
-      itemCount: number; 
-      children: React.ReactNode;
-    }) => {
-      const isExpanded = expandedMedSection === id;
-      return (
+    return (
+      <div className="space-y-3">
+        {/* Pre-Op Medications */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => setExpandedMedSection(isExpanded ? null : id)}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgColor}`}>
-                {icon}
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-slate-800">{title}</p>
-                <p className="text-xs text-slate-400">{itemCount} item{itemCount !== 1 ? 's' : ''} configured</p>
-              </div>
-            </div>
-            {isExpanded ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
-          </button>
-          {isExpanded && (
+          {renderAccordionHeader('pre_op', 'Pre-Op Medications', <Pill size={18} className="text-emerald-500" />, 'bg-emerald-50', preOpAntibiotics.length)}
+          {expandedMedSection === 'pre_op' && (
             <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
-              {children}
+              <MedList
+                path="medications.pre_op.antibiotics"
+                label="Antibiotics"
+                items={preOpAntibiotics}
+                template={{ name: '' }}
+                onUpdateField={updateNestedField}
+              />
+              {renderTextField("medications.pre_op.default_start_days_before_surgery", "Start Days Before Surgery", { type: "number" })}
             </div>
           )}
         </div>
-      );
-    };
-
-    return (
-            <div className="space-y-3">
-        {/* Pre-Op Medications */}
-        <MedAccordion
-          id="pre_op"
-          title="Pre-Op Medications"
-          icon={<Pill size={18} className="text-emerald-500" />}
-          iconColor="text-emerald-500"
-          bgColor="bg-emerald-50"
-          itemCount={preOpAntibiotics.length}
-        >
-          <MedList
-            path="medications.pre_op.antibiotics"
-            label="Antibiotics"
-            items={preOpAntibiotics}
-            template={{ name: '' }}
-          />
-          {renderTextField("medications.pre_op.default_start_days_before_surgery", "Start Days Before Surgery", { type: "number" })}
-        </MedAccordion>
 
         {/* Post-Op Medications */}
-        <MedAccordion
-          id="post_op"
-          title="Post-Op Medications"
-          icon={<Pill size={18} className="text-blue-500" />}
-          iconColor="text-blue-500"
-          bgColor="bg-blue-50"
-          itemCount={postOpAntibiotics.length + nsaids.length + steroids.length}
-        >
-          <MedList
-            path="medications.post_op.antibiotics"
-            label="Antibiotics"
-            items={postOpAntibiotics}
-            template={{ name: '', default_frequency: 4, default_weeks: 1 }}
-          />
-          <MedList
-            path="medications.post_op.nsaids"
-            label="NSAIDs"
-            items={nsaids}
-            template={{ name: '', default_frequency: 4, frequency_label: '4x Daily', default_weeks: 4 }}
-          />
-          <MedList
-            path="medications.post_op.steroids"
-            label="Steroids"
-            items={steroids}
-            template={{ name: '', default_taper: [4, 3, 2, 1], default_weeks: 4 }}
-          />
-        </MedAccordion>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {renderAccordionHeader('post_op', 'Post-Op Medications', <Pill size={18} className="text-blue-500" />, 'bg-blue-50', postOpAntibiotics.length + nsaids.length + steroids.length)}
+          {expandedMedSection === 'post_op' && (
+            <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
+              <MedList
+                path="medications.post_op.antibiotics"
+                label="Antibiotics"
+                items={postOpAntibiotics}
+                template={{ name: '', default_frequency: 4, default_weeks: 1 }}
+                onUpdateField={updateNestedField}
+              />
+              <MedList
+                path="medications.post_op.nsaids"
+                label="NSAIDs"
+                items={nsaids}
+                template={{ name: '', default_frequency: 4, frequency_label: '4x Daily', default_weeks: 4 }}
+                onUpdateField={updateNestedField}
+              />
+              <MedList
+                path="medications.post_op.steroids"
+                label="Steroids"
+                items={steroids}
+                template={{ name: '', default_taper: [4, 3, 2, 1], default_weeks: 4 }}
+                onUpdateField={updateNestedField}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Glaucoma Medications */}
-        <MedAccordion
-          id="glaucoma"
-          title="Glaucoma Medications"
-          icon={<Eye size={18} className="text-violet-500" />}
-          iconColor="text-violet-500"
-          bgColor="bg-violet-50"
-          itemCount={glaucomaDrops.length}
-        >
-          <p className="text-xs text-slate-500 mb-3">Configure available glaucoma drops for patients with pre-existing glaucoma.</p>
-          <MedList
-            path="medications.post_op.glaucoma_drops"
-            label="Glaucoma Drops"
-            items={glaucomaDrops}
-            template={{ name: '', category: '' }}
-            showCategory={true}
-          />
-        </MedAccordion>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {renderAccordionHeader('glaucoma', 'Glaucoma Medications', <Eye size={18} className="text-violet-500" />, 'bg-violet-50', glaucomaDrops.length)}
+          {expandedMedSection === 'glaucoma' && (
+            <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500 mb-3">Configure available glaucoma drops for patients with pre-existing glaucoma.</p>
+              <MedList
+                path="medications.post_op.glaucoma_drops"
+                label="Glaucoma Drops"
+                items={glaucomaDrops}
+                template={{ name: '', category: '' }}
+                showCategory={true}
+                onUpdateField={updateNestedField}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Combination Drops */}
-        <MedAccordion
-          id="combination"
-          title="Combination Drops"
-          icon={<Sparkles size={18} className="text-amber-500" />}
-          iconColor="text-amber-500"
-          bgColor="bg-amber-50"
-          itemCount={combinationDrops.length}
-        >
-          <p className="text-xs text-slate-500 mb-3">Pre-mixed combination drops available at your clinic.</p>
-          <MedList
-            path="medications.post_op.combination_drops"
-            label="Combination Drops"
-            items={combinationDrops}
-            template={{ name: '', components: [] }}
-          />
-        </MedAccordion>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {renderAccordionHeader('combination', 'Combination Drops', <Sparkles size={18} className="text-amber-500" />, 'bg-amber-50', combinationDrops.length)}
+          {expandedMedSection === 'combination' && (
+            <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500 mb-3">Pre-mixed combination drops available at your clinic.</p>
+              <MedList
+                path="medications.post_op.combination_drops"
+                label="Combination Drops"
+                items={combinationDrops}
+                template={{ name: '', components: [] }}
+                onUpdateField={updateNestedField}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Dropless Option */}
-        <MedAccordion
-          id="dropless"
-          title="Dropless Surgery Option"
-          icon={<CheckCircle2 size={18} className="text-teal-500" />}
-          iconColor="text-teal-500"
-          bgColor="bg-teal-50"
-          itemCount={getValue('medications.post_op.dropless_option.available') ? 1 : 0}
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <label className="text-xs font-semibold text-slate-500">Available</label>
-            <div className="flex items-center gap-2">
-                <button
-                onClick={() => updateNestedField('medications.post_op.dropless_option.available', true)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  getValue('medications.post_op.dropless_option.available') 
-                    ? 'bg-teal-600 text-white' 
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                }`}
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => updateNestedField('medications.post_op.dropless_option.available', false)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  !getValue('medications.post_op.dropless_option.available') 
-                    ? 'bg-slate-700 text-white' 
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                }`}
-              >
-                No
-                </button>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {renderAccordionHeader('dropless', 'Dropless Surgery Option', <CheckCircle2 size={18} className="text-teal-500" />, 'bg-teal-50', getValue('medications.post_op.dropless_option.available') ? 1 : 0)}
+          {expandedMedSection === 'dropless' && (
+            <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-slate-500">Available</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateNestedField('medications.post_op.dropless_option.available', true)}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      getValue('medications.post_op.dropless_option.available')
+                        ? 'bg-teal-600 text-white'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => updateNestedField('medications.post_op.dropless_option.available', false)}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      !getValue('medications.post_op.dropless_option.available')
+                        ? 'bg-slate-700 text-white'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
               </div>
-          </div>
-          {renderTextArea("medications.post_op.dropless_option.description", "Description", { rows: 2 })}
-          {renderArrayField("medications.post_op.dropless_option.medications", "Available Dropless Medications")}
-        </MedAccordion>
+              {renderTextArea("medications.post_op.dropless_option.description", "Description", { rows: 2 })}
+              {renderArrayField("medications.post_op.dropless_option.medications", "Available Dropless Medications")}
+            </div>
+          )}
+        </div>
 
         {/* Default Frequency Options - Always visible as it's a general setting */}
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
