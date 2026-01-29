@@ -60,27 +60,47 @@ This repository contains the Phase 1 ingestion pipeline for the multi-tenant ca
 Each stage logs counts and outputs JSONL artifacts so you can inspect or rerun individual steps without re-crawling.
 
 
+
+Future requirements to look for:
+Practical Solutions
+
+  Short-Term (Fix Current Issue)
+
+  Option A: Upgrade to Supabase Pro ($25/month)
+  - Higher rate limits
+  - Better support
+  - This alone might solve your problem
+
+  Option B: Queue-Based Registration
+  Instead of creating users immediately, queue them:
+
+  User submits form → Save to "pending_registrations" table → Background job creates auth users one by one
+
+  Medium-Term (For 20+ Clinics)
+
+  I can implement a registration queue system:
+
+  1. User fills form → Saved to pending_registrations (instant)
+  2. User sees: "Registration submitted! You'll receive email confirmation shortly."
+  3. Background worker processes queue (1 registration every 2-3 seconds)
+  4. User gets email when account is ready
+
+  This is actually better UX because:
+  - User doesn't wait for slow API calls
+  - No failures due to rate limiting
+  - Professional "we'll get back to you" flow
+
+
 <!-- superadmin -->
 admin@cataract.com
 admin
 
-<!-- clinic1 -->
-name-McLean Eye Clinic
-<!-- clinic admin -->
-doctor@mclean.com
-Test@123
+<!-- clinic 1 -->
+vision forever
+jane@gmail.com
+janejane
 
-<!-- clinic user -->
-newdoctor@clinic.com
-"role": "clinic_user",
-      "password": "temp12345"
-
-
-<!-- clinic2 -->
-name - testing-clinic2
-doctor@testing.com
-Test2@123
-
+latha B - 8888888888
 
 <!-- clinic3 -->
 name - abc-clinic
@@ -88,9 +108,3 @@ abc@gmail.com
 abcbabc
 latha patient - 99999999999
 
-<!-- clinic4 -->
-name- qwerty-clinic
-qwerty@gmail.com
-qwerty
-
-qwe-latha patient-5555555555

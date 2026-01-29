@@ -18,6 +18,7 @@ MongoDB comparison:
 """
 
 import re
+import time
 from fastapi import APIRouter, HTTPException, status, Header
 from pydantic import BaseModel, EmailStr
 
@@ -132,8 +133,11 @@ async def login(request: LoginRequest):
     - Then manually create a JWT
     - Supabase does both automatically
     """
+    print(f"\n[Auth Login] Attempt for email: {request.email}")
+
     client = get_supabase_admin_client()
     if not client:
+        print(f"[Auth Login] ERROR: Supabase client not available")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection not available"
@@ -142,6 +146,7 @@ async def login(request: LoginRequest):
     try:
         # Authenticate with Supabase Auth
         # This checks the auth.users table (managed by Supabase)
+        print(f"[Auth Login] Authenticating with Supabase...")
         auth_response = client.auth.sign_in_with_password({
             "email": request.email,
             "password": request.password
@@ -152,13 +157,17 @@ async def login(request: LoginRequest):
         user = auth_response.user
 
         if not session or not user:
+            print(f"[Auth Login] ERROR: No session/user returned from Supabase")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
 
+        print(f"[Auth Login] Auth successful for user ID: {user.id}")
+
         # Fetch the user's profile from our user_profiles table
         # This contains role, clinic_id, name, etc.
+        print(f"[Auth Login] Fetching user profile...")
         profile_response = client.table("user_profiles").select(
             "*, clinics(id, clinic_id, name, status)"
         ).eq("id", user.id).single().execute()
@@ -167,13 +176,18 @@ async def login(request: LoginRequest):
 
         # Check if user has a profile
         if not profile:
+            print(f"[Auth Login] ERROR: No profile found for user {user.id}")
+            print(f"[Auth Login] HINT: user_profiles table may be missing this user's record")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account not set up. Please contact your administrator."
             )
 
+        print(f"[Auth Login] Profile found: {profile.get('name')} | Role: {profile.get('role')} | Status: {profile.get('status')}")
+
         # Check if user is active
         if profile.get("status") != "active":
+            print(f"[Auth Login] ERROR: User status is '{profile.get('status')}' (not 'active')")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Account is {profile.get('status')}. Please contact your administrator."
@@ -183,15 +197,21 @@ async def login(request: LoginRequest):
         clinic = profile.get("clinics")
         if profile.get("role") != "super_admin":
             if not clinic:
+                print(f"[Auth Login] ERROR: User not associated with any clinic")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="User not associated with any clinic"
                 )
+            print(f"[Auth Login] Clinic: {clinic.get('name')} | Status: {clinic.get('status')}")
             if clinic.get("status") != "active":
+                print(f"[Auth Login] ERROR: Clinic status is '{clinic.get('status')}' (not 'active')")
+                print(f"[Auth Login] HINT: Clinic needs to be approved by super admin first")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Clinic is {clinic.get('status')}. Please contact support."
                 )
+
+        print(f"[Auth Login] SUCCESS - User logged in: {profile.get('name')} ({profile.get('role')})")
 
         return LoginResponse(
             access_token=session.access_token,
@@ -214,11 +234,12 @@ async def login(request: LoginRequest):
         error_message = str(e)
         # Handle specific Supabase auth errors
         if "Invalid login credentials" in error_message:
+            print(f"[Auth Login] ERROR: Invalid credentials for {request.email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
-        print(f"[Auth] Login error: {e}")
+        print(f"[Auth Login] ERROR: Unexpected error - {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during login"
@@ -405,8 +426,16 @@ async def register_clinic(request: ClinicRegistrationRequest):
     - Super admin reviews and approves the clinic
     - Once approved, admin can login and start using the platform
     """
+    print(f"\n{'='*60}")
+    print(f"[Register Clinic] START - New registration request")
+    print(f"[Register Clinic] Clinic Name: {request.clinic_name}")
+    print(f"[Register Clinic] Admin Email: {request.admin_email}")
+    print(f"[Register Clinic] Admin Name: {request.admin_name}")
+    print(f"{'='*60}")
+
     client = get_supabase_admin_client()
     if not client:
+        print("[Register Clinic] ERROR: Supabase client not available")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection not available"
@@ -414,24 +443,30 @@ async def register_clinic(request: ClinicRegistrationRequest):
 
     try:
         # Step 1: Check if email already exists
+        print(f"[Register Clinic] Step 1: Checking if email already exists...")
         existing_user = client.table("user_profiles").select("id").eq(
             "email", request.admin_email
         ).execute()
 
         if existing_user.data:
+            print(f"[Register Clinic] ERROR: Email {request.admin_email} already exists in user_profiles")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="An account with this email already exists"
             )
+        print(f"[Register Clinic] Step 1: OK - Email is available")
 
         # Step 2: Generate unique clinic_id (slug from name)
         # Format: "mclean-eye-clinic" (auto-generated from clinic name)
+        print(f"[Register Clinic] Step 2: Generating clinic_id slug...")
         existing_slugs_result = client.table("clinics").select("clinic_id").execute()
         existing_slugs = [c["clinic_id"] for c in (existing_slugs_result.data or [])]
         clinic_id = generate_clinic_slug(request.clinic_name, existing_slugs)
+        print(f"[Register Clinic] Step 2: OK - Generated clinic_id: {clinic_id}")
 
         # Step 3: Create the clinic record
         # Schema matches admin.py: clinic_id, name, address, contact, settings, status
+        print(f"[Register Clinic] Step 3: Creating clinic record in database...")
         clinic_data = {
             "clinic_id": clinic_id,
             "name": request.clinic_name,
@@ -451,14 +486,17 @@ async def register_clinic(request: ClinicRegistrationRequest):
         clinic_response = client.table("clinics").insert(clinic_data).execute()
 
         if not clinic_response.data:
+            print(f"[Register Clinic] ERROR: Failed to insert clinic into database")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create clinic"
             )
 
         clinic_uuid = clinic_response.data[0]["id"]
+        print(f"[Register Clinic] Step 3: OK - Clinic created with UUID: {clinic_uuid}")
 
         # Create empty clinic_config record (for packages, medications, etc.)
+        print(f"[Register Clinic] Step 3b: Creating clinic_config record...")
         config_data = {
             "clinic_id": clinic_uuid,
             "surgical_packages": [],
@@ -468,39 +506,87 @@ async def register_clinic(request: ClinicRegistrationRequest):
             "staff_directory": [],
         }
         client.table("clinic_config").insert(config_data).execute()
+        print(f"[Register Clinic] Step 3b: OK - clinic_config created")
 
         # Step 4: Create the admin user in Supabase Auth
-        try:
-            auth_response = client.auth.admin.create_user({
-                "email": request.admin_email,
-                "password": request.admin_password,
-                "email_confirm": True,  # Auto-confirm email
-                "user_metadata": {
-                    "name": request.admin_name,
-                    "role": "clinic_admin",
-                }
-            })
+        # Note: Supabase has rate limiting, so we retry with exponential backoff
+        print(f"[Register Clinic] Step 4: Creating admin user in Supabase Auth...")
+        print(f"[Register Clinic] Step 4: Email: {request.admin_email}")
+        print(f"[Register Clinic] Step 4: Password length: {len(request.admin_password)} chars")
 
-            if not auth_response.user:
-                # Rollback: delete the clinic_config and clinic
-                client.table("clinic_config").delete().eq("clinic_id", clinic_uuid).execute()
-                client.table("clinics").delete().eq("id", clinic_uuid).execute()
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create admin user"
-                )
+        max_retries = 3
+        retry_delay = 2  # Start with 2 seconds
+        auth_response = None
+        last_error = None
 
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    print(f"[Register Clinic] Step 4: Retry attempt {attempt + 1}/{max_retries} after {retry_delay}s delay...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+
+                auth_response = client.auth.admin.create_user({
+                    "email": request.admin_email,
+                    "password": request.admin_password,
+                    "email_confirm": True,  # Auto-confirm email
+                    "user_metadata": {
+                        "name": request.admin_name,
+                        "role": "clinic_admin",
+                    }
+                })
+
+                if auth_response.user:
+                    # Success!
+                    break
+
+            except Exception as auth_error:
+                last_error = auth_error
+                error_msg = str(auth_error)
+                print(f"[Register Clinic] Step 4: Attempt {attempt + 1} failed: {error_msg}")
+
+                # Don't retry for certain errors
+                if "already been registered" in error_msg:
+                    break  # No point retrying - email already exists
+
+                # For rate limiting errors, we should retry
+                if "User not allowed" in error_msg or "rate" in error_msg.lower():
+                    if attempt < max_retries - 1:
+                        print(f"[Register Clinic] Step 4: Appears to be rate limiting, will retry...")
+                        continue
+
+                # For other errors, don't retry
+                break
+
+        # Check if we succeeded
+        if auth_response and auth_response.user:
             user_id = auth_response.user.id
-
-        except Exception as auth_error:
-            # Rollback: delete the clinic_config and clinic
+            print(f"[Register Clinic] Step 4: OK - Auth user created with ID: {user_id}")
+        else:
+            # All retries failed
+            print(f"[Register Clinic] ERROR in Step 4: Supabase Auth failed after {max_retries} attempts!")
+            if last_error:
+                print(f"[Register Clinic] Error type: {type(last_error).__name__}")
+                print(f"[Register Clinic] Error message: {str(last_error)}")
+                print(f"[Register Clinic] Full error: {repr(last_error)}")
+            print(f"[Register Clinic] HINT: Check Supabase Dashboard > Authentication > Providers")
+            print(f"[Register Clinic] HINT: Ensure 'Enable Email Signup' is ON")
+            print(f"[Register Clinic] HINT: This may be Supabase rate limiting - wait a few seconds and try again")
+            print(f"[Register Clinic] Rolling back clinic creation...")
             client.table("clinic_config").delete().eq("clinic_id", clinic_uuid).execute()
             client.table("clinics").delete().eq("id", clinic_uuid).execute()
-            error_msg = str(auth_error)
+            print(f"[Register Clinic] Rollback complete")
+
+            error_msg = str(last_error) if last_error else "Unknown error"
             if "already been registered" in error_msg:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="An account with this email already exists"
+                )
+            if "User not allowed" in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Registration temporarily limited. Please wait a moment and try again."
                 )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -508,6 +594,7 @@ async def register_clinic(request: ClinicRegistrationRequest):
             )
 
         # Step 5: Create the user_profile record
+        print(f"[Register Clinic] Step 5: Creating user_profile record...")
         profile_data = {
             "id": user_id,
             "email": request.admin_email,
@@ -519,8 +606,12 @@ async def register_clinic(request: ClinicRegistrationRequest):
 
         try:
             client.table("user_profiles").insert(profile_data).execute()
+            print(f"[Register Clinic] Step 5: OK - user_profile created")
         except Exception as profile_error:
             # Rollback: delete the auth user, clinic_config, and clinic
+            print(f"[Register Clinic] ERROR in Step 5: Failed to create user_profile")
+            print(f"[Register Clinic] Error: {str(profile_error)}")
+            print(f"[Register Clinic] Rolling back...")
             client.auth.admin.delete_user(user_id)
             client.table("clinic_config").delete().eq("clinic_id", clinic_uuid).execute()
             client.table("clinics").delete().eq("id", clinic_uuid).execute()
@@ -528,6 +619,13 @@ async def register_clinic(request: ClinicRegistrationRequest):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user profile"
             )
+
+        print(f"\n{'='*60}")
+        print(f"[Register Clinic] SUCCESS!")
+        print(f"[Register Clinic] Clinic ID: {clinic_id}")
+        print(f"[Register Clinic] Admin Email: {request.admin_email}")
+        print(f"[Register Clinic] Status: pending (awaiting approval)")
+        print(f"{'='*60}\n")
 
         return ClinicRegistrationResponse(
             message="Clinic registered successfully. Awaiting approval from administrator.",

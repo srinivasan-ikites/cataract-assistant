@@ -11,6 +11,7 @@ import { ThemeProvider, useTheme } from './theme';
 import { Patient, Clinic, api } from './services/api';
 import DoctorPortal from './doctor/DoctorPortal';
 import PatientLogin from './patient/PatientLogin';
+import ClinicSelector from './patient/ClinicSelector';
 import LoginPage from './doctor/LoginPage';
 import ClinicRegistration from './doctor/ClinicRegistration';
 import AdminDashboard from './doctor/AdminDashboard';
@@ -118,13 +119,13 @@ const LandingPage: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
-            onClick={() => navigate('/patient/VIC-MCLEAN-001')}
+            onClick={() => navigate('/patient')}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
           >
             Patient Portal
           </button>
           <button
-            onClick={() => navigate('/doctor/VIC-MCLEAN-001')}
+            onClick={() => navigate('/doctor/login')}
             className="px-6 py-3 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 shadow hover:shadow-lg hover:-translate-y-0.5 transition-all"
           >
             Doctor Portal
@@ -136,10 +137,6 @@ const LandingPage: React.FC = () => {
             Admin Portal
           </button>
         </div>
-
-        <p className="text-sm text-slate-400 mt-8">
-          Demo mode: Using McLean Eye Clinic (VIC-MCLEAN-001)
-        </p>
       </div>
     </div>
   );
@@ -1244,6 +1241,9 @@ const App: React.FC = () => {
 
             {/* Doctor portal - clinic specific (must be after /doctor/login) */}
             <Route path="/doctor/:clinicId" element={<DoctorRoute />} />
+
+            {/* Patient clinic selector - choose clinic first */}
+            <Route path="/patient" element={<ClinicSelector />} />
 
             {/* Patient login page - clinic specific */}
             <Route path="/patient/:clinicId/login" element={<PatientLoginRoute />} />

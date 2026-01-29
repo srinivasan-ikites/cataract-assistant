@@ -1,0 +1,343 @@
+{
+  "clinic_profile": {
+    "clinic_id": "vision-forever",
+    "name": "vision forever",
+    "parent_organization": "",
+    "address": {
+      "street": "123 main street",
+      "city": "Seattle",
+      "state": "WA",
+      "zip": "90210"
+    },
+    "contact_info": {
+      "phone_main": "",
+      "phone_surgical_coordinator": "",
+      "fax": "",
+      "emergency_hotline": "",
+      "website": "",
+      "phone": "(123) 456 7890"
+    },
+    "branding": {
+      "logo_url": "",
+      "primary_color_hex": ""
+    }
+  },
+  "staff_directory": [],
+  "surgical_packages": [
+    {
+      "package_id": "PKG_STD",
+      "price_cash": 0,
+      "description": "Basic cataract surgery with standard monofocal IOL. Covered by most insurance plans.",
+      "display_name": "Standard Monofocal",
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONOFOCAL"
+      ],
+      "insurance_coverage": "Fully covered by Medicare/most insurances"
+    },
+    {
+      "package_id": "PKG_LASER_LRI",
+      "price_cash": 1900,
+      "description": "Femtosecond laser-assisted surgery with limbal relaxing incisions for minor astigmatism.",
+      "display_name": "Monofocal + Laser",
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONOFOCAL"
+      ],
+      "insurance_coverage": "Laser portion is out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL",
+      "price_cash": 3500,
+      "description": "Multifocal IOL for near, intermediate, and distance vision with reduced glasses dependence.",
+      "display_name": "Multifocal",
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL_LASER",
+      "price_cash": 4000,
+      "description": "Multifocal IOL with femtosecond laser precision for optimal visual outcomes.",
+      "display_name": "Multifocal + Laser",
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF",
+      "price_cash": 2500,
+      "description": "Extended Depth of Focus lens for excellent intermediate vision with minimal halos.",
+      "display_name": "EDOF (Extended Depth)",
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF_LASER",
+      "price_cash": 3000,
+      "description": "Extended Depth of Focus lens with femtosecond laser precision for enhanced results.",
+      "display_name": "EDOF + Laser",
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_LAL",
+      "price_cash": 4900,
+      "description": "RxSight LAL - vision fine-tuned after surgery using UV light treatments.",
+      "display_name": "Light Adjustable Lens",
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "LAL"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC",
+      "price_cash": 1800,
+      "description": "Toric IOL for patients with significant corneal astigmatism. Can be combined with any base lens type.",
+      "display_name": "Toric (Astigmatism)",
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC_LASER",
+      "price_cash": 2200,
+      "description": "Toric IOL with femtosecond laser precision for enhanced astigmatism correction.",
+      "display_name": "Toric + Laser",
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    }
+  ],
+  "lens_inventory": {
+    "MONOFOCAL": {
+      "display_name": "Standard Monofocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "MONOFOCAL_TORIC": {
+      "display_name": "Monofocal Toric",
+      "description": "",
+      "parent_category": "MONOFOCAL",
+      "is_toric": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "toric_range": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "EDOF": {
+      "display_name": "Extended Depth of Focus",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "EDOF_TORIC": {
+      "display_name": "EDOF Toric",
+      "description": "",
+      "parent_category": "EDOF",
+      "is_toric": true,
+      "models": []
+    },
+    "MULTIFOCAL": {
+      "display_name": "Multifocal / Trifocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "MULTIFOCAL_TORIC": {
+      "display_name": "Multifocal Toric",
+      "description": "",
+      "parent_category": "MULTIFOCAL",
+      "is_toric": true,
+      "models": []
+    },
+    "LAL": {
+      "display_name": "Light Adjustable Lens",
+      "description": "",
+      "has_toric_variant": false,
+      "models": []
+    }
+  },
+  "medications": {
+    "pre_op": {
+      "antibiotics": [
+        {
+          "id": 1769682911837,
+          "name": "Moxifloxacin (Vigamox)"
+        },
+        {
+          "id": 1769682913530,
+          "name": "Besifloxacin (Besivance)"
+        },
+        {
+          "id": 1769682915023,
+          "name": "Gatifloxacin (Zymaxid)"
+        },
+        {
+          "id": 1769682916249,
+          "name": "Ofloxacin (Ocuflox)"
+        },
+        {
+          "id": 1769682917466,
+          "name": "Ciprofloxacin (Ciloxan)"
+        },
+        {
+          "id": 1769682920764,
+          "name": "pre-op-sample1"
+        },
+        {
+          "id": 1769682934549,
+          "name": "pre-op-sample2"
+        }
+      ],
+      "frequencies": [],
+      "default_start_days_before_surgery": 3
+    },
+    "post_op": {
+      "antibiotics": [
+        {
+          "id": 1769682948799,
+          "name": "Moxifloxacin (Vigamox)"
+        },
+        {
+          "id": 1769682950529,
+          "name": "post-op-sample1",
+          "default_weeks": 1,
+          "default_frequency": 4
+        }
+      ],
+      "nsaids": [
+        {
+          "id": 1769682959413,
+          "name": "Ketorolac",
+          "default_weeks": 4,
+          "frequency_label": "4x Daily",
+          "default_frequency": 4
+        },
+        {
+          "id": 1769682960582,
+          "name": "Bromfenac (Prolensa, Bromday, Bromsite)",
+          "default_weeks": 4,
+          "frequency_label": "1x Daily",
+          "default_frequency": 1
+        },
+        {
+          "id": 1769682961956,
+          "name": "Nepafenac (Nevanac, Ilevro)",
+          "default_weeks": 4,
+          "frequency_label": "1x Daily",
+          "default_frequency": 1
+        },
+        {
+          "id": 1769682964797,
+          "name": "nsaids-sample1",
+          "default_weeks": 4,
+          "frequency_label": "4x Daily",
+          "default_frequency": 4
+        }
+      ],
+      "steroids": [
+        {
+          "id": 1769682971230,
+          "name": "Prednisolone Acetate 1% (Pred Forte)",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        },
+        {
+          "name": "Loteprednol (Lotemax)",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4,
+          "id": 1769683351939
+        }
+      ],
+      "glaucoma_drops": [],
+      "combination_drops": [],
+      "dropless_option": {
+        "available": false,
+        "description": "",
+        "medications": []
+      }
+    },
+    "frequency_options": []
+  },
+  "standard_operating_procedures": {
+    "procedure_codes": [],
+    "risks_categorized": {
+      "common_minor": [],
+      "rare_serious": []
+    }
+  },
+  "billing_and_insurance": {
+    "payment_policy": "",
+    "post_op_refraction_fee": {
+      "amount": 0,
+      "description": ""
+    },
+    "anesthesia_billing": "",
+    "accepted_insurance_notes": "",
+    "payment_methods": [],
+    "financing": {
+      "available": false,
+      "providers": [],
+      "zero_interest_months": 0,
+      "minimum_amount": 0
+    }
+  },
+  "documents": {
+    "standard_forms": []
+  },
+  "metadata": {
+    "schema_version": "2.1.0",
+    "created_at": "",
+    "updated_at": "",
+    "updated_by": ""
+  },
+  "_uuid": "ca62e099-a8b2-4be4-8e47-e30e25cb2209",
+  "_status": "active"
+}

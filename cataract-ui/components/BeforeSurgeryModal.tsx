@@ -197,8 +197,8 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
     // If both eyes have different dates, show the earlier one (right eye by default)
     const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
     const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
-    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
-    const surgeryDateStr = "2026-01-30";
+    const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
+    // const surgeryDateStr = "2026-01-30";
     const arrivalTime = rightEyeLogistics?.arrival_time || leftEyeLogistics?.arrival_time || "7:00 AM";
 
     // Use fallback lookups if strings are missing

@@ -1,8 +1,8 @@
 import { ModuleItem } from '../types';
 
-const API_BASE = 'http://localhost:8000'; // align with backend
+// const API_BASE = 'http://localhost:8000'; // align with backend
 // const API_BASE = 'http://35.244.44.106:8000';
-// const API_BASE = 'https://cataract-assistant.ikites.ai/api';
+const API_BASE = 'https://cataract-assistant.ikites.ai/api';
 // const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
@@ -652,6 +652,16 @@ export const api = {
         const res = await fetch(`${API_BASE}/clinics/${clinicId}`);
         if (!res.ok) throw new Error('Failed to fetch clinic details');
         return res.json();
+    },
+
+    /**
+     * Get list of all active clinics (public endpoint for patient portal selection)
+     */
+    async getActiveClinics(): Promise<{ clinic_id: string; name: string; address?: any }[]> {
+        const res = await fetch(`${API_BASE}/clinics`);
+        if (!res.ok) throw new Error('Failed to fetch clinics');
+        const data = await res.json();
+        return data.clinics || [];
     },
 
     // --- Doctor Portal Endpoints (Require Authentication) ---

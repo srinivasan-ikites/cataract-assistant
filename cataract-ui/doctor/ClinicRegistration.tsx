@@ -51,6 +51,34 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
     setError(null);
   };
 
+  // Format phone number as US format: (XXX) XXX XXXX
+  const formatPhoneNumber = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const digits = input.replace(/\D/g, '');
+
+    // If user cleared the field, allow it
+    if (digits.length === 0) {
+      setFormData(prev => ({ ...prev, clinic_phone: '' }));
+      setError(null);
+      return;
+    }
+
+    const formatted = formatPhoneNumber(digits);
+    setFormData(prev => ({
+      ...prev,
+      clinic_phone: formatted
+    }));
+    setError(null);
+  };
+
   const validateStep1 = () => {
     if (!formData.clinic_name.trim()) {
       setError('Clinic name is required');
@@ -237,18 +265,19 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                <input
+                  type="text"
+                  name="clinic_city"
+                  value={formData.clinic_city}
+                  onChange={handleChange}
+                  placeholder="City"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    name="clinic_city"
-                    value={formData.clinic_city}
-                    onChange={handleChange}
-                    placeholder="City"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
                   <input
@@ -256,13 +285,11 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     name="clinic_state"
                     value={formData.clinic_state}
                     onChange={handleChange}
-                    placeholder="State"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="CA"
+                    maxLength={2}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">ZIP Code</label>
                   <input
@@ -270,23 +297,25 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     name="clinic_zip"
                     value={formData.clinic_zip}
                     onChange={handleChange}
-                    placeholder="12345"
+                    placeholder="90210"
+                    maxLength={10}
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                  <div className="relative">
-                    <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="tel"
-                      name="clinic_phone"
-                      value={formData.clinic_phone}
-                      onChange={handleChange}
-                      placeholder="(555) 123-4567"
-                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    />
-                  </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                <div className="relative">
+                  <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="tel"
+                    name="clinic_phone"
+                    value={formData.clinic_phone}
+                    onChange={handlePhoneChange}
+                    placeholder="(555) 123 4567"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
                 </div>
               </div>
 

@@ -41,6 +41,20 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
 
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Format phone number as US format: (XXX) XXX XXXX
+  const formatPhoneNumber = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  };
+
+  // Get raw digits from formatted phone
+  const getPhoneDigits = (formatted: string): string => {
+    return formatted.replace(/\D/g, '');
+  };
+
   // Countdown timer for resend
   useEffect(() => {
     if (countdown > 0) {
@@ -57,12 +71,28 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
     }
   }, [otpExpiry]);
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const digits = input.replace(/\D/g, '');
+
+    // If user cleared the field, allow it
+    if (digits.length === 0) {
+      setPhone('');
+      setError(null);
+      return;
+    }
+
+    const formatted = formatPhoneNumber(digits);
+    setPhone(formatted);
+    setError(null);
+  };
+
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     // Validate phone
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = getPhoneDigits(phone);
     if (cleanPhone.length !== 10) {
       setError('Please enter a valid 10-digit phone number');
       return;
@@ -235,14 +265,14 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-slate-400">
                     <Phone size={18} />
-                    <span className="text-slate-600 font-medium">+91</span>
+                    <span className="text-slate-600 font-medium">+1</span>
                   </div>
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder="Enter 10-digit number"
-                    className="w-full pl-24 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-lg font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-all"
+                    onChange={handlePhoneChange}
+                    placeholder="(555) 123 4567"
+                    className="w-full pl-20 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-lg font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-all"
                     autoFocus
                     disabled={loading}
                   />
@@ -254,7 +284,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
 
               <button
                 type="submit"
-                disabled={loading || phone.length !== 10}
+                disabled={loading || getPhoneDigits(phone).length !== 10}
                 className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
@@ -286,7 +316,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
                 </div>
 
                 <p className="text-sm text-slate-500 mb-4">
-                  Code sent to <span className="font-semibold text-slate-700">+91 {phone}</span>
+                  Code sent to <span className="font-semibold text-slate-700">+1 {phone}</span>
                 </p>
 
                 {/* OTP Input Boxes */}

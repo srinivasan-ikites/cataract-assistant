@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 # Use Supabase data loader instead of JSON-based one
 from adk_app.utils.supabase_data_loader import get_clinic_data
+from adk_app.services.supabase_service import SupabaseService
 # Authentication middleware
 from adk_app.api.middleware.auth import (
     AuthenticatedUser,
@@ -18,6 +19,31 @@ from adk_app.api.middleware.auth import (
 )
 
 router = APIRouter(prefix="/clinics", tags=["Clinics"])
+
+
+@router.get("")
+def list_active_clinics() -> dict:
+    """
+    List all active clinics (public endpoint for patient portal selection).
+    Returns only basic info: clinic_id, name, address.
+    """
+    try:
+        service = SupabaseService(use_admin=True)
+        clinics = service.get_all_clinics(status="active")
+
+        # Return only public info (not sensitive data)
+        clinic_list = []
+        for clinic in clinics:
+            clinic_list.append({
+                "clinic_id": clinic.get("clinic_id"),
+                "name": clinic.get("name"),
+                "address": clinic.get("address", {}),
+            })
+
+        return {"status": "ok", "clinics": clinic_list}
+    except Exception as e:
+        print(f"[Clinic API] Error listing clinics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load clinics")
 
 
 def _get_clinic_with_reviewed(clinic_id: str) -> dict:

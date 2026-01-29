@@ -22,11 +22,18 @@ import {
   Clock,
   Award,
   LayoutDashboard,
+  X,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { ClinicSetupSkeleton, ButtonLoader } from '../components/Loader';
+import {
+  ANTIBIOTIC_OPTIONS,
+  POST_OP_NSAIDS,
+  POST_OP_STEROIDS,
+  GLAUCOMA_DROPS,
+} from '../constants/medications';
 
 interface ClinicSetupProps {
   clinicId: string;
@@ -1110,7 +1117,111 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
     const glaucomaDrops = getValue('medications.post_op.glaucoma_drops') || [];
     const combinationDrops = getValue('medications.post_op.combination_drops') || [];
 
-    // Helper to render accordion header (not a component - just returns JSX)
+    // Get existing medication names for filtering available presets
+    const existingPreOpAntibioticNames = preOpAntibiotics.map((m: any) => m.name?.toLowerCase());
+    const existingPostOpAntibioticNames = postOpAntibiotics.map((m: any) => m.name?.toLowerCase());
+    const existingNsaidNames = nsaids.map((m: any) => m.name?.toLowerCase());
+    const existingSteroidNames = steroids.map((m: any) => m.name?.toLowerCase());
+    const existingGlaucomaNames = glaucomaDrops.map((m: any) => m.name?.toLowerCase());
+
+    // Available presets (filter out already added ones)
+    const availablePreOpAntibiotics = ANTIBIOTIC_OPTIONS.filter(
+      a => !existingPreOpAntibioticNames.includes(a.name.toLowerCase())
+    );
+    const availablePostOpAntibiotics = ANTIBIOTIC_OPTIONS.filter(
+      a => !existingPostOpAntibioticNames.includes(a.name.toLowerCase())
+    );
+    const availableNsaids = POST_OP_NSAIDS.filter(
+      n => !existingNsaidNames.includes(n.name.toLowerCase())
+    );
+    const availableSteroids = POST_OP_STEROIDS.filter(
+      s => !existingSteroidNames.includes(s.toLowerCase())
+    );
+    const availableGlaucoma = GLAUCOMA_DROPS.filter(
+      g => !existingGlaucomaNames.includes(g.toLowerCase())
+    );
+
+    // Helper to add medication
+    const addMedication = (path: string, currentItems: any[], newItem: any) => {
+      updateNestedField(path, [...currentItems, { ...newItem, id: Date.now() }]);
+    };
+
+    // Render medication items with input fields (editable) + quick add defaults
+    const renderMedicationSection = (
+      label: string,
+      path: string,
+      items: any[],
+      availableDefaults: any[],
+      defaultTemplate: any,
+      accentColor: string,
+      formatDefault?: (item: any) => any
+    ) => (
+      <div className="space-y-3">
+        {/* Header with Add button */}
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
+          <button
+            onClick={() => addMedication(path, items, defaultTemplate)}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+          >
+            + Add
+          </button>
+        </div>
+
+        {/* Quick add defaults - FIXED AT TOP */}
+        {availableDefaults.length > 0 && (
+          <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={12} className={accentColor} />
+              <p className="text-[10px] font-semibold text-slate-500 uppercase">Quick Add Defaults</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {availableDefaults.map((item: any, idx: number) => {
+                const displayName = typeof item === 'string' ? item : item.name;
+                const itemToAdd = formatDefault ? formatDefault(item) : { name: displayName };
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => addMedication(path, items, itemToAdd)}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-medium text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                  >
+                    <Plus size={10} />
+                    {displayName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Added medications with input fields - BELOW quick add defaults */}
+        {items.length === 0 ? (
+          <p className="text-xs text-slate-400 italic py-2">No {label.toLowerCase()} configured</p>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item: any, idx: number) => (
+              <div key={item.id || `med-${idx}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl group">
+                <input
+                  type="text"
+                  value={item.name || ''}
+                  onChange={(e) => updateNestedField(`${path}.${idx}.name`, e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+                  placeholder="Medication name..."
+                />
+                <button
+                  onClick={() => updateNestedField(path, items.filter((_: any, i: number) => i !== idx))}
+                  className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    // Helper to render accordion header
     const renderAccordionHeader = (id: string, title: string, icon: React.ReactNode, bgColor: string, itemCount: number) => (
       <button
         onClick={() => setExpandedMedSection(expandedMedSection === id ? null : id)}
@@ -1136,44 +1247,68 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           {renderAccordionHeader('pre_op', 'Pre-Op Medications', <Pill size={18} className="text-emerald-500" />, 'bg-emerald-50', preOpAntibiotics.length)}
           {expandedMedSection === 'pre_op' && (
             <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
-              <MedList
-                path="medications.pre_op.antibiotics"
-                label="Antibiotics"
-                items={preOpAntibiotics}
-                template={{ name: '' }}
-                onUpdateField={updateNestedField}
-              />
+              {renderMedicationSection(
+                'Antibiotics',
+                'medications.pre_op.antibiotics',
+                preOpAntibiotics,
+                availablePreOpAntibiotics,
+                { name: '' },
+                'text-emerald-500'
+              )}
               {renderTextField("medications.pre_op.default_start_days_before_surgery", "Start Days Before Surgery", { type: "number" })}
             </div>
           )}
         </div>
 
-        {/* Post-Op Medications */}
+        {/* Post-Op Medications - Single accordion with Antibiotics, NSAIDs, Steroids inside */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
           {renderAccordionHeader('post_op', 'Post-Op Medications', <Pill size={18} className="text-blue-500" />, 'bg-blue-50', postOpAntibiotics.length + nsaids.length + steroids.length)}
           {expandedMedSection === 'post_op' && (
-            <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
-              <MedList
-                path="medications.post_op.antibiotics"
-                label="Antibiotics"
-                items={postOpAntibiotics}
-                template={{ name: '', default_frequency: 4, default_weeks: 1 }}
-                onUpdateField={updateNestedField}
-              />
-              <MedList
-                path="medications.post_op.nsaids"
-                label="NSAIDs"
-                items={nsaids}
-                template={{ name: '', default_frequency: 4, frequency_label: '4x Daily', default_weeks: 4 }}
-                onUpdateField={updateNestedField}
-              />
-              <MedList
-                path="medications.post_op.steroids"
-                label="Steroids"
-                items={steroids}
-                template={{ name: '', default_taper: [4, 3, 2, 1], default_weeks: 4 }}
-                onUpdateField={updateNestedField}
-              />
+            <div className="px-5 pb-5 space-y-6 border-t border-slate-100 pt-4">
+              {/* Antibiotics */}
+              {renderMedicationSection(
+                'Antibiotics',
+                'medications.post_op.antibiotics',
+                postOpAntibiotics,
+                availablePostOpAntibiotics,
+                { name: '', default_frequency: 4, default_weeks: 1 },
+                'text-blue-500'
+              )}
+
+              <hr className="border-slate-100" />
+
+              {/* NSAIDs */}
+              {renderMedicationSection(
+                'NSAIDs',
+                'medications.post_op.nsaids',
+                nsaids,
+                availableNsaids,
+                { name: '', default_frequency: 4, frequency_label: '4x Daily', default_weeks: 4 },
+                'text-orange-500',
+                (item) => ({
+                  name: item.name,
+                  default_frequency: item.defaultFrequency,
+                  frequency_label: item.label,
+                  default_weeks: 4
+                })
+              )}
+
+              <hr className="border-slate-100" />
+
+              {/* Steroids */}
+              {renderMedicationSection(
+                'Steroids',
+                'medications.post_op.steroids',
+                steroids,
+                availableSteroids,
+                { name: '', default_taper: [4, 3, 2, 1], default_weeks: 4 },
+                'text-purple-500',
+                (item) => ({
+                  name: typeof item === 'string' ? item : item.name,
+                  default_taper: [4, 3, 2, 1],
+                  default_weeks: 4
+                })
+              )}
             </div>
           )}
         </div>
@@ -1184,14 +1319,18 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           {expandedMedSection === 'glaucoma' && (
             <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
               <p className="text-xs text-slate-500 mb-3">Configure available glaucoma drops for patients with pre-existing glaucoma.</p>
-              <MedList
-                path="medications.post_op.glaucoma_drops"
-                label="Glaucoma Drops"
-                items={glaucomaDrops}
-                template={{ name: '', category: '' }}
-                showCategory={true}
-                onUpdateField={updateNestedField}
-              />
+              {renderMedicationSection(
+                'Glaucoma Drops',
+                'medications.post_op.glaucoma_drops',
+                glaucomaDrops,
+                availableGlaucoma.slice(0, 10), // Show first 10 defaults
+                { name: '', category: '' },
+                'text-violet-500',
+                (item) => ({ name: typeof item === 'string' ? item : item.name, category: '' })
+              )}
+              {availableGlaucoma.length > 10 && (
+                <p className="text-xs text-slate-400 italic">+{availableGlaucoma.length - 10} more defaults available</p>
+              )}
             </div>
           )}
         </div>

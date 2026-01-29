@@ -9,7 +9,7 @@ services:
       - backend/.env
     volumes:
       - ./backend/data:/app/data
-      - ./docs:/app/docs:ro
+      # - ./docs:/app/docs:ro
     ports:
       - "8000:8000"
     restart: unless-stopped

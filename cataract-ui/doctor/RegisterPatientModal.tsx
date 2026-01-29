@@ -53,24 +53,29 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, isSubmitting, onClose]);
 
+  // Format phone number as US format: (XXX) XXX XXXX
   const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digits
-    const digits = value.replace(/\D/g, '');
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    // Format as (XXX) XXX-XXXX
-    if (limited.length >= 6) {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`;
-    } else if (limited.length >= 3) {
-      return `(${limited.slice(0, 3)}) ${limited.slice(3)}`;
-    } else if (limited.length > 0) {
-      return `(${limited}`;
-    }
-    return '';
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6)}`;
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
+    const input = e.target.value;
+    const digits = input.replace(/\D/g, '');
+
+    // If user cleared the field, allow it
+    if (digits.length === 0) {
+      setPhone('');
+      if (errors.phone) {
+        setErrors((prev) => ({ ...prev, phone: undefined }));
+      }
+      return;
+    }
+
+    const formatted = formatPhoneNumber(digits);
     setPhone(formatted);
     // Clear error when user types
     if (errors.phone) {
@@ -134,7 +139,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 !m-0">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
@@ -142,9 +147,9 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
               <UserPlus size={20} className="text-white" />
@@ -242,7 +247,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
                 value={phone}
                 onChange={handlePhoneChange}
                 disabled={isSubmitting}
-                placeholder="(555) 123-4567"
+                placeholder="(555) 123 4567"
                 className={`
                   w-full pl-11 pr-4 py-3 rounded-xl border text-sm
                   transition-all outline-none
