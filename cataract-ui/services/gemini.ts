@@ -6,12 +6,12 @@ const API_BASE = 'https://cataract-assistant.ikites.ai/api';
 // const API_BASE = 'http://172.16.0.158:8000'; // align with backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
-export const generateModuleContent = async (moduleTitle: string, patientId: string): Promise<GeminiContentResponse> => {
+export const generateModuleContent = async (moduleTitle: string, patientId: string, clinicId?: string): Promise<GeminiContentResponse> => {
   try {
     const res = await fetch(`${API_BASE}/module-content`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient_id: patientId, module_title: moduleTitle }),
+      body: JSON.stringify({ patient_id: patientId, module_title: moduleTitle, clinic_id: clinicId }),
     });
     if (!res.ok) throw new Error('Failed to fetch module content');
     return await res.json();

@@ -92,19 +92,10 @@ Practical Solutions
 
 
 <!-- superadmin -->
-admin@cataract.com
-admin
+admin emailid - admin@cataract.com
+password - admin
 
 <!-- clinic 1 -->
-vision forever
-jane@gmail.com
-janejane
-
-latha B - 8888888888
-
-<!-- clinic3 -->
-name - abc-clinic
-abc@gmail.com
-abcbabc
-latha patient - 99999999999
-
+vision-forever
+srinivasan@thekites.ai
+annaanna

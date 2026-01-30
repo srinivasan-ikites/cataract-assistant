@@ -44,7 +44,7 @@ def prepare_context(
     if patient_id:
         lookup_start = perf_counter()
         try:
-            patient_record = get_patient_data(patient_id)
+            patient_record = get_patient_data(patient_id, clinic_id=clinic_id)
             if not derived_clinic_id:
                 derived_clinic_id = patient_record.get("clinic_id")
         except ValueError as exc:

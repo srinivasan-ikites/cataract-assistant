@@ -79,6 +79,56 @@ def auth_test(user: AuthenticatedUser = Depends(get_current_user)):
     }
 
 
+@router.get("/healthz/storage")
+def storage_health() -> dict:
+    """
+    Supabase Storage health check.
+
+    Tests storage connection by listing buckets.
+    """
+    try:
+        client = get_supabase_admin_client()
+        if not client:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized"
+            }
+
+        # List all buckets
+        buckets = client.storage.list_buckets()
+        bucket_names = [b.name for b in buckets]
+
+        # Check for patient-documents bucket
+        patient_docs_exists = "patient-documents" in bucket_names
+
+        # Try to list files in patient-documents if it exists
+        files_count = 0
+        if patient_docs_exists:
+            try:
+                files = client.storage.from_("patient-documents").list()
+                files_count = len(files) if files else 0
+            except Exception as list_err:
+                print(f"[Storage Health] Error listing files: {list_err}")
+
+        return {
+            "status": "ok",
+            "storage": "connected",
+            "buckets": bucket_names,
+            "patient_documents_bucket": {
+                "exists": patient_docs_exists,
+                "files_count": files_count if patient_docs_exists else "N/A"
+            }
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": str(e),
+            "type": type(e).__name__
+        }
+
+
 @router.get("/healthz/clinic-test")
 def clinic_access_test(user: AuthenticatedUser = Depends(require_clinic_user)):
     """

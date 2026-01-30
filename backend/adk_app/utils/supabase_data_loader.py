@@ -28,7 +28,7 @@ def get_patient_data(patient_id: str, clinic_id: str = None) -> dict:
 
     Args:
         patient_id: The clinic's internal patient ID (e.g., "1245583")
-        clinic_id: Optional clinic UUID to scope the search
+        clinic_id: Optional clinic slug (e.g., "asa-clinic") to scope the search
 
     Returns:
         Patient data dict in the format expected by the frontend
@@ -36,7 +36,7 @@ def get_patient_data(patient_id: str, clinic_id: str = None) -> dict:
     Raises:
         ValueError: If patient not found
     """
-    print(f"[SupabaseDataLoader] Getting patient data for: {patient_id}")
+    print(f"[SupabaseDataLoader] Getting patient data for: {patient_id}, clinic: {clinic_id}")
 
     client = get_supabase_admin_client()
     if not client:
@@ -47,9 +47,18 @@ def get_patient_data(patient_id: str, clinic_id: str = None) -> dict:
         query = client.table("patients").select("*, clinics(clinic_id, name)")
 
         if clinic_id:
-            query = query.eq("clinic_id", clinic_id).eq("patient_id", patient_id)
+            # First, look up the clinic UUID from the slug
+            clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+            if clinic_result.data:
+                clinic_uuid = clinic_result.data["id"]
+                query = query.eq("clinic_id", clinic_uuid).eq("patient_id", patient_id)
+                print(f"[SupabaseDataLoader] Using clinic_id filter: {clinic_id} -> {clinic_uuid}")
+            else:
+                print(f"[SupabaseDataLoader] Warning: Clinic '{clinic_id}' not found, querying by patient_id only")
+                query = query.eq("patient_id", patient_id)
         else:
             # If no clinic_id, just search by patient_id (may return first match)
+            print(f"[SupabaseDataLoader] Warning: No clinic_id provided, querying by patient_id only (may fail with duplicates)")
             query = query.eq("patient_id", patient_id)
 
         result = query.single().execute()
@@ -106,7 +115,7 @@ def get_all_patients(clinic_id: str = None) -> List[dict]:
     Get all patients, optionally filtered by clinic.
 
     Args:
-        clinic_id: Optional clinic UUID to filter by
+        clinic_id: Optional clinic slug (e.g., "asa-clinic") to filter by
 
     Returns:
         List of patient summaries
@@ -121,7 +130,15 @@ def get_all_patients(clinic_id: str = None) -> List[dict]:
         query = client.table("patients").select("*, clinics(clinic_id, name)")
 
         if clinic_id:
-            query = query.eq("clinic_id", clinic_id)
+            # First, look up the clinic UUID from the slug
+            clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+            if clinic_result.data:
+                clinic_uuid = clinic_result.data["id"]
+                query = query.eq("clinic_id", clinic_uuid)
+                print(f"[SupabaseDataLoader] Filtering by clinic: {clinic_id} -> {clinic_uuid}")
+            else:
+                print(f"[SupabaseDataLoader] Warning: Clinic '{clinic_id}' not found")
+                return []
 
         # Exclude archived patients
         query = query.neq("status", "archived")
@@ -459,7 +476,7 @@ def update_patient_from_reviewed(clinic_id: str, patient_id: str, reviewed_data:
 # PATIENT UPDATE FUNCTIONS
 # =============================================================================
 
-def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None) -> None:
+def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None, clinic_id: str = None) -> None:
     """
     Append a chat turn to the patient's history.
 
@@ -469,16 +486,31 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
         bot_msg: Bot's response
         suggestions: Optional list of suggested follow-up questions
         blocks: Optional structured content blocks
+        clinic_id: The clinic's slug ID (required for unique patient lookup)
     """
-    print(f"[SupabaseDataLoader] Saving chat history for patient: {patient_id}")
+    print(f"[SupabaseDataLoader] Saving chat history for patient: {patient_id}, clinic: {clinic_id}")
 
     client = get_supabase_admin_client()
     if not client:
         raise ValueError("Database connection not available")
 
     try:
-        # First, get current chat history
-        result = client.table("patients").select("id, chat_history").eq("patient_id", patient_id).single().execute()
+        # Build query - must include clinic_id for unique lookup
+        query = client.table("patients").select("id, chat_history")
+
+        if clinic_id:
+            # First, look up the clinic UUID from the slug
+            clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+            if clinic_result.data:
+                clinic_uuid = clinic_result.data["id"]
+                query = query.eq("clinic_id", clinic_uuid)
+                print(f"[SupabaseDataLoader] Using clinic_id filter: {clinic_id} -> {clinic_uuid}")
+            else:
+                print(f"[SupabaseDataLoader] Warning: Clinic '{clinic_id}' not found")
+        else:
+            print(f"[SupabaseDataLoader] Warning: No clinic_id provided (may fail with duplicates)")
+
+        result = query.eq("patient_id", patient_id).single().execute()
         patient = result.data
 
         if not patient:
@@ -515,28 +547,50 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
         raise ValueError(f"Error saving chat history: {e}")
 
 
-def clear_patient_chat_history(patient_id: str) -> None:
+def clear_patient_chat_history(patient_id: str, clinic_id: str = None) -> None:
     """
     Clear all chat history for a patient.
 
     Args:
         patient_id: The clinic's internal patient ID
+        clinic_id: The clinic's slug ID (required for unique patient lookup)
     """
-    print(f"[SupabaseDataLoader] Clearing chat history for patient: {patient_id}")
+    print(f"[SupabaseDataLoader] Clearing chat history for patient: {patient_id}, clinic: {clinic_id}")
 
     client = get_supabase_admin_client()
     if not client:
         raise ValueError("Database connection not available")
 
     try:
-        # Update to empty array
+        # First, find the patient with unique lookup
+        query = client.table("patients").select("id")
+
+        if clinic_id:
+            # Look up the clinic UUID from the slug
+            clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+            if clinic_result.data:
+                clinic_uuid = clinic_result.data["id"]
+                query = query.eq("clinic_id", clinic_uuid)
+                print(f"[SupabaseDataLoader] Using clinic_id filter: {clinic_id} -> {clinic_uuid}")
+            else:
+                print(f"[SupabaseDataLoader] Warning: Clinic '{clinic_id}' not found")
+        else:
+            print(f"[SupabaseDataLoader] Warning: No clinic_id provided (may affect wrong patient)")
+
+        patient_result = query.eq("patient_id", patient_id).single().execute()
+        if not patient_result.data:
+            raise ValueError(f"Patient '{patient_id}' not found")
+
+        patient_uuid = patient_result.data["id"]
+
+        # Update to empty array using UUID
         result = client.table("patients").update({
             "chat_history": [],
             "updated_at": "now()"
-        }).eq("patient_id", patient_id).execute()
+        }).eq("id", patient_uuid).execute()
 
         if not result.data:
-            raise ValueError(f"Patient '{patient_id}' not found")
+            raise ValueError(f"Failed to clear chat history for patient '{patient_id}'")
 
         print(f"[SupabaseDataLoader] Chat history cleared")
 
@@ -545,7 +599,7 @@ def clear_patient_chat_history(patient_id: str) -> None:
         raise ValueError(f"Error clearing chat history: {e}")
 
 
-def save_patient_module_content(patient_id: str, module_title: str, content: Dict[str, Any]) -> None:
+def save_patient_module_content(patient_id: str, module_title: str, content: Dict[str, Any], clinic_id: str = None) -> None:
     """
     Save generated module content for a patient.
 
@@ -553,16 +607,31 @@ def save_patient_module_content(patient_id: str, module_title: str, content: Dic
         patient_id: The clinic's internal patient ID
         module_title: Module name (e.g., "My Diagnosis")
         content: Generated content for the module
+        clinic_id: The clinic's slug ID (required for unique patient lookup)
     """
-    print(f"[SupabaseDataLoader] Saving module content for patient: {patient_id}, module: {module_title}")
+    print(f"[SupabaseDataLoader] Saving module content for patient: {patient_id}, clinic: {clinic_id}, module: {module_title}")
 
     client = get_supabase_admin_client()
     if not client:
         raise ValueError("Database connection not available")
 
     try:
-        # First, get current module_content
-        result = client.table("patients").select("id, module_content").eq("patient_id", patient_id).single().execute()
+        # Build query - must include clinic_id to uniquely identify patient
+        query = client.table("patients").select("id, module_content, clinic_id")
+
+        if clinic_id:
+            # Get clinic UUID first
+            clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+            if clinic_result.data:
+                clinic_uuid = clinic_result.data["id"]
+                query = query.eq("clinic_id", clinic_uuid)
+                print(f"[SupabaseDataLoader] Using clinic_id filter: {clinic_id} -> {clinic_uuid}")
+            else:
+                print(f"[SupabaseDataLoader] Warning: Clinic '{clinic_id}' not found, querying by patient_id only")
+        else:
+            print(f"[SupabaseDataLoader] Warning: No clinic_id provided, querying by patient_id only (may fail with duplicates)")
+
+        result = query.eq("patient_id", patient_id).single().execute()
         patient = result.data
 
         if not patient:

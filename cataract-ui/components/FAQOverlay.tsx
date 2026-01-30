@@ -300,7 +300,8 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
     setIsTyping(true);
 
     try {
-      const response = await api.askAgent(patient.patient_id, userMsg);
+      const clinicId = (patient as any).clinic_id;
+      const response = await api.askAgent(patient.patient_id, userMsg, clinicId);
       setChatHistory(prev => [...prev, {
         role: 'bot',
         text: response.answer,

@@ -550,15 +550,15 @@ const PatientRoute: React.FC = () => {
           throw new Error('Failed to load patient data');
         }
 
+        // Load clinic
+        const patientClinicId = (full as any).clinic_id;
+
         // Fire-and-forget pre-generation if module_content missing/empty
         if (!full.module_content || Object.keys(full.module_content).length === 0) {
-          api.pregenerateModules(patientAuth.patientId).catch((err) =>
+          api.pregenerateModules(patientAuth.patientId, patientClinicId).catch((err) =>
             console.error('Failed to pre-generate modules', err)
           );
         }
-
-        // Load clinic
-        const patientClinicId = (full as any).clinic_id;
         let clinic: Clinic | null = null;
         if (patientClinicId) {
           try {
@@ -1007,15 +1007,15 @@ const DemoRoute: React.FC = () => {
         const first = patients[0];
         const full = await api.getPatientDetails(first.patient_id);
 
+        // Load clinic
+        const clinicId = (full as any).clinic_id;
+
         // Fire-and-forget pre-generation if module_content missing/empty
         if (!full.module_content || Object.keys(full.module_content).length === 0) {
-          api.pregenerateModules(first.patient_id).catch((err) =>
+          api.pregenerateModules(first.patient_id, clinicId).catch((err) =>
             console.error('Failed to pre-generate modules', err)
           );
         }
-
-        // Load clinic
-        const clinicId = (full as any).clinic_id;
         let clinic: Clinic | null = null;
         if (clinicId) {
           try {

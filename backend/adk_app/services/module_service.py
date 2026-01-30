@@ -9,6 +9,7 @@ Updated to use Supabase instead of JSON files.
 from __future__ import annotations
 
 import json
+import os
 import traceback
 from typing import Optional
 
@@ -285,6 +286,7 @@ Return JSON in this EXACT format:
 }}"""
 
     try:
+        print(f"[ModuleContent] Calling LLM: model={model_ref}, temperature={config.temperature}")
         response = litellm.completion(
             model=model_ref,
             messages=[
@@ -293,9 +295,19 @@ Return JSON in this EXACT format:
             ],
             temperature=config.temperature,
         )
+        print(f"[ModuleContent] LLM call successful")
     except Exception as exc:
-        print(f"[ModuleContent] Diagnosis generation error: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to generate diagnosis content") from exc
+        error_type = type(exc).__name__
+        print(f"[ModuleContent] Diagnosis generation FAILED: {error_type}: {exc}")
+        # Check for common API key issues
+        error_str = str(exc).lower()
+        if "api key" in error_str or "authentication" in error_str or "unauthorized" in error_str:
+            print(f"[ModuleContent] This looks like an API KEY issue - check environment variables!")
+        elif "timeout" in error_str:
+            print(f"[ModuleContent] This looks like a TIMEOUT issue - LLM call took too long")
+        elif "rate limit" in error_str or "quota" in error_str:
+            print(f"[ModuleContent] This looks like a RATE LIMIT issue")
+        raise HTTPException(status_code=500, detail=f"Failed to generate diagnosis content: {error_type}") from exc
 
     try:
         content_text = response["choices"][0]["message"]["content"]
@@ -357,21 +369,21 @@ Return JSON in this EXACT format:
         }
 
 
-def generate_and_save_diagnosis(patient_id: str, patient: dict, config: ModelConfig) -> bool:
+def generate_and_save_diagnosis(patient_id: str, patient: dict, config: ModelConfig, clinic_id: str = None) -> bool:
     """
     Generate and save the "My Diagnosis" module for a patient.
 
     Returns True if successfully generated and saved, False otherwise.
     """
     try:
-        print(f"[ModuleService] Generating diagnosis module for patient: {patient_id}")
+        print(f"[ModuleService] Generating diagnosis module for patient: {patient_id}, clinic: {clinic_id}")
 
         # Generate the diagnosis content
         content = generate_diagnosis_module_content(patient, config)
 
-        # Save with normalized key
+        # Save with normalized key - pass clinic_id for unique lookup
         key = normalize_module_title(DIAGNOSIS_MODULE_TITLE)
-        save_patient_module_content(patient_id, key, content)
+        save_patient_module_content(patient_id, key, content, clinic_id=clinic_id)
 
         print(f"[ModuleService] Saved diagnosis module for patient: {patient_id}")
         return True
@@ -387,7 +399,8 @@ def generate_diagnosis_if_needed(
     patient: dict,
     config: ModelConfig,
     old_patient: dict = None,
-    force: bool = False
+    force: bool = False,
+    clinic_id: str = None
 ) -> bool:
     """
     Generate "My Diagnosis" module if needed.
@@ -412,14 +425,40 @@ def generate_diagnosis_if_needed(
         print(f"[ModuleService] Diagnosis module exists and unchanged, skipping generation")
         return False
 
-    return generate_and_save_diagnosis(patient_id, patient, config)
+    return generate_and_save_diagnosis(patient_id, patient, config, clinic_id=clinic_id)
+
+
+def validate_llm_api_keys(config: ModelConfig) -> tuple[bool, str]:
+    """
+    Validate that the required API key is set for the configured provider.
+    Returns (is_valid, error_message).
+    """
+    provider = config.provider.lower()
+
+    if provider == "gemini":
+        key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not key:
+            return False, "GOOGLE_API_KEY or GEMINI_API_KEY not set"
+    elif provider == "openai":
+        key = os.getenv("OPENAI_API_KEY")
+        if not key:
+            return False, "OPENAI_API_KEY not set"
+    elif provider == "claude" or provider == "anthropic":
+        key = os.getenv("ANTHROPIC_API_KEY")
+        if not key:
+            return False, "ANTHROPIC_API_KEY not set"
+    else:
+        return False, f"Unknown provider: {provider}"
+
+    return True, ""
 
 
 def generate_modules_background(
     patient_id: str,
     config: ModelConfig,
     old_patient: dict = None,
-    force: bool = False
+    force: bool = False,
+    clinic_id: str = None
 ) -> None:
     """
     Background task to generate "My Diagnosis" module for a patient.
@@ -433,33 +472,47 @@ def generate_modules_background(
     This runs asynchronously so the doctor doesn't have to wait.
     """
     try:
-        print(f"[Background Module Gen] Starting for patient: {patient_id}")
+        print(f"[Background Module Gen] Starting for patient: {patient_id}, clinic: {clinic_id}")
+        print(f"[Background Module Gen] Config: provider={config.provider}, model={config.model}")
+
+        # Validate API keys before attempting generation
+        is_valid, error_msg = validate_llm_api_keys(config)
+        if not is_valid:
+            print(f"[Background Module Gen] CRITICAL ERROR: {error_msg}")
+            print(f"[Background Module Gen] Module generation will FAIL - please set environment variables")
+            # Don't return - let it fail with a clear error so logs show the issue
 
         # Clear cache to get fresh patient data after save
         clear_patient_cache()
 
-        # Get the patient data
-        patient = get_patient_data(patient_id)
+        # Get the patient data - use clinic_id for unique lookup
+        patient = get_patient_data(patient_id, clinic_id=clinic_id)
 
-        # Generate diagnosis module if needed
+        if not patient:
+            print(f"[Background Module Gen] ERROR: Could not load patient data for {patient_id}")
+            return
+
+        # Generate diagnosis module if needed - pass clinic_id
         generated = generate_diagnosis_if_needed(
             patient_id=patient_id,
             patient=patient,
             config=config,
             old_patient=old_patient,
-            force=force
+            force=force,
+            clinic_id=clinic_id
         )
 
         if generated:
-            print(f"[Background Module Gen] Completed for patient: {patient_id}")
+            print(f"[Background Module Gen] SUCCESS - Completed for patient: {patient_id}")
         else:
             print(f"[Background Module Gen] Skipped for patient: {patient_id} (already exists)")
 
     except Exception as exc:
-        # Log error but don't raise - this is a background task
-        # The frontend fallback will handle generation if this fails
-        print(f"[Background Module Gen] ERROR for patient {patient_id}: {exc}")
+        # Log error with full details - this is critical for debugging production issues
+        print(f"[Background Module Gen] EXCEPTION for patient {patient_id}: {type(exc).__name__}: {exc}")
         traceback.print_exc()
+        # Also log the config for debugging
+        print(f"[Background Module Gen] Config was: provider={config.provider}, model={config.model}")
 
 
 # Legacy function for backward compatibility with existing endpoints

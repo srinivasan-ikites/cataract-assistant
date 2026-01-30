@@ -126,6 +126,8 @@ async def doctor_upload_patient_docs(
 
         # Upload files to Supabase Storage
         storage_paths = []
+        storage_errors = []
+        print(f"[Doctor Upload Patient] Starting Supabase Storage upload for {len(images)} files...")
         try:
             supabase_service = SupabaseService(use_admin=True)
             for idx, img in enumerate(images):
@@ -133,6 +135,7 @@ async def doctor_upload_patient_docs(
                 original_filename = img.get("desc", f"file_{idx}")
                 storage_path = f"{clinic_id}/{patient_id}/{original_filename}"
 
+                print(f"[Doctor Upload Patient] Uploading file {idx+1}/{len(images)}: {storage_path}")
                 uploaded_path = supabase_service.upload_file(
                     bucket=PATIENT_DOCUMENTS_BUCKET,
                     path=storage_path,
@@ -141,12 +144,19 @@ async def doctor_upload_patient_docs(
                 )
                 if uploaded_path:
                     storage_paths.append(uploaded_path)
-                    print(f"[Doctor Upload Patient] Uploaded to storage: {storage_path}")
+                    print(f"[Doctor Upload Patient] SUCCESS: {storage_path}")
                 else:
-                    print(f"[Doctor Upload Patient] Failed to upload: {storage_path}")
+                    storage_errors.append(storage_path)
+                    print(f"[Doctor Upload Patient] FAILED: {storage_path}")
         except Exception as storage_err:
-            print(f"[Doctor Upload Patient] Storage upload error (non-fatal): {storage_err}")
-            # Continue even if storage upload fails - extraction still succeeded
+            import traceback
+            print(f"[Doctor Upload Patient] Storage upload exception: {storage_err}")
+            traceback.print_exc()
+            storage_errors.append(f"Exception: {str(storage_err)}")
+
+        if storage_errors:
+            print(f"[Doctor Upload Patient] WARNING: {len(storage_errors)} files failed to upload to Supabase Storage")
+        print(f"[Doctor Upload Patient] Storage upload complete: {len(storage_paths)} succeeded, {len(storage_errors)} failed")
 
         return {
             "status": "ok",
@@ -252,7 +262,7 @@ async def get_extracted_patient(
     if not path.exists():
         # Fallback: find actual folder name from reviewed cache
         try:
-            patient = get_patient_data(patient_id)
+            patient = get_patient_data(patient_id, clinic_id=clinic_id)
             if patient.get("_file_path"):
                 actual_pid_folder = Path(patient["_file_path"]).parent.name
                 path = UPLOAD_ROOT / clinic_id / actual_pid_folder / "extracted_patient.json"
@@ -293,7 +303,7 @@ async def get_reviewed_patient(
     if not path.exists():
         # Fallback: find actual folder name from reviewed cache
         try:
-            patient = get_patient_data(patient_id)
+            patient = get_patient_data(patient_id, clinic_id=clinic_id)
             if patient.get("_file_path"):
                 path = Path(patient["_file_path"])
         except Exception:
@@ -441,9 +451,10 @@ async def save_reviewed_patient(
             patient_id=payload.patient_id,
             config=runtime.config,
             old_patient=existing_data,
-            force=False
+            force=False,
+            clinic_id=payload.clinic_id  # Required for unique patient lookup
         )
-        print(f"[Save Reviewed Patient] Queued background module generation for: {payload.patient_id}")
+        print(f"[Save Reviewed Patient] Queued background module generation for: {payload.clinic_id}/{payload.patient_id}")
 
     return {"status": "ok", "reviewed_path": str(target), "reviewed": full_normalized}
 
@@ -466,7 +477,7 @@ async def delete_patient_data(
 
     # Fallback to resolve correct folders if direct ones don't exist
     try:
-        patient = get_patient_data(patient_id)
+        patient = get_patient_data(patient_id, clinic_id=clinic_id)
         if patient.get("_file_path"):
             rev_path = Path(patient["_file_path"])
             reviewed_dir = rev_path.parent

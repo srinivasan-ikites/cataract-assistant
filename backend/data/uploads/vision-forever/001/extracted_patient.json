@@ -2,9 +2,9 @@
   "patient_identity": {
     "patient_id": "1245583",
     "clinic_ref_id": "1245583",
-    "first_name": "LATA",
+    "first_name": "Lata",
     "middle_name": "",
-    "last_name": "BHAGIA",
+    "last_name": "Bhagia",
     "dob": "1956-01-20",
     "gender": "Female"
   },
@@ -110,9 +110,12 @@
   },
   "lifestyle_profile": {
     "occupation": "",
-    "hobbies": [],
+    "hobbies": [
+      "Drives in the daytime",
+      "Drives at night"
+    ],
     "visual_goals": {
-      "primary_zone": "",
+      "primary_zone": "All",
       "spectacle_independence_desire": "High"
     },
     "personality_traits": {
@@ -121,7 +124,7 @@
     },
     "symptoms_impact": {
       "night_driving_difficulty": true,
-      "glare_halos": false
+      "glare_halos": true
     }
   },
   "surgical_plan": {

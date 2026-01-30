@@ -2,9 +2,9 @@
   "patient_identity": {
     "patient_id": "1245583",
     "clinic_ref_id": "1245583",
-    "first_name": "LATA",
+    "first_name": "Lata",
     "middle_name": "",
-    "last_name": "BHAGIA",
+    "last_name": "Bhagia",
     "dob": "1956-01-20",
     "gender": "Female"
   },
@@ -110,10 +110,13 @@
   },
   "lifestyle_profile": {
     "occupation": "",
-    "hobbies": [],
+    "hobbies": [
+      "Drives in the daytime",
+      "Drives at night"
+    ],
     "visual_goals": {
       "primary_zone": "All",
-      "spectacle_independence_desire": "All ranges of vision"
+      "spectacle_independence_desire": "High"
     },
     "personality_traits": {
       "perfectionism_score": null,
@@ -127,25 +130,17 @@
   "surgical_plan": {
     "candidacy_profile": {
       "od_right": {
-        "is_candidate_multifocal": true,
+        "is_candidate_multifocal": false,
         "is_candidate_toric": false,
-        "is_candidate_lal": true
+        "is_candidate_lal": false
       },
       "os_left": {
-        "is_candidate_multifocal": true,
+        "is_candidate_multifocal": false,
         "is_candidate_toric": false,
-        "is_candidate_lal": true
+        "is_candidate_lal": false
       }
     },
-    "offered_packages": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
+    "offered_packages": [],
     "patient_selection": {
       "selected_package_id": "",
       "status": "",
@@ -154,7 +149,7 @@
     "operative_logistics": {
       "od_right": {
         "status": "",
-        "surgery_date": "2026-02-04",
+        "surgery_date": "",
         "arrival_time": "",
         "lens_order": {
           "model_name": "",
@@ -166,7 +161,7 @@
       },
       "os_left": {
         "status": "",
-        "surgery_date": "2026-02-11",
+        "surgery_date": "",
         "arrival_time": "",
         "lens_order": {
           "model_name": "",
@@ -176,8 +171,7 @@
           "axis_alignment": ""
         }
       }
-    },
-    "same_plan_both_eyes": true
+    }
   },
   "medications_plan": {
     "settings": {
@@ -192,40 +186,6 @@
     "post_op_schedule": {
       "instruction": "",
       "medications": []
-    },
-    "protocol_type": "STANDARD",
-    "pre_op": {
-      "antibiotic_id": 1769682913530,
-      "antibiotic_name": "Besifloxacin (Besivance)",
-      "frequency": "3x Daily",
-      "additional_instructions": "Continue dry medication"
-    },
-    "post_op": {
-      "antibiotic": {
-        "name": "Moxifloxacin (Vigamox)",
-        "frequency": 4,
-        "weeks": 1
-      },
-      "nsaid": {
-        "name": "Ketorolac",
-        "frequency": 2,
-        "frequency_label": "2x Daily",
-        "weeks": 2
-      },
-      "steroid": {
-        "name": "Prednisolone Acetate 1% (Pred Forte)",
-        "taper_schedule": [
-          2,
-          1,
-          0,
-          0
-        ],
-        "taper_type": "short"
-      },
-      "additional_instructions": "Take special considerations",
-      "glaucoma": {
-        "resume": true
-      }
     }
   },
   "documents": null,

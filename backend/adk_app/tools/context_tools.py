@@ -61,9 +61,10 @@ def patient_context_tool(
         "lens_plan",
         "insurance",
     ] = "summary",
+    clinic_id: str = None,
 ) -> str:
     """Returns patient-specific context without exposing entire record."""
-    patient = get_patient_data(patient_id)
+    patient = get_patient_data(patient_id, clinic_id=clinic_id)
     # logger.info(
     #     "context.patient",
     #     extra={"patient_id": patient_id, "info_type": info_type},

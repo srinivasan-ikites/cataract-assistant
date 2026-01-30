@@ -549,8 +549,15 @@ async def register_clinic(request: ClinicRegistrationRequest):
                 if "already been registered" in error_msg:
                     break  # No point retrying - email already exists
 
-                # For rate limiting errors, we should retry
-                if "User not allowed" in error_msg or "rate" in error_msg.lower():
+                # "User not allowed" means Supabase config issue - don't retry
+                if "User not allowed" in error_msg:
+                    print(f"[Register Clinic] Step 4: 'User not allowed' = Supabase Auth config issue")
+                    print(f"[Register Clinic] Step 4: Check: Authentication > Providers > Email > Enable Signup")
+                    print(f"[Register Clinic] Step 4: Also check: Authentication > Settings > CAPTCHA (should be OFF)")
+                    break  # No point retrying - this is a config issue
+
+                # For actual rate limiting errors, we should retry
+                if "rate" in error_msg.lower():
                     if attempt < max_retries - 1:
                         print(f"[Register Clinic] Step 4: Appears to be rate limiting, will retry...")
                         continue
@@ -569,9 +576,10 @@ async def register_clinic(request: ClinicRegistrationRequest):
                 print(f"[Register Clinic] Error type: {type(last_error).__name__}")
                 print(f"[Register Clinic] Error message: {str(last_error)}")
                 print(f"[Register Clinic] Full error: {repr(last_error)}")
-            print(f"[Register Clinic] HINT: Check Supabase Dashboard > Authentication > Providers")
+            print(f"[Register Clinic] HINT: Check Supabase Dashboard > Authentication > Providers > Email")
             print(f"[Register Clinic] HINT: Ensure 'Enable Email Signup' is ON")
-            print(f"[Register Clinic] HINT: This may be Supabase rate limiting - wait a few seconds and try again")
+            print(f"[Register Clinic] HINT: Check Authentication > Settings > CAPTCHA is disabled")
+            print(f"[Register Clinic] HINT: If error says 'rate', wait and try again")
             print(f"[Register Clinic] Rolling back clinic creation...")
             client.table("clinic_config").delete().eq("clinic_id", clinic_uuid).execute()
             client.table("clinics").delete().eq("id", clinic_uuid).execute()
@@ -585,8 +593,8 @@ async def register_clinic(request: ClinicRegistrationRequest):
                 )
             if "User not allowed" in error_msg:
                 raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Registration temporarily limited. Please wait a moment and try again."
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Registration is not enabled. Please check Supabase Authentication settings (Email provider must be enabled with signup allowed)."
                 )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

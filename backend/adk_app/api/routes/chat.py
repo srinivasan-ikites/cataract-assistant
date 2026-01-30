@@ -37,7 +37,8 @@ def ask_endpoint(
     """Process a patient question and return an AI-generated answer."""
     t_start = time.perf_counter()
     try:
-        patient = get_patient_data(payload.patient_id)
+        # Use clinic_id for unique patient lookup (required when multiple clinics exist)
+        patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
     t_after_patient = time.perf_counter()
@@ -85,7 +86,8 @@ def ask_endpoint(
         payload.question,
         answer,
         suggestions,
-        blocks
+        blocks,
+        clinic_id=payload.clinic_id
     )
     t_after_save = time.perf_counter()
     print(f"####### timing ask.save_history_ms={(t_after_save - t_save_start)*1000:.1f}")
@@ -121,10 +123,11 @@ def module_content_endpoint(
     key = normalize_module_title(raw_title)
     diagnosis_key = normalize_module_title(DIAGNOSIS_MODULE_TITLE)
 
-    print(f"[ModuleContent] REQUEST - module_title='{raw_title}' patient_id={payload.patient_id}")
+    print(f"[ModuleContent] REQUEST - module_title='{raw_title}' patient_id={payload.patient_id} clinic_id={payload.clinic_id}")
 
     try:
-        patient = get_patient_data(payload.patient_id)
+        # Use clinic_id for unique patient lookup
+        patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
@@ -163,17 +166,18 @@ def module_content_endpoint(
         )
 
     # Generate "My Diagnosis" module
-    print(f"[ModuleContent] Generating diagnosis module for patient={payload.patient_id}")
+    print(f"[ModuleContent] Generating diagnosis module for patient={payload.patient_id}, clinic={payload.clinic_id}")
     generated = generate_diagnosis_if_needed(
         patient_id=payload.patient_id,
         patient=patient,
         config=runtime.config,
-        force=False
+        force=False,
+        clinic_id=payload.clinic_id
     )
 
     if generated:
         # Reload to get the newly saved content
-        patient = get_patient_data(payload.patient_id)
+        patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
         module_cache = patient.get("module_content", {})
         cached = module_cache.get(raw_title) or module_cache.get(key)
         if cached:
@@ -196,7 +200,8 @@ def pregenerate_modules_endpoint(
     Other modules use static content and don't need pre-generation.
     """
     try:
-        patient = get_patient_data(payload.patient_id)
+        # Use clinic_id for unique patient lookup
+        patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
@@ -210,14 +215,15 @@ def pregenerate_modules_endpoint(
             "module": DIAGNOSIS_MODULE_TITLE
         }
 
-    print(f"[ModuleContent] Pregen start patient={payload.patient_id}")
+    print(f"[ModuleContent] Pregen start patient={payload.patient_id}, clinic={payload.clinic_id}")
 
     # Generate diagnosis module
     generated = generate_diagnosis_if_needed(
         patient_id=payload.patient_id,
         patient=patient,
         config=runtime.config,
-        force=False
+        force=False,
+        clinic_id=payload.clinic_id
     )
 
     if generated:

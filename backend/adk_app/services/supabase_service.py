@@ -410,17 +410,43 @@ class SupabaseService:
         MongoDB comparison: There's no equivalent - you'd use GridFS or external storage
         """
         if not self._client:
+            print(f"[Supabase Storage] ERROR: Client not initialized")
             return None
 
+        print(f"[Supabase Storage] Uploading to bucket={bucket} path={path} size={len(file_data)} bytes content_type={content_type}")
+
         try:
+            # Check if file already exists - if so, update instead of insert
             response = self._client.storage.from_(bucket).upload(
                 path,
                 file_data,
-                {"content-type": content_type}
+                {"content-type": content_type, "upsert": "true"}  # Allow overwrite
             )
+            print(f"[Supabase Storage] Upload SUCCESS: {path}")
             return path
         except Exception as e:
-            print(f"[Supabase] Storage upload error: {e}")
+            error_msg = str(e)
+            print(f"[Supabase Storage] Upload FAILED: {error_msg}")
+
+            # Check for common issues
+            if "Bucket not found" in error_msg:
+                print(f"[Supabase Storage] HINT: Create bucket '{bucket}' in Supabase Dashboard > Storage")
+            elif "new row violates row-level security" in error_msg:
+                print(f"[Supabase Storage] HINT: Check RLS policies on storage.objects table")
+            elif "duplicate" in error_msg.lower() or "already exists" in error_msg.lower():
+                print(f"[Supabase Storage] HINT: File already exists, trying upsert...")
+                # Try with upsert
+                try:
+                    response = self._client.storage.from_(bucket).update(
+                        path,
+                        file_data,
+                        {"content-type": content_type}
+                    )
+                    print(f"[Supabase Storage] Update SUCCESS: {path}")
+                    return path
+                except Exception as update_err:
+                    print(f"[Supabase Storage] Update also failed: {update_err}")
+
             return None
 
     def get_file_url(self, bucket: str, path: str, expires_in: int = 3600) -> Optional[str]:

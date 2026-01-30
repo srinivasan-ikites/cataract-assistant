@@ -47,7 +47,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, patient, onClose, onOpe
       setLoading(true);
       // Note: We don't clear contentItemId here - isEffectivelyLoading handles the stale check
       const pid = patient?.patient_id;
-      generateModuleContent(item.title, pid || "")
+      const clinicId = (patient as any)?.clinic_id;
+      generateModuleContent(item.title, pid || "", clinicId)
         .then(data => {
           setContent(data);
           setContentItemId(item.id); // Mark this content as belonging to this item

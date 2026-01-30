@@ -78,15 +78,15 @@ def list_patients(
 
     print(f"[Patient API] GET /patients - Listing patients for clinic: {effective_clinic_id} (user: {user.email})")
 
-    # Convert slug to UUID for filtering
-    clinic_uuid = None
+    # Validate clinic exists before querying (get_all_patients expects the slug, not UUID)
     if effective_clinic_id:
         clinic_uuid = _get_clinic_uuid_from_slug(effective_clinic_id)
         if not clinic_uuid:
             print(f"[Patient API] Clinic not found: {effective_clinic_id}")
             raise HTTPException(status_code=404, detail=f"Clinic '{effective_clinic_id}' not found")
 
-    patients = get_all_patients(clinic_id=clinic_uuid)
+    # Pass the clinic slug - get_all_patients does its own UUID lookup internally
+    patients = get_all_patients(clinic_id=effective_clinic_id)
     print(f"[Patient API] Returning {len(patients)} patients")
     return patients
 
@@ -103,7 +103,7 @@ def get_patient(
     """
     print(f"[Patient API] GET /patients/{patient_id} (user: {user.email})")
     try:
-        patient = get_patient_data(patient_id)
+        patient = get_patient_data(patient_id, clinic_id=user.clinic_id)
 
         # Verify patient belongs to user's clinic
         patient_clinic = patient.get("_clinic_id") or patient.get("clinic_id")
@@ -132,12 +132,12 @@ def clear_patient_chat(
     print(f"[Patient API] POST /patients/{patient_id}/chat/clear (user: {user.email})")
     try:
         # Verify patient belongs to user's clinic before clearing
-        patient = get_patient_data(patient_id)
+        patient = get_patient_data(patient_id, clinic_id=user.clinic_id)
         patient_clinic = patient.get("_clinic_id") or patient.get("clinic_id")
         if patient_clinic and user.clinic_id and patient_clinic != user.clinic_id:
             raise HTTPException(status_code=403, detail="Access denied: patient belongs to different clinic")
 
-        clear_patient_chat_history(patient_id)
+        clear_patient_chat_history(patient_id, clinic_id=user.clinic_id)
         print(f"[Patient API] Chat history cleared for patient {patient_id}")
     except ValueError as err:
         print(f"[Patient API] Error clearing chat: {err}")

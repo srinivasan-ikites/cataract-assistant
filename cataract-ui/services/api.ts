@@ -628,21 +628,21 @@ export const api = {
         return res.json();
     },
 
-    async askAgent(patientId: string, question: string): Promise<AskResponse> {
+    async askAgent(patientId: string, question: string, clinicId?: string): Promise<AskResponse> {
         const res = await fetch(`${API_BASE}/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patient_id: patientId, question }),
+            body: JSON.stringify({ patient_id: patientId, question, clinic_id: clinicId }),
         });
         if (!res.ok) throw new Error('Failed to ask agent');
         return res.json();
     },
 
-    async pregenerateModules(patientId: string): Promise<{ status: string }> {
+    async pregenerateModules(patientId: string, clinicId?: string): Promise<{ status: string }> {
         const res = await fetch(`${API_BASE}/pregenerate-modules`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patient_id: patientId }),
+            body: JSON.stringify({ patient_id: patientId, clinic_id: clinicId }),
         });
         if (!res.ok) throw new Error('Failed to pregenerate modules');
         return res.json();
