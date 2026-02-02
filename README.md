@@ -99,3 +99,8 @@ password - admin
 vision-forever
 srinivasan@thekites.ai
 annaanna
+
+<!-- clinic 2 -->
+harry@gmail.com
+harry1
+james - 6666666666
