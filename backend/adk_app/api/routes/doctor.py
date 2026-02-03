@@ -85,10 +85,9 @@ async def doctor_upload_patient_docs(
     env_model = os.getenv("VISION_MODEL", "gemini-1.5-pro-latest")
     vision_model = model if model and model != "string" else env_model
     print(f"[Doctor Upload Patient] clinic={clinic_id} patient={patient_id} model={vision_model} env_model={env_model} files={len(files)}")
-    base_dir = ensure_dir(UPLOAD_ROOT / clinic_id / patient_id)
 
+    # Read files into memory (no local storage - files go directly to Supabase bucket)
     images: list[dict] = []
-    saved_files: list[str] = []
     for idx, file in enumerate(files):
         content = await file.read()
         if len(content) > MAX_UPLOAD_BYTES:
@@ -98,12 +97,6 @@ async def doctor_upload_patient_docs(
             )
         content_type = file.content_type or "image/png"
         images.append({"bytes": content, "mime_type": content_type, "desc": file.filename or f"file_{idx}"})
-
-        suffix = Path(file.filename or f"upload_{idx}").suffix or ".img"
-        target = base_dir / f"{idx:02d}{suffix}"
-        with open(target, "wb") as f:
-            f.write(content)
-        saved_files.append(str(target))
 
     try:
         # Use extraction_schema_v2.json (clinical data only - no surgical/medications)
@@ -120,11 +113,15 @@ async def doctor_upload_patient_docs(
         extraction = normalize_extracted_data(extraction)
         extraction = apply_schema_template("extraction_schema_v2.json", extraction)
 
-        extracted_path = base_dir / "extracted_patient.json"
-        with open(extracted_path, "w", encoding="utf-8") as f:
-            json.dump(extraction, f, ensure_ascii=False, indent=2)
+        # Optional: Save extraction JSON locally for debugging/recovery (can be disabled in production)
+        extracted_path = None
+        if os.getenv("SAVE_EXTRACTION_JSON", "true").lower() == "true":
+            base_dir = ensure_dir(UPLOAD_ROOT / clinic_id / patient_id)
+            extracted_path = base_dir / "extracted_patient.json"
+            with open(extracted_path, "w", encoding="utf-8") as f:
+                json.dump(extraction, f, ensure_ascii=False, indent=2)
 
-        # Upload files to Supabase Storage
+        # Upload files to Supabase Storage (primary storage)
         storage_paths = []
         storage_errors = []
         print(f"[Doctor Upload Patient] Starting Supabase Storage upload for {len(images)} files...")
@@ -149,7 +146,6 @@ async def doctor_upload_patient_docs(
                     storage_errors.append(storage_path)
                     print(f"[Doctor Upload Patient] FAILED: {storage_path}")
         except Exception as storage_err:
-            import traceback
             print(f"[Doctor Upload Patient] Storage upload exception: {storage_err}")
             traceback.print_exc()
             storage_errors.append(f"Exception: {str(storage_err)}")
@@ -161,11 +157,11 @@ async def doctor_upload_patient_docs(
         return {
             "status": "ok",
             "model_used": vision_model,
-            "files_saved": len(saved_files),
-            "upload_dir": str(base_dir),
-            "extracted_path": str(extracted_path),
+            "files_uploaded": len(storage_paths),
+            "extracted_path": str(extracted_path) if extracted_path else None,
             "extracted": extraction,
             "storage_paths": storage_paths,
+            "files": [img["desc"] for img in images],  # File names for recent uploads display
         }
     except Exception as exc:
         print(f"[Doctor Upload Patient Error] model={vision_model} err={exc}")
@@ -198,10 +194,9 @@ async def doctor_upload_clinic_docs(
     env_model = os.getenv("VISION_MODEL", "gemini-1.5-pro-latest")
     vision_model = model if model and model != "string" else env_model
     print(f"[Doctor Upload Clinic] clinic={clinic_id} model={vision_model} env_model={env_model} files={len(files)}")
-    base_dir = ensure_dir(UPLOAD_ROOT / clinic_id / "clinic")
 
+    # Read files into memory (no local storage)
     images: list[dict] = []
-    saved_files: list[str] = []
     for idx, file in enumerate(files):
         content = await file.read()
         if len(content) > MAX_UPLOAD_BYTES:
@@ -212,12 +207,6 @@ async def doctor_upload_clinic_docs(
         content_type = file.content_type or "image/png"
         images.append({"bytes": content, "mime_type": content_type, "desc": file.filename or f"file_{idx}"})
 
-        suffix = Path(file.filename or f"upload_{idx}").suffix or ".img"
-        target = base_dir / f"{idx:02d}{suffix}"
-        with open(target, "wb") as f:
-            f.write(content)
-        saved_files.append(str(target))
-
     try:
         schema = load_schema("clinic_schema.json")
         prompt = build_extraction_prompt(schema, scope="Clinic")
@@ -226,16 +215,19 @@ async def doctor_upload_clinic_docs(
         extraction = normalize_extracted_data(extraction)
         extraction = apply_schema_template("clinic_schema.json", extraction)
 
-        extracted_path = base_dir / "extracted_clinic.json"
-        with open(extracted_path, "w", encoding="utf-8") as f:
-            json.dump(extraction, f, ensure_ascii=False, indent=2)
+        # Optional: Save extraction JSON locally for debugging/recovery
+        extracted_path = None
+        if os.getenv("SAVE_EXTRACTION_JSON", "true").lower() == "true":
+            base_dir = ensure_dir(UPLOAD_ROOT / clinic_id / "clinic")
+            extracted_path = base_dir / "extracted_clinic.json"
+            with open(extracted_path, "w", encoding="utf-8") as f:
+                json.dump(extraction, f, ensure_ascii=False, indent=2)
 
         return {
             "status": "ok",
             "model_used": vision_model,
-            "files_saved": len(saved_files),
-            "upload_dir": str(base_dir),
-            "extracted_path": str(extracted_path),
+            "files_processed": len(images),
+            "extracted_path": str(extracted_path) if extracted_path else None,
             "extracted": extraction,
         }
     except Exception as exc:
@@ -283,6 +275,52 @@ async def get_extracted_clinic(
     path = UPLOAD_ROOT / clinic_id / "clinic" / "extracted_clinic.json"
     data = read_json_or_404(path, "Extracted clinic JSON")
     return {"status": "ok", "extracted_path": str(path), "extracted": data}
+
+
+# -------------------------------
+# Patient files endpoints
+# -------------------------------
+
+@router.get("/patient-files")
+async def list_patient_files(
+    clinic_id: str,
+    patient_id: str,
+    user: AuthenticatedUser = Depends(require_clinic_user),  # AUTHENTICATION REQUIRED
+) -> dict:
+    """
+    List all uploaded files for a patient from Supabase Storage.
+
+    Returns file names, sizes, and metadata for display in "Recent Uploads" section.
+    Requires authentication. User can only list files from their own clinic.
+    """
+    validate_clinic_access(user, clinic_id)
+
+    try:
+        supabase_service = SupabaseService(use_admin=True)
+        storage_path = f"{clinic_id}/{patient_id}"
+        files = supabase_service.list_files(
+            bucket=PATIENT_DOCUMENTS_BUCKET,
+            path=storage_path
+        )
+
+        return {
+            "status": "ok",
+            "clinic_id": clinic_id,
+            "patient_id": patient_id,
+            "files": files,
+            "count": len(files),
+        }
+    except Exception as exc:
+        print(f"[List Patient Files Error] clinic={clinic_id} patient={patient_id} err={exc}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "clinic_id": clinic_id,
+            "patient_id": patient_id,
+            "files": [],
+            "count": 0,
+            "error": str(exc),
+        }
 
 
 # -------------------------------

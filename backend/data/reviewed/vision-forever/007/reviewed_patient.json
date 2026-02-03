@@ -2,10 +2,10 @@
   "patient_identity": {
     "patient_id": "1245583",
     "clinic_ref_id": "1245583",
-    "first_name": "Lata",
-    "middle_name": "",
-    "last_name": "Bhagia",
-    "dob": "1956-01-20",
+    "first_name": "Liv",
+    "middle_name": "Leo",
+    "last_name": "Morgan",
+    "dob": "1975-01-15",
     "gender": "Female"
   },
   "medical_profile": {
@@ -18,7 +18,6 @@
       "codeine"
     ],
     "review_of_systems": [
-      "No Artificial Joints",
       "No Fever",
       "No Chills",
       "No Weight Loss",
@@ -45,7 +44,7 @@
   },
   "clinical_context": {
     "od_right": {
-      "pathology": "1-2+ nuclear sclerosis and 2+cortical",
+      "pathology": "1-2+ nuclear sclerosis and 2+ cortical, abnormal tear break up time and spk inferiorly",
       "primary_cataract_type": "combined",
       "visual_acuity": {
         "ucva": "",
@@ -53,28 +52,28 @@
       },
       "biometry": {
         "iol_master": {
-          "source": "",
-          "axial_length_mm": null,
-          "acd_mm": null,
-          "wtw_mm": null,
-          "cct_um": null,
-          "flat_k_k1": null,
-          "steep_k_k2": null,
-          "astigmatism_power": null,
-          "axis": null,
-          "k_type": ""
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.32,
+          "acd_mm": 3.77,
+          "wtw_mm": 11.6,
+          "cct_um": 495,
+          "flat_k_k1": 42.88,
+          "steep_k_k2": 45.6,
+          "astigmatism_power": -2.72,
+          "axis": 102,
+          "k_type": "FLAT_K"
         },
         "pentacam_topography": {
-          "source": "",
-          "astigmatism_power": null,
-          "axis": null,
-          "cct_um": null,
-          "belin_ambrosio_score": null
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 1.7,
+          "axis": 12,
+          "cct_um": 521,
+          "belin_ambrosio_score": 0.93
         }
       }
     },
     "os_left": {
-      "pathology": "1+ cortical and 1-2+ nuclear sclerosis",
+      "pathology": "1+ cortical and 1-2+ nuclear sclerosis, abnormal tear break up time and spk inferiorly",
       "primary_cataract_type": "combined",
       "visual_acuity": {
         "ucva": "",
@@ -82,16 +81,16 @@
       },
       "biometry": {
         "iol_master": {
-          "source": "",
-          "axial_length_mm": null,
-          "acd_mm": null,
-          "wtw_mm": null,
-          "cct_um": null,
-          "flat_k_k1": null,
-          "steep_k_k2": null,
-          "astigmatism_power": null,
-          "axis": null,
-          "k_type": ""
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.23,
+          "acd_mm": 3.73,
+          "wtw_mm": 11.7,
+          "cct_um": 494,
+          "flat_k_k1": 43.76,
+          "steep_k_k2": 44.66,
+          "astigmatism_power": -0.9,
+          "axis": 51,
+          "k_type": "FLAT_K"
         },
         "pentacam_topography": {
           "source": "",
@@ -106,16 +105,20 @@
       "Dry Eye Syndrome",
       "Myopia"
     ],
-    "clinical_alerts": []
+    "clinical_alerts": [
+      {
+        "trigger": "OD (Right) Biometry Discrepancy",
+        "alert_msg": "IOL Master (-2.72D) vs Pentacam (1.7D) differ by 4.42D - Consider intraoperative aberrometry"
+      }
+    ]
   },
   "lifestyle_profile": {
     "occupation": "",
     "hobbies": [
-      "Drives in the daytime",
-      "Drives at night"
+      "Driving"
     ],
     "visual_goals": {
-      "primary_zone": "All",
+      "primary_zone": "Distance",
       "spectacle_independence_desire": "High"
     },
     "personality_traits": {
@@ -131,46 +134,21 @@
     "same_plan_both_eyes": true,
     "candidacy_profile": {
       "od_right": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       },
       "os_left": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       }
     },
-    "offered_packages": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_od": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_os": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER"
-    ],
+    "offered_packages": [],
+    "offered_packages_od": [],
+    "offered_packages_os": [],
     "patient_selection": {
       "selected_package_id": "",
       "status": "",

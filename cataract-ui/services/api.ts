@@ -1,8 +1,8 @@
 import { ModuleItem } from '../types';
 
-// const API_BASE = 'http://localhost:8000'; // align with backend
+ const API_BASE = 'http://localhost:8000'; 
 // const API_BASE = 'http://35.244.44.106:8000';
-const API_BASE = 'https://cataract-assistant.ikites.ai/api';
+//const API_BASE = 'https://cataract-assistant.ikites.ai/api';//
 // const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
@@ -409,17 +409,31 @@ export interface Patient {
         candidacy_profile?: {
             od_right?: {
                 is_candidate_multifocal?: boolean;
+                is_candidate_edof?: boolean;
                 is_candidate_toric?: boolean;
                 is_candidate_lal?: boolean;
             };
             os_left?: {
                 is_candidate_multifocal?: boolean;
+                is_candidate_edof?: boolean;
                 is_candidate_toric?: boolean;
                 is_candidate_lal?: boolean;
             };
         };
         offered_packages?: string[];
+        offered_packages_od?: string[];
+        offered_packages_os?: string[];
         patient_selection?: {
+            selected_package_id?: string;
+            status?: string;
+            selection_date?: string;
+        };
+        patient_selection_od?: {
+            selected_package_id?: string;
+            status?: string;
+            selection_date?: string;
+        };
+        patient_selection_os?: {
             selected_package_id?: string;
             status?: string;
             selection_date?: string;
@@ -715,6 +729,15 @@ export const api = {
     async getExtractedClinic(clinicId: string): Promise<any> {
         const res = await authFetch(`${API_BASE}/doctor/extractions/clinic?clinic_id=${clinicId}`);
         if (!res.ok) throw new Error('Failed to fetch extracted clinic data');
+        return res.json();
+    },
+
+    async getPatientFiles(clinicId: string, patientId: string): Promise<{ files: Array<{ name: string; size?: number; mime_type?: string; created_at?: string }>, count: number }> {
+        const res = await authFetch(`${API_BASE}/doctor/patient-files?clinic_id=${clinicId}&patient_id=${patientId}`);
+        if (!res.ok) {
+            console.warn('Failed to fetch patient files');
+            return { files: [], count: 0 };
+        }
         return res.json();
     },
 

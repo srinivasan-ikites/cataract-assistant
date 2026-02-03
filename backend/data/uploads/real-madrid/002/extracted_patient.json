@@ -18,7 +18,6 @@
       "codeine"
     ],
     "review_of_systems": [
-      "No Artificial Joints",
       "No Fever",
       "No Chills",
       "No Weight Loss",
@@ -31,7 +30,7 @@
       "No Urinary Frequency",
       "No Joint Swelling",
       "No Stiffness",
-      "No Decreased Range Of Motion",
+      "No Decreased Range of Motion",
       "No Anxiety",
       "No Insomnia",
       "No Swelling",
@@ -104,18 +103,16 @@
     },
     "ocular_comorbidities": [
       "Dry Eye Syndrome",
-      "Myopia"
+      "Myopia",
+      "Abnormal tear break up time"
     ],
     "clinical_alerts": []
   },
   "lifestyle_profile": {
     "occupation": "",
-    "hobbies": [
-      "Drives in the daytime",
-      "Drives at night"
-    ],
+    "hobbies": [],
     "visual_goals": {
-      "primary_zone": "All",
+      "primary_zone": "Distance",
       "spectacle_independence_desire": "High"
     },
     "personality_traits": {
@@ -128,107 +125,13 @@
     }
   },
   "surgical_plan": {
-    "same_plan_both_eyes": true,
-    "candidacy_profile": {
-      "od_right": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
-      },
-      "os_left": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
-      }
-    },
-    "offered_packages": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_od": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_os": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER"
-    ],
-    "patient_selection": {
-      "selected_package_id": "",
-      "status": "",
-      "selection_date": ""
-    },
-    "patient_selection_od": {
-      "selected_package_id": "",
-      "status": "",
-      "selection_date": ""
-    },
-    "patient_selection_os": {
-      "selected_package_id": "",
-      "status": "",
-      "selection_date": ""
-    },
     "operative_logistics": {
       "od_right": {
-        "status": "",
-        "surgery_date": "",
-        "arrival_time": "",
-        "lens_order": {
-          "model_name": "",
-          "model_code": "",
-          "power": "",
-          "cylinder": "",
-          "axis_alignment": ""
-        }
+        "surgery_date": ""
       },
       "os_left": {
-        "status": "",
-        "surgery_date": "",
-        "arrival_time": "",
-        "lens_order": {
-          "model_name": "",
-          "model_code": "",
-          "power": "",
-          "cylinder": "",
-          "axis_alignment": ""
-        }
+        "surgery_date": ""
       }
     }
-  },
-  "medications_plan": {
-    "settings": {
-      "pre_op_protocol_type": "",
-      "post_op_protocol_type": "",
-      "glaucoma_meds_instruction": ""
-    },
-    "pre_op_schedule": {
-      "instruction": "",
-      "medications": []
-    },
-    "post_op_schedule": {
-      "instruction": "",
-      "medications": []
-    }
-  },
-  "documents": null,
-  "chat_history": [],
-  "module_content": {}
+  }
 }

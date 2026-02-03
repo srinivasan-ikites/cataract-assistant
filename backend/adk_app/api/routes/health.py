@@ -154,3 +154,95 @@ def clinic_access_test(user: AuthenticatedUser = Depends(require_clinic_user)):
             "name": user.clinic_name,
         }
     }
+
+
+@router.get("/healthz/storage-debug")
+def storage_debug() -> dict:
+    """
+    Debug endpoint to list all files in patient-documents bucket.
+
+    This helps diagnose storage upload issues.
+    """
+    try:
+        client = get_supabase_admin_client()
+        if not client:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized"
+            }
+
+        # List all buckets
+        buckets = client.storage.list_buckets()
+        bucket_info = []
+        for b in buckets:
+            bucket_info.append({
+                "name": b.name,
+                "id": b.id,
+                "public": b.public,
+                "created_at": str(b.created_at) if b.created_at else None,
+            })
+
+        # List root level of patient-documents bucket
+        root_files = []
+        subfolders = []
+        all_files = []
+        try:
+            root_items = client.storage.from_("patient-documents").list(path="")
+            print(f"[Storage Debug] Root items: {root_items}")
+            for item in root_items or []:
+                if isinstance(item, dict):
+                    item_id = item.get("id")
+                    item_name = item.get("name")
+                else:
+                    item_id = getattr(item, "id", None)
+                    item_name = getattr(item, "name", None)
+
+                if item_id:
+                    root_files.append(item_name)
+                else:
+                    # It's a folder, try to list its contents
+                    subfolders.append(item_name)
+                    try:
+                        # List subfolder contents (clinic_id level)
+                        subfolder_items = client.storage.from_("patient-documents").list(path=item_name)
+                        for sub_item in subfolder_items or []:
+                            sub_name = sub_item.get("name") if isinstance(sub_item, dict) else getattr(sub_item, "name", None)
+                            sub_id = sub_item.get("id") if isinstance(sub_item, dict) else getattr(sub_item, "id", None)
+                            if sub_id:
+                                all_files.append(f"{item_name}/{sub_name}")
+                            else:
+                                # It's another subfolder (patient_id level)
+                                try:
+                                    patient_items = client.storage.from_("patient-documents").list(path=f"{item_name}/{sub_name}")
+                                    for p_item in patient_items or []:
+                                        p_name = p_item.get("name") if isinstance(p_item, dict) else getattr(p_item, "name", None)
+                                        p_id = p_item.get("id") if isinstance(p_item, dict) else getattr(p_item, "id", None)
+                                        if p_id:
+                                            all_files.append(f"{item_name}/{sub_name}/{p_name}")
+                                except Exception as pe:
+                                    print(f"[Storage Debug] Error listing patient folder: {pe}")
+                    except Exception as se:
+                        print(f"[Storage Debug] Error listing subfolder {item_name}: {se}")
+        except Exception as list_err:
+            print(f"[Storage Debug] Error listing root: {list_err}")
+            import traceback
+            traceback.print_exc()
+
+        return {
+            "status": "ok",
+            "buckets": bucket_info,
+            "patient_documents": {
+                "root_files": root_files,
+                "subfolders": subfolders,
+                "all_files": all_files[:50],  # Limit to 50 files
+                "total_files": len(all_files),
+            }
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": str(e),
+            "type": type(e).__name__
+        }

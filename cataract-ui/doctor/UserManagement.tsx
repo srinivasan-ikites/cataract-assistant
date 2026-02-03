@@ -173,8 +173,63 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-slate-200 rounded-lg" />
+            <div className="h-4 w-64 bg-slate-100 rounded mt-2" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-100 rounded-lg" />
+            <div className="w-32 h-10 bg-slate-200 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Search Skeleton */}
+        <div className="h-10 bg-slate-100 rounded-lg" />
+
+        {/* Table Skeleton */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex gap-6">
+            <div className="h-4 w-16 bg-slate-200 rounded" />
+            <div className="h-4 w-12 bg-slate-200 rounded" />
+            <div className="h-4 w-14 bg-slate-200 rounded" />
+            <div className="h-4 w-16 bg-slate-200 rounded" />
+            <div className="h-4 w-16 bg-slate-200 rounded ml-auto" />
+          </div>
+
+          {/* Table Rows */}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="px-6 py-4 border-b border-slate-100 flex items-center gap-6">
+              {/* User column */}
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 rounded-full bg-slate-200" />
+                <div>
+                  <div className="h-4 w-32 bg-slate-200 rounded mb-1" />
+                  <div className="h-3 w-24 bg-slate-100 rounded" />
+                </div>
+              </div>
+              {/* Role column */}
+              <div className="w-16 h-6 bg-slate-100 rounded-full" />
+              {/* Status column */}
+              <div className="w-16 h-6 bg-slate-100 rounded-full" />
+              {/* Contact column */}
+              <div className="flex-1">
+                <div className="h-4 w-40 bg-slate-100 rounded mb-1" />
+                <div className="h-3 w-28 bg-slate-100 rounded" />
+              </div>
+              {/* Actions column */}
+              <div className="w-8 h-8 bg-slate-100 rounded-lg" />
+            </div>
+          ))}
+        </div>
+
+        {/* Count Skeleton */}
+        <div className="flex justify-center">
+          <div className="h-4 w-24 bg-slate-100 rounded" />
+        </div>
       </div>
     );
   }

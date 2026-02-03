@@ -251,7 +251,9 @@ const RiskComplicationsModal: React.FC<RiskComplicationsModalProps> = ({
     const candidacyOS = patient?.surgical_plan?.candidacy_profile?.os_left;
     const isLaserCandidate =
         candidacyOD?.is_candidate_multifocal === true ||
-        candidacyOS?.is_candidate_multifocal === true;
+        candidacyOS?.is_candidate_multifocal === true ||
+        candidacyOD?.is_candidate_edof === true ||
+        candidacyOS?.is_candidate_edof === true;
 
     const toggleCategory = (categoryId: string) => {
         setExpandedCategories(prev =>

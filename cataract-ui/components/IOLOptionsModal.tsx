@@ -21,6 +21,7 @@ interface SurgicalPackage {
 
 interface CandidacyProfile {
     is_candidate_multifocal?: boolean;
+    is_candidate_edof?: boolean;
     is_candidate_toric?: boolean;
     is_candidate_lal?: boolean;
 }
@@ -370,9 +371,17 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
 
     // Extract surgical plan data from patient
     const surgicalPlan = patient?.surgical_plan;
+    const samePlanBothEyes = surgicalPlan?.same_plan_both_eyes ?? true;
+
+    // Unified packages (when same plan for both eyes)
     const offeredPackageIds: string[] = surgicalPlan?.offered_packages || [];
     const selectedPackageId = surgicalPlan?.patient_selection?.selected_package_id || '';
-    const samePlanBothEyes = surgicalPlan?.same_plan_both_eyes ?? true;
+
+    // Per-eye packages (when different plans)
+    const offeredPackageIdsOD: string[] = surgicalPlan?.offered_packages_od || [];
+    const offeredPackageIdsOS: string[] = surgicalPlan?.offered_packages_os || [];
+    const selectedPackageIdOD = surgicalPlan?.patient_selection_od?.selected_package_id || '';
+    const selectedPackageIdOS = surgicalPlan?.patient_selection_os?.selected_package_id || '';
 
     // Candidacy profile per eye
     const candidacyOD: CandidacyProfile = surgicalPlan?.candidacy_profile?.od_right || {};
@@ -384,6 +393,7 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
     // Check eligibility flags
     const hasAstigmatism = candidacyOD.is_candidate_toric || candidacyOS.is_candidate_toric;
     const isMultifocalCandidate = candidacyOD.is_candidate_multifocal || candidacyOS.is_candidate_multifocal;
+    const isEdofCandidate = candidacyOD.is_candidate_edof || candidacyOS.is_candidate_edof;
     const isLALCandidate = candidacyOD.is_candidate_lal || candidacyOS.is_candidate_lal;
 
     // Categorize offered packages
@@ -433,11 +443,14 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
             .replace(/\s+/g, ' ')
             .trim();
 
-    // Render a package card
-    const renderPackageCard = (pkg: SurgicalPackage, highlight: boolean = false) => {
+    // Render a package card with optional eye indicator for per-eye mode
+    const renderPackageCard = (pkg: SurgicalPackage, highlight: boolean = false, eyeIndicator?: { forOD: boolean; forOS: boolean; selectedOD: boolean; selectedOS: boolean }) => {
         const info = getPackageInfo(pkg.package_id);
         const isExpanded = expandedPackage === pkg.package_id;
-        const isSelected = selectedPackageId === pkg.package_id;
+        // For per-eye mode, check if selected for either eye; for unified mode, use the regular check
+        const isSelected = eyeIndicator
+            ? (eyeIndicator.selectedOD || eyeIndicator.selectedOS)
+            : selectedPackageId === pkg.package_id;
         const isInsuranceCovered = pkg.price_cash === 0;
 
         return (
@@ -465,6 +478,31 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                                     </span>
                                 )}
                             </div>
+                            {/* Eye indicator badges for per-eye mode */}
+                            {eyeIndicator && (
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {eyeIndicator.forOD && (
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-sm font-semibold rounded-full ${
+                                            eyeIndicator.selectedOD
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-blue-100 text-blue-700 border border-blue-200'
+                                        }`}>
+                                            <span className="w-2 h-2 rounded-full bg-current opacity-60"></span>
+                                            Right Eye {eyeIndicator.selectedOD && '✓'}
+                                        </span>
+                                    )}
+                                    {eyeIndicator.forOS && (
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-sm font-semibold rounded-full ${
+                                            eyeIndicator.selectedOS
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                        }`}>
+                                            <span className="w-2 h-2 rounded-full bg-current opacity-60"></span>
+                                            Left Eye {eyeIndicator.selectedOS && '✓'}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                             {/* Badges */}
                             <div className="flex flex-wrap gap-2 mt-3">
                                 {isInsuranceCovered && (
@@ -596,7 +634,7 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                     <div className="px-8 pt-6 pb-6 space-y-6">
 
                         {/* About Your Eyes Section */}
-                        {(hasAstigmatism || isMultifocalCandidate || isLALCandidate || hasPremiumOptions) && (
+                        {(hasAstigmatism || isMultifocalCandidate || isEdofCandidate || isLALCandidate || hasPremiumOptions) && (
                             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                                 <div className="bg-gradient-to-r from-violet-100 to-blue-100 px-6 py-4 border-b border-violet-200">
                                     <div className="flex items-center gap-3">
@@ -620,11 +658,19 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                                             </span>
                                         </div>
                                     )}
+                                    {isEdofCandidate && (
+                                        <div className="flex items-start gap-3 p-4 bg-sky-50 rounded-xl border border-sky-100">
+                                            <div className="w-2 h-2 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
+                                            <span className="text-base text-slate-800">
+                                                <strong className="text-sky-700">Extended vision lens (EDOF) is an option</strong> — You may benefit from an extended depth of focus lens that provides clear distance and intermediate vision with fewer visual disturbances at night.
+                                            </span>
+                                        </div>
+                                    )}
                                     {isMultifocalCandidate && (
                                         <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
                                             <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
                                             <span className="text-base text-slate-800">
-                                                <strong className="text-amber-700">You're a good candidate for premium lenses</strong> — Based on your eye health and lifestyle, you may benefit from lenses that reduce your need for glasses.
+                                                <strong className="text-amber-700">Multifocal lens is an option</strong> — Based on your eye health and lifestyle, you may benefit from a multifocal lens that provides clear vision at multiple distances, reducing your need for glasses.
                                             </span>
                                         </div>
                                     )}
@@ -640,18 +686,153 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                             </div>
                         )}
 
-                        {/* Per-Eye Note */}
-                        {!samePlanBothEyes && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-                                <Info size={18} className="text-blue-600 flex-shrink-0" />
-                                <p className="text-base text-blue-900">
-                                    Your doctor has recommended different options for each eye. Please discuss this with your surgical coordinator.
-                                </p>
-                            </div>
-                        )}
+                        {/* Per-Eye Package Display - Single Column Layout */}
+                        {!samePlanBothEyes && (offeredPackageIdsOD.length > 0 || offeredPackageIdsOS.length > 0) && (() => {
+                            // Combine all unique packages from both eyes
+                            const allPackageIds = [...new Set([...offeredPackageIdsOD, ...offeredPackageIdsOS])];
+
+                            // Categorize packages for per-eye display
+                            const perEyeStandard: Array<{pkg: SurgicalPackage; forOD: boolean; forOS: boolean}> = [];
+                            const perEyePremium: Array<{pkg: SurgicalPackage; forOD: boolean; forOS: boolean}> = [];
+                            const perEyeToric: Array<{pkg: SurgicalPackage; forOD: boolean; forOS: boolean}> = [];
+
+                            allPackageIds.forEach(pkgId => {
+                                const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                                if (!pkg) return;
+                                const info = PACKAGE_INFO[pkgId] || DEFAULT_PACKAGE_INFO;
+                                const entry = {
+                                    pkg,
+                                    forOD: offeredPackageIdsOD.includes(pkgId),
+                                    forOS: offeredPackageIdsOS.includes(pkgId)
+                                };
+                                if (info.category === 'toric') {
+                                    perEyeToric.push(entry);
+                                } else if (info.category === 'premium') {
+                                    perEyePremium.push(entry);
+                                } else {
+                                    perEyeStandard.push(entry);
+                                }
+                            });
+
+                            return (
+                                <div className="space-y-6">
+                                    {/* Header explaining per-eye approach */}
+                                    <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-xl p-5">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-2.5 bg-violet-100 rounded-xl flex-shrink-0">
+                                                <Eye size={22} className="text-violet-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-900 mb-2">Personalized Options for Each Eye</h3>
+                                                <p className="text-base text-slate-700 mb-3">
+                                                    Your doctor has customized lens recommendations for each eye based on your individual needs.
+                                                    Each option below shows which eye it's recommended for.
+                                                </p>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full border border-blue-200">
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                                        Right Eye
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-full border border-emerald-200">
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                                                        Left Eye
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Standard Options */}
+                                    {perEyeStandard.length > 0 && (
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
+                                                <div className="p-2 bg-emerald-100 rounded-lg">
+                                                    <Check size={20} className="text-emerald-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-900">Standard Options</h3>
+                                                    <p className="text-sm text-slate-600">Basic lens options covered by insurance</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {perEyeStandard.map(({pkg, forOD, forOS}) =>
+                                                    renderPackageCard(pkg, false, {
+                                                        forOD,
+                                                        forOS,
+                                                        selectedOD: selectedPackageIdOD === pkg.package_id,
+                                                        selectedOS: selectedPackageIdOS === pkg.package_id
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Premium Options */}
+                                    {perEyePremium.length > 0 && (
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
+                                                <div className="p-2 bg-amber-100 rounded-lg">
+                                                    <Star size={20} className="text-amber-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-900">Premium Options</h3>
+                                                    <p className="text-sm text-slate-600">Advanced lenses to reduce glasses dependency</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gradient-to-r from-amber-50 to-white rounded-xl border border-amber-100 mb-4">
+                                                <p className="text-base text-amber-900">
+                                                    <Sparkles size={16} className="inline mr-2 text-amber-600" />
+                                                    These advanced lenses can reduce or eliminate your need for glasses after surgery.
+                                                </p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {perEyePremium.map(({pkg, forOD, forOS}) =>
+                                                    renderPackageCard(pkg, false, {
+                                                        forOD,
+                                                        forOS,
+                                                        selectedOD: selectedPackageIdOD === pkg.package_id,
+                                                        selectedOS: selectedPackageIdOS === pkg.package_id
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Toric/Astigmatism Options */}
+                                    {perEyeToric.length > 0 && (
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
+                                                <div className="p-2 bg-purple-100 rounded-lg">
+                                                    <Eye size={20} className="text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-900">Astigmatism Correction</h3>
+                                                    <p className="text-sm text-slate-600">Special lenses to correct your astigmatism</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gradient-to-r from-purple-50 to-white rounded-xl border border-purple-200 mb-4">
+                                                <p className="text-base text-purple-900">
+                                                    <strong>Toric lenses</strong> correct the irregular curve in your cornea, giving you sharper vision without needing glasses to correct astigmatism.
+                                                </p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {perEyeToric.map(({pkg, forOD, forOS}) =>
+                                                    renderPackageCard(pkg, false, {
+                                                        forOD,
+                                                        forOS,
+                                                        selectedOD: selectedPackageIdOD === pkg.package_id,
+                                                        selectedOS: selectedPackageIdOS === pkg.package_id
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* No Options State */}
-                        {offeredPackageIds.length === 0 && (
+                        {(samePlanBothEyes ? offeredPackageIds.length === 0 : (offeredPackageIdsOD.length === 0 && offeredPackageIdsOS.length === 0)) && (
                             <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
                                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <AlertCircle size={32} className="text-slate-500" />
@@ -663,8 +844,8 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                             </div>
                         )}
 
-                        {/* Standard Options */}
-                        {categorizedPackages.standard.length > 0 && (
+                        {/* Standard Options - Only for unified plan */}
+                        {samePlanBothEyes && categorizedPackages.standard.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
                                     <div className="p-2 bg-emerald-100 rounded-lg">
@@ -697,8 +878,8 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                             </div>
                         )}
 
-                        {/* Premium Options */}
-                        {categorizedPackages.premium.length > 0 && (
+                        {/* Premium Options - Only for unified plan */}
+                        {samePlanBothEyes && categorizedPackages.premium.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
                                     <div className="p-2 bg-amber-100 rounded-lg">
@@ -726,8 +907,8 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                             </div>
                         )}
 
-                        {/* Astigmatism/Toric Options */}
-                        {categorizedPackages.toric.length > 0 && (
+                        {/* Astigmatism/Toric Options - Only for unified plan */}
+                        {samePlanBothEyes && categorizedPackages.toric.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
                                     <div className="p-2 bg-purple-100 rounded-lg">

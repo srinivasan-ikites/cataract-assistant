@@ -493,9 +493,9 @@ const SurgeryModal: React.FC<SurgeryModalProps> = ({ patient, onClose, isDayOfSu
     const candidacyOS = patient?.surgical_plan?.candidacy_profile?.os_left;
     const isEligibleForLaser =
         candidacyOD?.is_candidate_multifocal === true ||
-        candidacyOS?.is_candidate_multifocal === true;
-        // candidacyOD?.is_candidate_edof === true ||
-        // candidacyOS?.is_candidate_edof === true;
+        candidacyOS?.is_candidate_multifocal === true ||
+        candidacyOD?.is_candidate_edof === true ||
+        candidacyOS?.is_candidate_edof === true;
 
     const sanitizeQuestion = (q?: string) =>
         (q || '')

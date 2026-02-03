@@ -2,9 +2,9 @@
   "patient_identity": {
     "patient_id": "1245583",
     "clinic_ref_id": "1245583",
-    "first_name": "Lata",
+    "first_name": "Robert",
     "middle_name": "",
-    "last_name": "Bhagia",
+    "last_name": "Carlos",
     "dob": "1956-01-20",
     "gender": "Female"
   },
@@ -104,7 +104,9 @@
     },
     "ocular_comorbidities": [
       "Dry Eye Syndrome",
-      "Myopia"
+      "Myopia",
+      "Abnormal tear break up time",
+      "SPK inferiorly"
     ],
     "clinical_alerts": []
   },
@@ -131,46 +133,21 @@
     "same_plan_both_eyes": true,
     "candidacy_profile": {
       "od_right": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       },
       "os_left": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       }
     },
-    "offered_packages": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_od": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_os": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER"
-    ],
+    "offered_packages": [],
+    "offered_packages_od": [],
+    "offered_packages_os": [],
     "patient_selection": {
       "selected_package_id": "",
       "status": "",

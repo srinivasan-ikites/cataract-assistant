@@ -97,20 +97,35 @@
     }
   },
   "surgical_plan": {
+    "same_plan_both_eyes": true,
     "candidacy_profile": {
       "od_right": {
         "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
         "is_candidate_toric": false,
         "is_candidate_lal": false
       },
       "os_left": {
         "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
         "is_candidate_toric": false,
         "is_candidate_lal": false
       }
     },
     "offered_packages": [],
+    "offered_packages_od": [],
+    "offered_packages_os": [],
     "patient_selection": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "patient_selection_od": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "patient_selection_os": {
       "selected_package_id": "",
       "status": "",
       "selection_date": ""

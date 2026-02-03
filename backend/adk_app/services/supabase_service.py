@@ -416,13 +416,14 @@ class SupabaseService:
         print(f"[Supabase Storage] Uploading to bucket={bucket} path={path} size={len(file_data)} bytes content_type={content_type}")
 
         try:
-            # Check if file already exists - if so, update instead of insert
+            # Supabase Python SDK v2.x uses file_options parameter
+            # upsert=True allows overwriting existing files
             response = self._client.storage.from_(bucket).upload(
-                path,
-                file_data,
-                {"content-type": content_type, "upsert": "true"}  # Allow overwrite
+                path=path,
+                file=file_data,
+                file_options={"content-type": content_type, "upsert": "true"}
             )
-            print(f"[Supabase Storage] Upload SUCCESS: {path}")
+            print(f"[Supabase Storage] Upload SUCCESS: {path} response={response}")
             return path
         except Exception as e:
             error_msg = str(e)
@@ -434,13 +435,13 @@ class SupabaseService:
             elif "new row violates row-level security" in error_msg:
                 print(f"[Supabase Storage] HINT: Check RLS policies on storage.objects table")
             elif "duplicate" in error_msg.lower() or "already exists" in error_msg.lower():
-                print(f"[Supabase Storage] HINT: File already exists, trying upsert...")
-                # Try with upsert
+                print(f"[Supabase Storage] HINT: File already exists, trying update...")
+                # Try with update method
                 try:
                     response = self._client.storage.from_(bucket).update(
-                        path,
-                        file_data,
-                        {"content-type": content_type}
+                        path=path,
+                        file=file_data,
+                        file_options={"content-type": content_type}
                     )
                     print(f"[Supabase Storage] Update SUCCESS: {path}")
                     return path
@@ -491,6 +492,60 @@ class SupabaseService:
         except Exception as e:
             print(f"[Supabase] Storage delete error: {e}")
             return False
+
+    def list_files(self, bucket: str, path: str = "") -> list[dict]:
+        """
+        List files in a storage bucket path.
+
+        Args:
+            bucket: Storage bucket name
+            path: Folder path within bucket (e.g., "clinic-id/patient-id")
+
+        Returns:
+            List of file objects with name, id, created_at, updated_at, metadata
+        """
+        if not self._client:
+            print(f"[Supabase Storage] ERROR: Client not initialized")
+            return []
+
+        print(f"[Supabase Storage] Listing files in bucket={bucket} path={path}")
+        try:
+            response = self._client.storage.from_(bucket).list(path=path)
+            print(f"[Supabase Storage] List response type: {type(response)}, count: {len(response) if response else 0}")
+
+            # Filter out folders (they have null id) and return file info
+            files = []
+            for item in response or []:
+                # Handle both dict and object responses
+                if isinstance(item, dict):
+                    item_id = item.get("id")
+                    item_name = item.get("name")
+                    item_created = item.get("created_at")
+                    item_updated = item.get("updated_at")
+                    item_metadata = item.get("metadata", {}) or {}
+                else:
+                    item_id = getattr(item, "id", None)
+                    item_name = getattr(item, "name", None)
+                    item_created = getattr(item, "created_at", None)
+                    item_updated = getattr(item, "updated_at", None)
+                    item_metadata = getattr(item, "metadata", {}) or {}
+
+                if item_id:  # Files have an id, folders don't
+                    files.append({
+                        "name": item_name,
+                        "id": item_id,
+                        "created_at": item_created,
+                        "updated_at": item_updated,
+                        "size": item_metadata.get("size") if isinstance(item_metadata, dict) else getattr(item_metadata, "size", None),
+                        "mime_type": item_metadata.get("mimetype") if isinstance(item_metadata, dict) else getattr(item_metadata, "mimetype", None),
+                    })
+            print(f"[Supabase Storage] Listed {len(files)} files in {bucket}/{path}")
+            return files
+        except Exception as e:
+            import traceback
+            print(f"[Supabase Storage] List files error: {e}")
+            traceback.print_exc()
+            return []
 
     # =========================================================================
     # USER PROFILE OPERATIONS

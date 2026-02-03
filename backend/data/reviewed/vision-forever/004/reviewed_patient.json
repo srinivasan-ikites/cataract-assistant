@@ -2,14 +2,17 @@
   "patient_identity": {
     "patient_id": "1245583",
     "clinic_ref_id": "1245583",
-    "first_name": "Lata",
+    "first_name": "James",
     "middle_name": "",
-    "last_name": "Bhagia",
-    "dob": "1956-01-20",
-    "gender": "Female"
+    "last_name": "clinton",
+    "dob": "1980-08-15",
+    "gender": "Male"
   },
   "medical_profile": {
-    "systemic_conditions": [],
+    "systemic_conditions": [
+      "No diabetes",
+      "diarreah"
+    ],
     "medications_systemic": [
       "Adults Multivitamin",
       "Calcium"
@@ -18,7 +21,6 @@
       "codeine"
     ],
     "review_of_systems": [
-      "No Artificial Joints",
       "No Fever",
       "No Chills",
       "No Weight Loss",
@@ -31,7 +33,7 @@
       "No Urinary Frequency",
       "No Joint Swelling",
       "No Stiffness",
-      "No Decreased Range Of Motion",
+      "No Decreased Range of Motion",
       "No Anxiety",
       "No Insomnia",
       "No Swelling",
@@ -39,8 +41,12 @@
       "No Hives"
     ],
     "surgical_history": {
-      "non_ocular": [],
-      "ocular": []
+      "non_ocular": [
+        "None"
+      ],
+      "ocular": [
+        "None"
+      ]
     }
   },
   "clinical_context": {
@@ -48,7 +54,7 @@
       "pathology": "1-2+ nuclear sclerosis and 2+cortical",
       "primary_cataract_type": "combined",
       "visual_acuity": {
-        "ucva": "",
+        "ucva": "20/40 +1",
         "bcva": "20/20"
       },
       "biometry": {
@@ -77,7 +83,7 @@
       "pathology": "1+ cortical and 1-2+ nuclear sclerosis",
       "primary_cataract_type": "combined",
       "visual_acuity": {
-        "ucva": "",
+        "ucva": "20/25",
         "bcva": "20/20"
       },
       "biometry": {
@@ -104,18 +110,17 @@
     },
     "ocular_comorbidities": [
       "Dry Eye Syndrome",
-      "Myopia"
+      "Myopia",
+      "Abnormal tear break up time",
+      "SPK"
     ],
     "clinical_alerts": []
   },
   "lifestyle_profile": {
     "occupation": "",
-    "hobbies": [
-      "Drives in the daytime",
-      "Drives at night"
-    ],
+    "hobbies": [],
     "visual_goals": {
-      "primary_zone": "All",
+      "primary_zone": "Distance",
       "spectacle_independence_desire": "High"
     },
     "personality_traits": {
@@ -131,46 +136,21 @@
     "same_plan_both_eyes": true,
     "candidacy_profile": {
       "od_right": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       },
       "os_left": {
-        "is_candidate_multifocal": true,
-        "is_candidate_edof": true,
-        "is_candidate_toric": true,
-        "is_candidate_lal": true
+        "is_candidate_multifocal": false,
+        "is_candidate_edof": false,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
       }
     },
-    "offered_packages": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_od": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER",
-      "PKG_EDOF",
-      "PKG_EDOF_LASER",
-      "PKG_MULTIFOCAL",
-      "PKG_MULTIFOCAL_LASER",
-      "PKG_LAL"
-    ],
-    "offered_packages_os": [
-      "PKG_STD",
-      "PKG_LASER_LRI",
-      "PKG_TORIC",
-      "PKG_TORIC_LASER"
-    ],
+    "offered_packages": [],
+    "offered_packages_od": [],
+    "offered_packages_os": [],
     "patient_selection": {
       "selected_package_id": "",
       "status": "",

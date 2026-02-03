@@ -1,7 +1,7 @@
 import { GeminiContentResponse } from '../types';
 
-// const API_BASE = 'http://localhost:8000'; // align with backend
-const API_BASE = 'https://cataract-assistant.ikites.ai/api';
+ const API_BASE = 'http://localhost:8000'; // align with backend
+//const API_BASE = 'https://cataract-assistant.ikites.ai/api';//
 // const API_BASE = 'http://35.244.44.106:8000';
 // const API_BASE = 'http://172.16.0.158:8000'; // align with backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs

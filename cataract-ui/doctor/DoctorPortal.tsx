@@ -383,14 +383,14 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
         }`}
       >
         {/* Logo Section with Toggle */}
-        <div className={`${sidebarCollapsed ? 'p-4' : 'p-6 pb-4'} transition-all duration-300`}>
-          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-6`}>
+        <div className={`${sidebarCollapsed ? 'py-4' : 'p-6 pb-4'} transition-all duration-300`}>
+          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between px-2'} mb-6`}>
             <div
-              className={`flex items-center gap-3 ${sidebarCollapsed ? '' : 'px-2'} group cursor-pointer`}
+              className={`flex items-center gap-3 group cursor-pointer`}
               onClick={() => sidebarCollapsed && toggleSidebar()}
               title={sidebarCollapsed ? 'Expand sidebar' : undefined}
             >
-              <div className={`w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100 transition-transform duration-500 group-hover:scale-105 shrink-0 ${sidebarCollapsed ? 'hover:ring-2 hover:ring-blue-300' : ''}`}>
+              <div className={`w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-100 transition-transform duration-500 group-hover:scale-105 shrink-0 ${sidebarCollapsed ? 'hover:ring-2 hover:ring-blue-300' : ''}`}>
                 <Building2 className="text-white" size={20} strokeWidth={2.5} />
               </div>
               <span className={`font-bold text-lg tracking-tight text-blue-900 transition-all duration-300 truncate ${
@@ -412,7 +412,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
           </div>
 
           {/* Navigation */}
-          <nav className="space-y-1">
+          <nav className={`space-y-1 ${sidebarCollapsed ? 'flex flex-col items-center' : ''}`}>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
               { id: 'patients', label: 'Patients', icon: <Users size={20} /> },
@@ -428,20 +428,20 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                         setCurrentView(item.id as View);
                       }
                     }}
-                    className={`w-full flex items-center gap-4 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl transition-all duration-200 ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600 font-semibold'
-                        : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'
+                    className={`flex items-center rounded-xl transition-all duration-200 ${
+                      sidebarCollapsed
+                        ? `w-10 h-10 justify-center ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:text-slate-600 hover:bg-slate-50'}`
+                        : `w-full px-4 py-3 gap-4 ${isActive ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'}`
                     }`}
                   >
-                    <div className={`shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-600 transition-colors'}`}>
+                    <div className={`shrink-0 ${isActive ? 'text-blue-600' : ''}`}>
                       {item.icon}
                     </div>
-                    <span className={`text-sm whitespace-nowrap transition-all duration-300 ${
-                      sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
-                    }`}>
-                      {item.label}
-                    </span>
+                    {!sidebarCollapsed && (
+                      <span className="text-sm whitespace-nowrap">
+                        {item.label}
+                      </span>
+                    )}
                   </button>
                   {/* Tooltip - only show when collapsed */}
                   {sidebarCollapsed && (
@@ -458,19 +458,19 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
 
 
         {/* User Profile Section */}
-        <div className={`mt-auto ${sidebarCollapsed ? 'p-3' : 'p-6'} border-t border-slate-100 transition-all duration-300`}>
-          <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : 'px-2'} mb-2 group cursor-pointer relative`}>
+        <div className={`mt-auto ${sidebarCollapsed ? 'py-3 flex flex-col items-center' : 'p-6'} border-t border-slate-100 transition-all duration-300`}>
+          <div className={`flex items-center gap-3 ${sidebarCollapsed ? '' : 'px-2'} mb-2 group cursor-pointer relative`}>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border border-slate-200 shrink-0">
               <span className="text-white font-bold text-sm">
                 {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
               </span>
             </div>
-            <div className={`overflow-hidden text-left transition-all duration-300 ${
-              sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
-            }`}>
-              <p className="text-sm font-bold text-slate-900 truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-slate-500 font-medium truncate capitalize">{user?.role?.replace('_', ' ') || 'Staff'}</p>
-            </div>
+            {!sidebarCollapsed && (
+              <div className="overflow-hidden text-left">
+                <p className="text-sm font-bold text-slate-900 truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-500 font-medium truncate capitalize">{user?.role?.replace('_', ' ') || 'Staff'}</p>
+              </div>
+            )}
             {/* Tooltip for user when collapsed */}
             {sidebarCollapsed && (
               <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
@@ -483,14 +483,16 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
           <div className="relative group">
             <button
               onClick={handleLogout}
-              className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center px-3' : 'px-4'} py-3 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 text-sm font-semibold`}
+              className={`flex items-center rounded-xl transition-all duration-200 text-sm font-semibold ${
+                sidebarCollapsed
+                  ? 'w-10 h-10 justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                  : 'w-full px-4 py-3 gap-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+              }`}
             >
               <LogOut size={18} className="shrink-0" />
-              <span className={`transition-all duration-300 ${
-                sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
-              }`}>
-                Sign Out
-              </span>
+              {!sidebarCollapsed && (
+                <span>Sign Out</span>
+              )}
             </button>
             {/* Tooltip for sign out when collapsed */}
             {sidebarCollapsed && (

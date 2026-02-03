@@ -102,9 +102,10 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         setLoading(true);
         setLoadingContext(true);
 
-        const [patientResult, contextResult] = await Promise.all([
+        const [patientResult, contextResult, filesResult] = await Promise.all([
           api.getReviewedPatient(clinicId, patientId).catch(() => null),
-          api.getDoctorContext(clinicId).catch(() => null)
+          api.getDoctorContext(clinicId).catch(() => null),
+          api.getPatientFiles(clinicId, patientId).catch(() => ({ files: [], count: 0 }))
         ]);
 
         if (contextResult) {
@@ -112,15 +113,35 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         }
         setLoadingContext(false);
 
+        // Set recent uploads from Supabase bucket (persistent across refreshes)
+        if (filesResult && filesResult.files && filesResult.files.length > 0) {
+          setRecentUploads(filesResult.files.map((f: { name: string }) => f.name));
+        }
+
         if (patientResult && patientResult.reviewed) {
-          setData(patientResult.reviewed);
+          // Preserve the system-generated IDs even when loading reviewed data
+          setData({
+            ...patientResult.reviewed,
+            patient_identity: {
+              ...patientResult.reviewed.patient_identity,
+              patient_id: patientId,
+              clinic_ref_id: clinicId,
+            },
+          });
           setStatus('saved');
-          setRecentUploads((patientResult?.files as string[]) || []);
         } else {
           try {
             const extracted = await api.getExtractedPatient(clinicId, patientId);
             if (extracted && extracted.extracted) {
-              setData(extracted.extracted);
+              // Preserve the system-generated IDs even when loading extracted data
+              setData({
+                ...extracted.extracted,
+                patient_identity: {
+                  ...extracted.extracted.patient_identity,
+                  patient_id: patientId,
+                  clinic_ref_id: clinicId,
+                },
+              });
               setStatus('extracted');
             } else {
               throw new Error('No data');
@@ -185,9 +206,26 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const list = Array.from(e.target.files);
-      setFiles(list);
-      setRecentUploads(list.map((f) => f.name));
+      const newFiles = Array.from(e.target.files);
+      // Append new files to existing ones, avoiding duplicates based on name and size
+      setFiles((prev) => {
+        const uniqueNewFiles = newFiles.filter(
+          (newFile) => !prev.some(
+            (existing) => existing.name === newFile.name && existing.size === newFile.size
+          )
+        );
+        return [...prev, ...uniqueNewFiles];
+      });
+      // Update recent uploads to show all selected files
+      setRecentUploads((prev) => {
+        const newNames = newFiles.map((f) => f.name);
+        const uniqueNames = newNames.filter((name) => !prev.includes(name));
+        return [...prev, ...uniqueNames];
+      });
+      // Reset the input value so the same file can be selected again if removed
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -198,7 +236,18 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       setError(null);
       const res = await api.uploadPatientDocs(clinicId, patientId, files);
       const uploadedNames = (res && (res.files as string[])) || files.map((f) => f.name);
-      setData(res.extracted ?? res.data ?? res);
+
+      // Merge extracted data but PRESERVE the original system-generated IDs
+      const extractedData = res.extracted ?? res.data ?? res;
+      setData((prevData: any) => ({
+        ...extractedData,
+        patient_identity: {
+          ...extractedData.patient_identity,
+          // Always keep the system-generated IDs, don't let extraction overwrite them
+          patient_id: prevData?.patient_identity?.patient_id || patientId,
+          clinic_ref_id: prevData?.patient_identity?.clinic_ref_id || clinicId,
+        },
+      }));
       setRecentUploads(uploadedNames);
       setStatus('extracted');
     } catch (err: any) {
@@ -390,7 +439,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             value={val ?? ''}
             onChange={(e) => updateNestedField(path, type === 'number' ? (e.target.value ? parseFloat(e.target.value) : null) : e.target.value)}
             disabled={disabled}
-            className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all`}
+            readOnly={disabled}
+            className={`w-full border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition-all ${
+              disabled
+                ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-not-allowed'
+                : 'bg-white border-slate-200 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-50'
+            }`}
             placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           />
         )}
@@ -588,8 +642,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {renderField('patient_identity.patient_id', 'Patient ID')}
-              {renderField('patient_identity.clinic_ref_id', 'Clinic Reference ID')}
+              {renderField('patient_identity.patient_id', 'Patient ID', 'text', undefined, undefined, true)}
+              {renderField('patient_identity.clinic_ref_id', 'Clinic Reference ID', 'text', undefined, undefined, true)}
             </div>
           </CollapsibleCard>
 
@@ -739,8 +793,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   <Eye size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Same Plan for Both Eyes</p>
-                  <p className="text-xs text-slate-500">When enabled, candidacy and packages apply to both OD and OS</p>
+                  <p className="text-sm font-bold text-slate-800">Same Lens Options for Both Eyes</p>
+                  <p className="text-xs text-slate-500">Turn off if each eye needs different lens options (e.g., only one eye has significant astigmatism)</p>
                 </div>
               </div>
               <button
@@ -751,55 +805,6 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               </button>
             </div>
 
-            {/* SURGERY SCHEDULING - Prominent Section */}
-            <div className="p-5 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border-2 border-rose-200 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-rose-900">Surgery Scheduling</h4>
-                    <p className="text-xs text-rose-600">Set surgery dates for each eye</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {/* OD Surgery Date */}
-                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
-                    <span className="text-sm font-bold text-slate-800">Right Eye</span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
-                    <DatePicker
-                      value={data?.surgical_plan?.operative_logistics?.od_right?.surgery_date || ''}
-                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.od_right.surgery_date', value)}
-                      placeholder="Select surgery date"
-                      minDate={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-                {/* OS Surgery Date */}
-                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
-                    <span className="text-sm font-bold text-slate-800">Left Eye</span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
-                    <DatePicker
-                      value={data?.surgical_plan?.operative_logistics?.os_left?.surgery_date || ''}
-                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.os_left.surgery_date', value)}
-                      placeholder="Select surgery date"
-                      minDate={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* SECTION 1: Candidacy Assessment */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
@@ -807,8 +812,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   <Target size={16} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800">Candidacy Assessment</h4>
-                  <p className="text-xs text-slate-500">Evaluate which lens types the patient is a candidate for</p>
+                  <h4 className="text-sm font-bold text-slate-800">Premium Lens Candidacy</h4>
+                  <p className="text-xs text-slate-500">Standard monofocal IOL is available for all patients. Select any premium lens types this patient also qualifies for:</p>
                 </div>
               </div>
 
@@ -819,15 +824,17 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     <span className="text-sm font-bold text-purple-800">Both Eyes (OU)</span>
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full text-[10px] font-bold">UNIFIED</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     {[
-                      { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Near + Far vision', color: 'blue' },
-                      { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism correction', color: 'emerald' },
-                      { key: 'is_candidate_lal', label: 'LAL', desc: 'Light Adjustable Lens', color: 'amber' },
+                      { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Full spectacle independence', color: 'blue' },
+                      { key: 'is_candidate_edof', label: 'EDOF', desc: 'Extended range, fewer halos', color: 'sky' },
+                      { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism ≥0.75D', color: 'emerald' },
+                      { key: 'is_candidate_lal', label: 'LAL', desc: 'Post-op fine-tuning', color: 'amber' },
                     ].map(item => {
                       const value = data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
                       const colorClasses: Record<string, { bg: string; border: string; text: string; activeBg: string }> = {
                         blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', activeBg: 'bg-blue-600' },
+                        sky: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', activeBg: 'bg-sky-600' },
                         emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', activeBg: 'bg-emerald-600' },
                         amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', activeBg: 'bg-amber-600' },
                       };
@@ -867,9 +874,10 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     </div>
                     <div className="space-y-2">
                       {[
-                        { key: 'is_candidate_multifocal', label: 'Multifocal Candidate', desc: 'Near + Far' },
-                        { key: 'is_candidate_toric', label: 'Toric Candidate', desc: 'Astigmatism' },
-                        { key: 'is_candidate_lal', label: 'LAL Candidate', desc: 'Adjustable' },
+                        { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Full spectacle independence' },
+                        { key: 'is_candidate_edof', label: 'EDOF', desc: 'Extended range, fewer halos' },
+                        { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism ≥0.75D' },
+                        { key: 'is_candidate_lal', label: 'LAL', desc: 'Post-op adjustment' },
                       ].map(item => {
                         const value = data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
                         return (
@@ -902,9 +910,10 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     </div>
                     <div className="space-y-2">
                       {[
-                        { key: 'is_candidate_multifocal', label: 'Multifocal Candidate', desc: 'Near + Far' },
-                        { key: 'is_candidate_toric', label: 'Toric Candidate', desc: 'Astigmatism' },
-                        { key: 'is_candidate_lal', label: 'LAL Candidate', desc: 'Adjustable' },
+                        { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Full spectacle independence' },
+                        { key: 'is_candidate_edof', label: 'EDOF', desc: 'Extended range, fewer halos' },
+                        { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism ≥0.75D' },
+                        { key: 'is_candidate_lal', label: 'LAL', desc: 'Post-op adjustment' },
                       ].map(item => {
                         const value = data?.surgical_plan?.candidacy_profile?.os_left?.[item.key];
                         return (
@@ -943,10 +952,25 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
               {/* Packages grouped by category */}
               {(() => {
+                const samePlanBothEyes = data?.surgical_plan?.same_plan_both_eyes ?? true;
                 const odCandidacy = data?.surgical_plan?.candidacy_profile?.od_right || {};
                 const osCandidacy = data?.surgical_plan?.candidacy_profile?.os_left || {};
-                const offeredPackages = data?.surgical_plan?.offered_packages || [];
+                // Use per-eye packages when toggle is off, otherwise unified
+                const offeredPackages = samePlanBothEyes
+                  ? (data?.surgical_plan?.offered_packages || [])
+                  : (data?.surgical_plan?.offered_packages || []); // For unified summary
+                const offeredPackagesOD = data?.surgical_plan?.offered_packages_od || [];
+                const offeredPackagesOS = data?.surgical_plan?.offered_packages_os || [];
+                const isMultifocalCandidateOD = odCandidacy.is_candidate_multifocal;
+                const isEdofCandidateOD = odCandidacy.is_candidate_edof;
+                const isToricCandidateOD = odCandidacy.is_candidate_toric;
+                const isLalCandidateOD = odCandidacy.is_candidate_lal;
+                const isMultifocalCandidateOS = osCandidacy.is_candidate_multifocal;
+                const isEdofCandidateOS = osCandidacy.is_candidate_edof;
+                const isToricCandidateOS = osCandidacy.is_candidate_toric;
+                const isLalCandidateOS = osCandidacy.is_candidate_lal;
                 const isMultifocalCandidate = odCandidacy.is_candidate_multifocal || osCandidacy.is_candidate_multifocal;
+                const isEdofCandidate = odCandidacy.is_candidate_edof || osCandidacy.is_candidate_edof;
                 const isToricCandidate = odCandidacy.is_candidate_toric || osCandidacy.is_candidate_toric;
                 const isLalCandidate = odCandidacy.is_candidate_lal || osCandidacy.is_candidate_lal;
 
@@ -982,11 +1006,11 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     borderColor: 'border-blue-200',
                     packages: ['PKG_EDOF', 'PKG_EDOF_LASER'],
                     alwaysShow: false,
-                    showWhen: isMultifocalCandidate,
+                    showWhen: isEdofCandidate,
                   },
                   {
                     id: 'multifocal',
-                    title: 'Multifocal / Trifocal',
+                    title: 'Multifocal',
                     subtitle: 'Near, intermediate, and distance vision',
                     color: 'purple',
                     bgGradient: 'from-purple-50 to-violet-50',
@@ -1019,6 +1043,163 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 const visibleCategories = packageCategories.filter(cat => cat.alwaysShow || cat.showWhen);
                 const hiddenCategories = packageCategories.filter(cat => !cat.alwaysShow && !cat.showWhen);
 
+                // Helper to get visible categories for a specific eye
+                const getVisibleCategoriesForEye = (eye: 'od' | 'os') => {
+                  const candidacy = eye === 'od' ? odCandidacy : osCandidacy;
+                  return packageCategories.filter(cat => {
+                    if (cat.alwaysShow) return true;
+                    if (cat.id === 'toric' && candidacy.is_candidate_toric) return true;
+                    if (cat.id === 'edof' && candidacy.is_candidate_edof) return true;
+                    if (cat.id === 'multifocal' && candidacy.is_candidate_multifocal) return true;
+                    if (cat.id === 'lal' && candidacy.is_candidate_lal) return true;
+                    return false;
+                  });
+                };
+
+                // Helper to render package card for per-eye selection
+                const renderPerEyePackageCard = (pkg: any, eye: 'od' | 'os', colors: any) => {
+                  const packages = eye === 'od' ? offeredPackagesOD : offeredPackagesOS;
+                  const fieldPath = eye === 'od' ? 'surgical_plan.offered_packages_od' : 'surgical_plan.offered_packages_os';
+                  const isOffered = packages.includes(pkg.package_id);
+                  return (
+                    <div
+                      key={pkg.package_id}
+                      onClick={() => {
+                        const newList = isOffered
+                          ? packages.filter((id: string) => id !== pkg.package_id)
+                          : [...packages, pkg.package_id];
+                        updateNestedField(fieldPath, newList);
+                      }}
+                      className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                        isOffered
+                          ? `${colors.activeBg} border-transparent`
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-xs font-semibold ${isOffered ? 'text-white' : 'text-slate-800'}`}>
+                          {pkg.display_name}
+                        </span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className={`text-[10px] ${isOffered ? 'text-white/80' : 'text-slate-500'}`}>
+                            {pkg.price_cash === 0 ? 'Insurance' : `$${pkg.price_cash.toLocaleString()}`}
+                          </span>
+                          {pkg.includes_laser && <Zap size={10} className={isOffered ? 'text-yellow-300' : 'text-amber-500'} />}
+                        </div>
+                      </div>
+                      <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ml-1 ${
+                        isOffered ? 'bg-white/20' : 'border border-slate-300'
+                      }`}>
+                        {isOffered && <Check size={10} className="text-white" />}
+                      </div>
+                    </div>
+                  );
+                };
+
+                // Per-eye package selection UI
+                if (!samePlanBothEyes) {
+                  const visibleCategoriesOD = getVisibleCategoriesForEye('od');
+                  const visibleCategoriesOS = getVisibleCategoriesForEye('os');
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Two-column layout for per-eye package selection */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* OD (Right Eye) Column */}
+                        <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border-2 border-blue-200">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                            <div>
+                              <span className="text-sm font-bold text-blue-800">Right Eye</span>
+                              <p className="text-[10px] text-blue-600">{offeredPackagesOD.length} package(s) selected</p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            {visibleCategoriesOD.map(category => {
+                              const colors = colorClasses[category.color];
+                              const categoryPackages = surgicalPackages.filter(pkg => category.packages.includes(pkg.package_id));
+                              if (categoryPackages.length === 0) return null;
+                              return (
+                                <div key={category.id} className="space-y-1.5">
+                                  <p className={`text-xs font-bold ${colors.text}`}>{category.title}</p>
+                                  <div className="space-y-1">
+                                    {categoryPackages.map(pkg => renderPerEyePackageCard(pkg, 'od', colors))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* OS (Left Eye) Column */}
+                        <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-200">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                            <div>
+                              <span className="text-sm font-bold text-emerald-800">Left Eye</span>
+                              <p className="text-[10px] text-emerald-600">{offeredPackagesOS.length} package(s) selected</p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            {visibleCategoriesOS.map(category => {
+                              const colors = colorClasses[category.color];
+                              const categoryPackages = surgicalPackages.filter(pkg => category.packages.includes(pkg.package_id));
+                              if (categoryPackages.length === 0) return null;
+                              return (
+                                <div key={category.id} className="space-y-1.5">
+                                  <p className={`text-xs font-bold ${colors.text}`}>{category.title}</p>
+                                  <div className="space-y-1">
+                                    {categoryPackages.map(pkg => renderPerEyePackageCard(pkg, 'os', colors))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Summary for per-eye packages */}
+                      {(offeredPackagesOD.length > 0 || offeredPackagesOS.length > 0) && (
+                        <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle2 size={16} className="text-indigo-600" />
+                            <span className="text-sm font-bold text-indigo-800">Packages Offered (Per Eye)</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs font-bold text-blue-700 mb-1.5">OD (Right)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {offeredPackagesOD.length > 0 ? offeredPackagesOD.map((pkgId: string) => {
+                                  const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                                  return pkg ? (
+                                    <span key={pkgId} className="px-2 py-1 bg-white rounded-md text-[10px] font-semibold text-blue-700 border border-blue-200">
+                                      {pkg.display_name}
+                                    </span>
+                                  ) : null;
+                                }) : <span className="text-xs text-slate-400">None selected</span>}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-emerald-700 mb-1.5">OS (Left)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {offeredPackagesOS.length > 0 ? offeredPackagesOS.map((pkgId: string) => {
+                                  const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                                  return pkg ? (
+                                    <span key={pkgId} className="px-2 py-1 bg-white rounded-md text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                                      {pkg.display_name}
+                                    </span>
+                                  ) : null;
+                                }) : <span className="text-xs text-slate-400">None selected</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Unified package selection (same plan for both eyes)
                 return (
                   <div className="space-y-4">
                     {/* Visible categories based on candidacy */}
@@ -1174,174 +1355,441 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">Patient Selection</h4>
-                  <p className="text-xs text-slate-500">Track which package the patient has selected</p>
+                  <p className="text-xs text-slate-500">Shows which package the patient chose from the options offered above</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selected Package</label>
-                  <div className="relative">
-                    <select
-                      value={data?.surgical_plan?.patient_selection?.selected_package_id || ''}
-                      onChange={(e) => updateNestedField('surgical_plan.patient_selection.selected_package_id', e.target.value)}
-                      className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
-                    >
-                      <option value="">Not yet selected</option>
-                      {(data?.surgical_plan?.offered_packages || []).map((pkgId: string) => {
-                        const pkg = surgicalPackages.find(p => p.package_id === pkgId);
-                        return pkg ? (
-                          <option key={pkgId} value={pkgId}>{pkg.display_name}</option>
-                        ) : null;
-                      })}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+              {/* Per-eye selection when different plans for each eye */}
+              {!(data?.surgical_plan?.same_plan_both_eyes ?? true) ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* OD (Right Eye) Selection */}
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                      <span className="text-sm font-bold text-blue-800">Right Eye Selection</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 mb-1.5">Selected Package</label>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.patient_selection_od?.selected_package_id || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.patient_selection_od.selected_package_id', e.target.value)}
+                          className="w-full bg-white border-2 border-blue-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-blue-300"
+                        >
+                          <option value="">Not yet selected</option>
+                          {(data?.surgical_plan?.offered_packages_od || []).map((pkgId: string) => {
+                            const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                            return pkg ? (
+                              <option key={pkgId} value={pkgId}>{pkg.display_name}</option>
+                            ) : null;
+                          })}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 mb-1.5">Status</label>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.patient_selection_od?.status || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.patient_selection_od.status', e.target.value)}
+                          className="w-full bg-white border-2 border-blue-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-blue-300"
+                        >
+                          <option value="">Select status...</option>
+                          <option value="pending">Pending Decision</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="declined">Declined Surgery</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" />
+                      </div>
+                    </div>
+                    {renderField('surgical_plan.patient_selection_od.selection_date', 'Selection Date', 'date')}
+                  </div>
+
+                  {/* OS (Left Eye) Selection */}
+                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                      <span className="text-sm font-bold text-emerald-800">Left Eye Selection</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-emerald-700 mb-1.5">Selected Package</label>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.patient_selection_os?.selected_package_id || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.patient_selection_os.selected_package_id', e.target.value)}
+                          className="w-full bg-white border-2 border-emerald-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 transition-all appearance-none cursor-pointer hover:border-emerald-300"
+                        >
+                          <option value="">Not yet selected</option>
+                          {(data?.surgical_plan?.offered_packages_os || []).map((pkgId: string) => {
+                            const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                            return pkg ? (
+                              <option key={pkgId} value={pkgId}>{pkg.display_name}</option>
+                            ) : null;
+                          })}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-emerald-700 mb-1.5">Status</label>
+                      <div className="relative">
+                        <select
+                          value={data?.surgical_plan?.patient_selection_os?.status || ''}
+                          onChange={(e) => updateNestedField('surgical_plan.patient_selection_os.status', e.target.value)}
+                          className="w-full bg-white border-2 border-emerald-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 transition-all appearance-none cursor-pointer hover:border-emerald-300"
+                        >
+                          <option value="">Select status...</option>
+                          <option value="pending">Pending Decision</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="declined">Declined Surgery</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" />
+                      </div>
+                    </div>
+                    {renderField('surgical_plan.patient_selection_os.selection_date', 'Selection Date', 'date')}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selection Status</label>
-                  <div className="relative">
-                    <select
-                      value={data?.surgical_plan?.patient_selection?.status || ''}
-                      onChange={(e) => updateNestedField('surgical_plan.patient_selection.status', e.target.value)}
-                      className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
-                    >
-                      <option value="">Select status...</option>
-                      <option value="pending">Pending Decision</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="declined">Declined Surgery</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+              ) : (
+                /* Unified selection when same plan for both eyes */
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selected Package</label>
+                    <div className="relative">
+                      <select
+                        value={data?.surgical_plan?.patient_selection?.selected_package_id || ''}
+                        onChange={(e) => updateNestedField('surgical_plan.patient_selection.selected_package_id', e.target.value)}
+                        className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                      >
+                        <option value="">Not yet selected</option>
+                        {(data?.surgical_plan?.offered_packages || []).map((pkgId: string) => {
+                          const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                          return pkg ? (
+                            <option key={pkgId} value={pkgId}>{pkg.display_name}</option>
+                          ) : null;
+                        })}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Selection Status</label>
+                    <div className="relative">
+                      <select
+                        value={data?.surgical_plan?.patient_selection?.status || ''}
+                        onChange={(e) => updateNestedField('surgical_plan.patient_selection.status', e.target.value)}
+                        className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-emerald-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                      >
+                        <option value="">Select status...</option>
+                        <option value="pending">Pending Decision</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="declined">Declined Surgery</option>
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                    </div>
+                  </div>
+                  {renderField('surgical_plan.patient_selection.selection_date', 'Selection Date', 'date')}
+                </div>
+              )}
+            </div>
+
+            {/* SURGERY SCHEDULING - After Patient Selection */}
+            <div className="p-5 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border-2 border-rose-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-900">Surgery Scheduling</h4>
+                    <p className="text-xs text-rose-600">Set surgery dates for each eye</p>
                   </div>
                 </div>
-                {renderField('surgical_plan.patient_selection.selection_date', 'Selection Date', 'date')}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* OD Surgery Date */}
+                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                    <span className="text-sm font-bold text-slate-800">Right Eye</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
+                    <DatePicker
+                      value={data?.surgical_plan?.operative_logistics?.od_right?.surgery_date || ''}
+                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.od_right.surgery_date', value)}
+                      placeholder="Select surgery date"
+                      minDate={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+                {/* OS Surgery Date */}
+                <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                    <span className="text-sm font-bold text-slate-800">Left Eye</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Surgery Date</label>
+                    <DatePicker
+                      value={data?.surgical_plan?.operative_logistics?.os_left?.surgery_date || ''}
+                      onChange={(value) => updateNestedField('surgical_plan.operative_logistics.os_left.surgery_date', value)}
+                      placeholder="Select surgery date"
+                      minDate={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* SECTION 4: Lens Selection & Operative Logistics */}
-            {data?.surgical_plan?.patient_selection?.selected_package_id && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center">
-                    <Eye size={16} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">Lens Model Selection</h4>
-                    <p className="text-xs text-slate-500">Select specific lens model from inventory based on patient's package choice</p>
-                  </div>
-                </div>
+            {(() => {
+              const samePlanBothEyes = data?.surgical_plan?.same_plan_both_eyes ?? true;
+              const hasUnifiedSelection = data?.surgical_plan?.patient_selection?.selected_package_id;
+              const hasODSelection = data?.surgical_plan?.patient_selection_od?.selected_package_id;
+              const hasOSSelection = data?.surgical_plan?.patient_selection_os?.selected_package_id;
+              const showLensSection = samePlanBothEyes ? hasUnifiedSelection : (hasODSelection || hasOSSelection);
 
-                {/* Lens Selection Based on Selected Package */}
-                {(() => {
-                  const selectedPkgId = data?.surgical_plan?.patient_selection?.selected_package_id;
-                  const selectedPkg = surgicalPackages.find(p => p.package_id === selectedPkgId);
-                  const allowedLensCodes = selectedPkg?.allowed_lens_codes || [];
-                  const lensInventory = clinicContext?.lens_inventory || {};
+              if (!showLensSection) return null;
 
-                  // Get all available lens models for the selected package
-                  const availableLensModels: Array<{ category: string; categoryName: string; model: any }> = [];
-                  allowedLensCodes.forEach((code: string) => {
-                    const category = lensInventory[code];
-                    if (category?.models) {
-                      category.models.forEach((model: any) => {
-                        availableLensModels.push({
-                          category: code,
-                          categoryName: category.display_name || code,
-                          model,
-                        });
-                      });
-                    }
-                  });
+              // Helper to get lens models for a package
+              const getLensModelsForPackage = (pkgId: string | undefined) => {
+                if (!pkgId) return [];
+                const pkg = surgicalPackages.find(p => p.package_id === pkgId);
+                const allowedLensCodes = pkg?.allowed_lens_codes || [];
+                const lensInventory = clinicContext?.lens_inventory || {};
+                const models: Array<{ category: string; categoryName: string; model: any }> = [];
+                allowedLensCodes.forEach((code: string) => {
+                  const category = lensInventory[code];
+                  if (category?.models) {
+                    category.models.forEach((model: any) => {
+                      models.push({ category: code, categoryName: category.display_name || code, model });
+                    });
+                  }
+                });
+                return models;
+              };
 
-                  const isToric = allowedLensCodes.some((code: string) => code.includes('TORIC'));
-
-                  return (
-                    <div className="p-5 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl border border-cyan-200 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-bold text-cyan-800">
-                            Available Lenses for: {selectedPkg?.display_name}
-                          </p>
-                          <p className="text-xs text-cyan-600">{availableLensModels.length} lens model(s) available in inventory</p>
-                        </div>
-                        {isToric && (
-                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
-                            TORIC OPTIONS AVAILABLE
-                          </span>
-                        )}
-                      </div>
-
-                      {availableLensModels.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {availableLensModels.map((item, idx) => {
-                            const isSelectedOD = data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_code === item.model.model_code;
-                            const isSelectedOS = data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_code === item.model.model_code;
-                            return (
-                              <div
-                                key={`${item.category}-${idx}`}
-                                className={`p-3 rounded-xl border-2 transition-all ${
-                                  isSelectedOD || isSelectedOS
-                                    ? 'border-cyan-500 bg-cyan-100'
-                                    : 'border-slate-200 bg-white hover:border-cyan-300 hover:shadow-sm'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between mb-2">
-                                  <div className="flex-1">
-                                    <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
-                                    <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
-                                    <p className="text-[10px] text-cyan-600 font-medium">{item.model.model_code}</p>
-                                  </div>
-                                  {item.category.includes('TORIC') && (
-                                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[8px] font-bold rounded">TORIC</span>
-                                  )}
-                                </div>
-                                <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">{item.model.description}</p>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => {
-                                      updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_name', item.model.model);
-                                      updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_code', item.model.model_code);
-                                    }}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                                      isSelectedOD
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                                    }`}
-                                  >
-                                    {isSelectedOD ? '✓ OD Selected' : 'Select for OD'}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_name', item.model.model);
-                                      updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_code', item.model.model_code);
-                                    }}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                                      isSelectedOS
-                                        ? 'bg-emerald-600 text-white'
-                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                    }`}
-                                  >
-                                    {isSelectedOS ? '✓ OS Selected' : 'Select for OS'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-center">
-                          <p className="text-sm text-amber-700">No lens models found in inventory for this package category.</p>
-                          <p className="text-xs text-amber-500 mt-1">Please ensure lens inventory is configured for: {allowedLensCodes.join(', ')}</p>
-                        </div>
-                      )}
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center">
+                      <Eye size={16} />
                     </div>
-                  );
-                })()}
-              </div>
-            )}
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">Lens Model Selection</h4>
+                      <p className="text-xs text-slate-500">Select specific lens model from inventory based on patient's package choice</p>
+                    </div>
+                  </div>
+
+                  {/* Per-eye lens selection when different plans */}
+                  {!samePlanBothEyes ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* OD Lens Selection */}
+                      {hasODSelection && (() => {
+                        const selectedPkgOD = surgicalPackages.find(p => p.package_id === data?.surgical_plan?.patient_selection_od?.selected_package_id);
+                        const lensModelsOD = getLensModelsForPackage(data?.surgical_plan?.patient_selection_od?.selected_package_id);
+                        return (
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                              <div>
+                                <span className="text-sm font-bold text-blue-800">Right Eye Lens</span>
+                                <p className="text-[10px] text-blue-600">Package: {selectedPkgOD?.display_name}</p>
+                              </div>
+                            </div>
+                            {lensModelsOD.length > 0 ? (
+                              <div className="space-y-2">
+                                {lensModelsOD.map((item, idx) => {
+                                  const isSelected = data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_code === item.model.model_code;
+                                  return (
+                                    <div
+                                      key={`od-${item.category}-${idx}`}
+                                      onClick={() => {
+                                        updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_name', item.model.model);
+                                        updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_code', item.model.model_code);
+                                      }}
+                                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                                        isSelected ? 'border-blue-500 bg-blue-100' : 'border-slate-200 bg-white hover:border-blue-300'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
+                                          <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
+                                        </div>
+                                        {isSelected && <Check size={14} className="text-blue-600" />}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-amber-600">No lenses available for this package</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* OS Lens Selection */}
+                      {hasOSSelection && (() => {
+                        const selectedPkgOS = surgicalPackages.find(p => p.package_id === data?.surgical_plan?.patient_selection_os?.selected_package_id);
+                        const lensModelsOS = getLensModelsForPackage(data?.surgical_plan?.patient_selection_os?.selected_package_id);
+                        return (
+                          <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">OS</div>
+                              <div>
+                                <span className="text-sm font-bold text-emerald-800">Left Eye Lens</span>
+                                <p className="text-[10px] text-emerald-600">Package: {selectedPkgOS?.display_name}</p>
+                              </div>
+                            </div>
+                            {lensModelsOS.length > 0 ? (
+                              <div className="space-y-2">
+                                {lensModelsOS.map((item, idx) => {
+                                  const isSelected = data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_code === item.model.model_code;
+                                  return (
+                                    <div
+                                      key={`os-${item.category}-${idx}`}
+                                      onClick={() => {
+                                        updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_name', item.model.model);
+                                        updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_code', item.model.model_code);
+                                      }}
+                                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                                        isSelected ? 'border-emerald-500 bg-emerald-100' : 'border-slate-200 bg-white hover:border-emerald-300'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
+                                          <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
+                                        </div>
+                                        {isSelected && <Check size={14} className="text-emerald-600" />}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-amber-600">No lenses available for this package</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* Unified lens selection when same plan for both eyes */
+                    (() => {
+                      const selectedPkgId = data?.surgical_plan?.patient_selection?.selected_package_id;
+                      const selectedPkg = surgicalPackages.find(p => p.package_id === selectedPkgId);
+                      const allowedLensCodes = selectedPkg?.allowed_lens_codes || [];
+                      const lensInventory = clinicContext?.lens_inventory || {};
+
+                      const availableLensModels: Array<{ category: string; categoryName: string; model: any }> = [];
+                      allowedLensCodes.forEach((code: string) => {
+                        const category = lensInventory[code];
+                        if (category?.models) {
+                          category.models.forEach((model: any) => {
+                            availableLensModels.push({ category: code, categoryName: category.display_name || code, model });
+                          });
+                        }
+                      });
+
+                      const isToric = allowedLensCodes.some((code: string) => code.includes('TORIC'));
+
+                      return (
+                        <div className="p-5 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl border border-cyan-200 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-bold text-cyan-800">
+                                Available Lenses for: {selectedPkg?.display_name}
+                              </p>
+                              <p className="text-xs text-cyan-600">{availableLensModels.length} lens model(s) available in inventory</p>
+                            </div>
+                            {isToric && (
+                              <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                                TORIC OPTIONS AVAILABLE
+                              </span>
+                            )}
+                          </div>
+
+                          {availableLensModels.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {availableLensModels.map((item, idx) => {
+                                const isSelectedOD = data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_code === item.model.model_code;
+                                const isSelectedOS = data?.surgical_plan?.operative_logistics?.os_left?.lens_order?.model_code === item.model.model_code;
+                                return (
+                                  <div
+                                    key={`${item.category}-${idx}`}
+                                    className={`p-3 rounded-xl border-2 transition-all ${
+                                      isSelectedOD || isSelectedOS
+                                        ? 'border-cyan-500 bg-cyan-100'
+                                        : 'border-slate-200 bg-white hover:border-cyan-300 hover:shadow-sm'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex-1">
+                                        <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
+                                        <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
+                                        <p className="text-[10px] text-cyan-600 font-medium">{item.model.model_code}</p>
+                                      </div>
+                                      {item.category.includes('TORIC') && (
+                                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[8px] font-bold rounded">TORIC</span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">{item.model.description}</p>
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => {
+                                          updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_name', item.model.model);
+                                          updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_code', item.model.model_code);
+                                        }}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                                          isSelectedOD
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                        }`}
+                                      >
+                                        {isSelectedOD ? '✓ OD Selected' : 'Select for OD'}
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_name', item.model.model);
+                                          updateNestedField('surgical_plan.operative_logistics.os_left.lens_order.model_code', item.model.model_code);
+                                        }}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                                          isSelectedOS
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                        }`}
+                                      >
+                                        {isSelectedOS ? '✓ OS Selected' : 'Select for OS'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                              <p className="text-sm text-amber-700">No lens models found in inventory for this package category.</p>
+                              <p className="text-xs text-amber-500 mt-1">Please ensure lens inventory is configured for: {allowedLensCodes.join(', ')}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              );
+            })()}
 
             {/* SECTION 5: Operative Scheduling */}
-            {data?.surgical_plan?.patient_selection?.selected_package_id && (
+            {(
+              (data?.surgical_plan?.same_plan_both_eyes ?? true)
+                ? data?.surgical_plan?.patient_selection?.selected_package_id
+                : (data?.surgical_plan?.patient_selection_od?.selected_package_id || data?.surgical_plan?.patient_selection_os?.selected_package_id)
+            ) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center">
