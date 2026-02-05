@@ -23,5 +23,9 @@ COPY backend/ .
 
 EXPOSE ${PORT}
 
-# Run FastAPI via uvicorn
-CMD ["uvicorn", "adk_app.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI via uvicorn wrapped with New Relic agent
+# New Relic configuration comes from environment variables:
+# - NEW_RELIC_LICENSE_KEY (required)
+# - NEW_RELIC_APP_NAME (required)
+# - NEW_RELIC_LOG_LEVEL (optional, default: info)
+CMD ["newrelic-admin", "run-program", "uvicorn", "adk_app.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

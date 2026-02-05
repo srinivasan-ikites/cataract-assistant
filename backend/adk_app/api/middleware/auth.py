@@ -30,6 +30,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from adk_app.services.supabase_service import get_supabase_admin_client
 
+# New Relic for custom attributes (user tracking)
+try:
+    import newrelic.agent
+    NEWRELIC_AVAILABLE = True
+except ImportError:
+    NEWRELIC_AVAILABLE = False
+
 
 # =============================================================================
 # SECURITY SCHEME
@@ -256,6 +263,17 @@ async def get_current_user(
 
     # Store user in request state for logging middleware
     request.state.user = authenticated_user
+
+    # Add custom attributes to New Relic transaction for user tracking
+    if NEWRELIC_AVAILABLE:
+        try:
+            newrelic.agent.add_custom_attribute('user_email', authenticated_user.email)
+            newrelic.agent.add_custom_attribute('user_name', authenticated_user.name)
+            newrelic.agent.add_custom_attribute('user_role', authenticated_user.role)
+            newrelic.agent.add_custom_attribute('clinic_id', authenticated_user.clinic_id or 'none')
+            newrelic.agent.add_custom_attribute('clinic_name', authenticated_user.clinic_name or 'none')
+        except Exception as e:
+            print(f"[Auth Middleware] New Relic attribute error (non-fatal): {e}")
 
     return authenticated_user
 

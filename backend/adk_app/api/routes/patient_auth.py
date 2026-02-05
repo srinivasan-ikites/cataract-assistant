@@ -32,6 +32,13 @@ import jwt
 
 from adk_app.services.supabase_service import get_supabase_admin_client
 
+# New Relic for custom attributes (patient tracking)
+try:
+    import newrelic.agent
+    NEWRELIC_AVAILABLE = True
+except ImportError:
+    NEWRELIC_AVAILABLE = False
+
 router = APIRouter(prefix="/api/patient/auth", tags=["Patient Authentication"])
 
 # Configuration
@@ -369,6 +376,17 @@ async def verify_otp(request: VerifyOTPRequest):
 
         print(f"[Patient Auth] Login successful for patient: {patient['patient_id']}")
 
+        # Add custom attributes to New Relic transaction for patient tracking
+        if NEWRELIC_AVAILABLE:
+            try:
+                newrelic.agent.add_custom_attribute('patient_id', patient["patient_id"])
+                newrelic.agent.add_custom_attribute('patient_uuid', patient_uuid)
+                newrelic.agent.add_custom_attribute('clinic_id', clinic_id)
+                newrelic.agent.add_custom_attribute('clinic_name', clinic_name)
+                newrelic.agent.add_custom_attribute('user_role', 'patient')
+            except Exception as e:
+                print(f"[Patient Auth] New Relic attribute error (non-fatal): {e}")
+
         return VerifyOTPResponse(
             message="Login successful",
             access_token=token,
@@ -492,6 +510,15 @@ async def get_patient_full_data(authorization: str = Header(None, alias="Authori
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token. Please login again."
         )
+
+    # Add custom attributes to New Relic for patient tracking
+    if NEWRELIC_AVAILABLE:
+        try:
+            newrelic.agent.add_custom_attribute('patient_id', payload.get('patient_id'))
+            newrelic.agent.add_custom_attribute('clinic_id', payload.get('clinic_id'))
+            newrelic.agent.add_custom_attribute('user_role', 'patient')
+        except Exception as e:
+            print(f"[Patient Auth] New Relic attribute error (non-fatal): {e}")
 
     client = get_supabase_admin_client()
     if not client:

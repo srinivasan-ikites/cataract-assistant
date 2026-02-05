@@ -7,6 +7,13 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException
 
+# New Relic for custom attributes (patient tracking in chat)
+try:
+    import newrelic.agent
+    NEWRELIC_AVAILABLE = True
+except ImportError:
+    NEWRELIC_AVAILABLE = False
+
 from adk_app.core.dependencies import AgentRuntime, get_runtime
 from adk_app.models.requests import AskRequest, ModuleContentRequest, PreGenerateModulesRequest
 from adk_app.models.responses import AskResponse, ModuleContentResponse
@@ -36,6 +43,17 @@ def ask_endpoint(
 ) -> AskResponse:
     """Process a patient question and return an AI-generated answer."""
     t_start = time.perf_counter()
+
+    # Add custom attributes to New Relic for chat tracking
+    if NEWRELIC_AVAILABLE:
+        try:
+            newrelic.agent.add_custom_attribute('patient_id', payload.patient_id)
+            newrelic.agent.add_custom_attribute('clinic_id', payload.clinic_id)
+            newrelic.agent.add_custom_attribute('user_role', 'patient')
+            newrelic.agent.add_custom_attribute('request_type', 'chat')
+        except Exception as e:
+            print(f"[Chat] New Relic attribute error (non-fatal): {e}")
+
     try:
         # Use clinic_id for unique patient lookup (required when multiple clinics exist)
         patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)

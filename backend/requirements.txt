@@ -33,3 +33,5 @@ supabase
 # JWT token creation/verification for patient auth
 PyJWT
 
+newrelic
+
