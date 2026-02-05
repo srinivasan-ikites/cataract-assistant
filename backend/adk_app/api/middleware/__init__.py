@@ -1,7 +1,7 @@
 """
 API Middleware package.
 
-Provides authentication and authorization dependencies.
+Provides authentication, authorization, and request context dependencies.
 """
 
 from .auth import (
@@ -12,6 +12,8 @@ from .auth import (
     require_clinic_admin,
     require_super_admin,
 )
+from .request_context import RequestContextMiddleware
+from .patient_token import decode_patient_token
 
 __all__ = [
     "AuthenticatedUser",
@@ -20,4 +22,6 @@ __all__ = [
     "require_clinic_user",
     "require_clinic_admin",
     "require_super_admin",
+    "RequestContextMiddleware",
+    "decode_patient_token",
 ]

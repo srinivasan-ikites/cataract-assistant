@@ -16,6 +16,7 @@ from adk_app.services.extraction_service import init_vision_client
 from adk_app.services.qdrant_service import init_qdrant_client
 from adk_app.services.supabase_service import init_supabase_client
 from adk_app.tools.router_tool import init_router_client
+from adk_app.api.middleware.request_context import RequestContextMiddleware
 
 from .routes import api_router
 
@@ -68,6 +69,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request context middleware (logging with user identification)
+# This runs BEFORE route handlers, logging request start/end with user context
+app.add_middleware(RequestContextMiddleware)
 
 # Include all routes
 app.include_router(api_router)

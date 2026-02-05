@@ -25,7 +25,7 @@ from __future__ import annotations
 from typing import Optional
 from dataclasses import dataclass
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from adk_app.services.supabase_service import get_supabase_admin_client
@@ -82,6 +82,7 @@ class AuthenticatedUser:
 # =============================================================================
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ) -> AuthenticatedUser:
     """
@@ -253,6 +254,9 @@ async def get_current_user(
 
     print(f"[Auth Middleware] ✓ Authentication successful: {authenticated_user.name} ({authenticated_user.role}) | Clinic: {authenticated_user.clinic_id}")
 
+    # Store user in request state for logging middleware
+    request.state.user = authenticated_user
+
     return authenticated_user
 
 
@@ -361,6 +365,7 @@ async def require_super_admin(
 # =============================================================================
 
 async def get_current_user_optional(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ) -> Optional[AuthenticatedUser]:
     """
@@ -381,7 +386,7 @@ async def get_current_user_optional(
         return None
 
     try:
-        return await get_current_user(credentials)
+        return await get_current_user(request, credentials)
     except HTTPException as e:
         print(f"[Auth Middleware] Optional auth failed: {e.detail} - returning None")
         return None

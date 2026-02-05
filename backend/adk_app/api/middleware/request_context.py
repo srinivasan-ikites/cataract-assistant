@@ -1,0 +1,178 @@
+"""
+Request Context Middleware for logging with user identification.
+
+This middleware:
+1. Generates a unique request ID for each request
+2. Logs request START with user context (if available)
+3. Logs request END with status code and duration
+4. Makes request_id available throughout the request lifecycle
+
+The user context is extracted from:
+- Clinic users: request.state.user (set by auth middleware)
+- Patients: Authorization header JWT
+- Public routes: patient_id/clinic_id from request body (best effort)
+
+Log format:
+[REQ-abc123] [user:doctor@clinic.com] [clinic:VIC-001] [role:clinic_user] -> POST /doctor/uploads/patient
+[REQ-abc123] [user:doctor@clinic.com] <- 200 OK (245ms)
+"""
+
+from __future__ import annotations
+
+import time
+import uuid
+import json
+from typing import Optional
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+from adk_app.api.middleware.patient_token import decode_patient_token
+
+
+def generate_request_id() -> str:
+    """Generate a short unique request ID."""
+    return uuid.uuid4().hex[:8]
+
+
+def get_user_context(request: Request) -> dict:
+    """
+    Extract user context from the request.
+
+    Priority:
+    1. Clinic user from request.state.user (set by auth middleware)
+    2. Patient from Authorization header JWT
+    3. Patient ID from request body (for public routes)
+    """
+    context = {
+        "user": None,
+        "clinic": None,
+        "role": None,
+        "patient_id": None,
+    }
+
+    # 1. Check for authenticated clinic user (set by auth middleware AFTER this runs)
+    #    This will be available on authenticated routes
+    if hasattr(request.state, "user") and request.state.user:
+        user = request.state.user
+        context["user"] = getattr(user, "email", None)
+        context["clinic"] = getattr(user, "clinic_id", None)
+        context["role"] = getattr(user, "role", None)
+        return context
+
+    # 2. Check for patient JWT token
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "")
+        payload = decode_patient_token(token)
+        if payload:
+            context["patient_id"] = payload.get("patient_id")
+            context["clinic"] = payload.get("clinic_id")
+            context["role"] = "patient"
+            return context
+
+    return context
+
+
+def format_user_context(context: dict) -> str:
+    """Format user context for log output."""
+    parts = []
+
+    if context.get("user"):
+        parts.append(f"user:{context['user']}")
+    elif context.get("patient_id"):
+        parts.append(f"patient:{context['patient_id']}")
+    else:
+        parts.append("user:anonymous")
+
+    if context.get("clinic"):
+        parts.append(f"clinic:{context['clinic']}")
+
+    if context.get("role"):
+        parts.append(f"role:{context['role']}")
+
+    return " ".join(f"[{p}]" for p in parts)
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that adds request context and logging.
+
+    For every request:
+    1. Generates unique request ID
+    2. Logs request start with available context
+    3. Logs request end with status and duration
+    """
+
+    # Paths to skip logging (noisy health checks, static files)
+    SKIP_PATHS = {"/healthz", "/health", "/favicon.ico"}
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        # Skip logging for health checks and static files
+        if request.url.path in self.SKIP_PATHS:
+            return await call_next(request)
+
+        # Skip static file requests
+        if any(request.url.path.endswith(ext) for ext in [".js", ".css", ".ico", ".png", ".jpg", ".svg"]):
+            return await call_next(request)
+
+        # Generate request ID
+        request_id = generate_request_id()
+        request.state.request_id = request_id
+
+        # Get initial user context (may be empty for authenticated routes at this point)
+        # Auth middleware runs AFTER this, so we'll log again in auth if user is found
+        start_time = time.perf_counter()
+
+        # Try to extract patient_id from body for public routes (best effort)
+        body_context = ""
+        if request.method == "POST" and request.url.path in ["/ask", "/module-content", "/pregenerate-modules"]:
+            try:
+                # Read body without consuming it
+                body = await request.body()
+                # Create a new receive that returns the body we already read
+                async def receive():
+                    return {"type": "http.request", "body": body}
+                request._receive = receive
+
+                body_json = json.loads(body)
+                patient_id = body_json.get("patient_id")
+                clinic_id = body_json.get("clinic_id")
+                if patient_id:
+                    body_context = f" [patient:{patient_id}]"
+                if clinic_id:
+                    body_context += f" [clinic:{clinic_id}]"
+            except:
+                pass
+
+        # Log request start
+        print(f"[REQ-{request_id}]{body_context} -> {request.method} {request.url.path}")
+
+        # Process request
+        try:
+            response = await call_next(request)
+
+            # Calculate duration
+            duration_ms = (time.perf_counter() - start_time) * 1000
+
+            # Get user context (now auth middleware may have set it)
+            user_context = get_user_context(request)
+            context_str = format_user_context(user_context)
+
+            # Log request end
+            status_text = "OK" if response.status_code < 400 else "ERROR"
+            print(f"[REQ-{request_id}] {context_str} <- {response.status_code} {status_text} ({duration_ms:.0f}ms)")
+
+            # Add request ID to response headers (useful for debugging)
+            response.headers["X-Request-ID"] = request_id
+
+            return response
+
+        except Exception as exc:
+            # Log error
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            user_context = get_user_context(request)
+            context_str = format_user_context(user_context)
+            print(f"[REQ-{request_id}] {context_str} <- 500 EXCEPTION ({duration_ms:.0f}ms): {exc}")
+            raise
