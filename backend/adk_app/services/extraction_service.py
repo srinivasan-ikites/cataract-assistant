@@ -204,6 +204,8 @@ def vision_extract(images: list[dict], prompt: str, model: str) -> dict:
         finish_reason = getattr(response, "finish_reason", None)
         raw = (response.text or "").strip()
         print(f"[Vision Extract] model={clean_model} finish_reason={finish_reason} chars={len(raw)}")
+        # Debug: print raw response to diagnose JSON parsing issues
+        print(f"[Vision Extract DEBUG] Raw response:\n{raw[:2000]}")
         if not raw:
             raise ValueError("Empty response from vision model")
 
@@ -218,7 +220,25 @@ def vision_extract(images: list[dict], prompt: str, model: str) -> dict:
         if match:
             raw = match.group(0)
 
-        return json.loads(raw)
+        # Try parsing JSON directly first
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+
+        # Fix common Gemini JSON issues: trailing commas before } or ]
+        cleaned = re.sub(r",\s*([}\]])", r"\1", raw)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Fix missing commas between fields: }\n" or ]\n" patterns
+        cleaned = re.sub(r'("\s*)\n(\s*")', r'\1,\n\2', raw)
+        cleaned = re.sub(r"([\]}])\s*\n(\s*\")", r"\1,\n\2", cleaned)
+        # Also fix trailing commas in this cleaned version
+        cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        return json.loads(cleaned)
     except Exception as exc:
         print(f"[Vision Extract Error] model={model} err={exc}")
         traceback.print_exc()
