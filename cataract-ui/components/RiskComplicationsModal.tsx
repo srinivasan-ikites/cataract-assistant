@@ -346,7 +346,7 @@ const RiskComplicationsModal: React.FC<RiskComplicationsModalProps> = ({
                                     </button>
 
                                     {/* Category Items */}
-                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                         <div className="p-6 pt-2 space-y-4">
                                             {category.items.map((item, idx) => (
                                                 <div

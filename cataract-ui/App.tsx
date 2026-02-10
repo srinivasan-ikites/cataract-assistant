@@ -943,7 +943,7 @@ const AdminRouteContent: React.FC = () => {
             </svg>
           </div>
           <div>
-            <h1 className="font-bold text-slate-900">Cataract Counsellor</h1>
+            <h1 className="font-bold text-slate-900">Cataract Counselor</h1>
             <p className="text-xs text-slate-500">Super Admin Portal</p>
           </div>
         </div>

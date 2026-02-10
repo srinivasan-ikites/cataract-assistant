@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -30,6 +30,9 @@ import {
   Sparkles,
   LayoutDashboard,
   Users,
+  Upload,
+  ShieldCheck,
+  Download,
 } from 'lucide-react';
 import { api, DoctorContextResponse } from '../services/api';
 import CollapsibleCard from './components/CollapsibleCard';
@@ -82,6 +85,63 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
   // Clinic context - loaded from API
   const [clinicContext, setClinicContext] = useState<DoctorContextResponse | null>(null);
   const [loadingContext, setLoadingContext] = useState(true);
+
+  // ── Forms & Documents State ──
+  const [formTemplates, setFormTemplates] = useState<Record<string, any>>({});
+  const [patientForms, setPatientForms] = useState<Record<string, any>>({});
+  const [loadingForms, setLoadingForms] = useState(false);
+  const [uploadingSignedForm, setUploadingSignedForm] = useState<string | null>(null);
+  const signedFormInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const FORM_TYPES = [
+    { id: 'medical_clearance', label: 'Medical Clearance', icon: <ShieldCheck size={16} />, color: 'blue' },
+    { id: 'iol_selection', label: 'IOL Selection', icon: <Eye size={16} />, color: 'purple' },
+    { id: 'consent', label: 'Consent Form', icon: <FileText size={16} />, color: 'slate' },
+  ];
+
+  const EYE_CONFIG = [
+    { key: 'od_right', label: 'Right Eye (OD)', shortLabel: 'OD', dotColor: 'bg-blue-500', badgeBg: 'bg-blue-50', badgeText: 'text-blue-700' },
+    { key: 'os_left', label: 'Left Eye (OS)', shortLabel: 'OS', dotColor: 'bg-emerald-500', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
+  ];
+
+  const loadFormsData = useCallback(async () => {
+    try {
+      setLoadingForms(true);
+      const [templatesRes, formsRes] = await Promise.all([
+        api.getFormTemplates(clinicId),
+        api.getPatientForms(clinicId, patientId),
+      ]);
+      if (templatesRes?.templates) setFormTemplates(templatesRes.templates);
+      if (formsRes?.forms) setPatientForms(formsRes.forms);
+    } catch (err) {
+      console.error('Failed to load forms data:', err);
+    } finally {
+      setLoadingForms(false);
+    }
+  }, [clinicId, patientId]);
+
+  const handleSignedFormUpload = async (formType: string, eye: string, file: File) => {
+    const refKey = `${formType}_${eye}`;
+    try {
+      setUploadingSignedForm(refKey);
+      await api.uploadSignedForm(clinicId, patientId, formType, eye, file);
+      toast.success('Uploaded', `Signed form uploaded successfully.`);
+      await loadFormsData();
+    } catch (err: any) {
+      toast.error('Upload failed', err.message || 'Could not upload the signed form.');
+    } finally {
+      setUploadingSignedForm(null);
+    }
+  };
+
+  const handleFormDownload = async (formType: string, docType: 'blank' | 'signed', eye?: string) => {
+    try {
+      const url = await api.getFormDownloadUrl(clinicId, formType, docType, patientId, eye);
+      if (url) window.open(url, '_blank');
+    } catch (err: any) {
+      toast.error('Download failed', err.message || 'Could not generate download link.');
+    }
+  };
 
   // Calculate age from DOB
   const calculateAge = (dob: string): number | null => {
@@ -183,6 +243,13 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
     };
     loadData();
   }, [clinicId, patientId]);
+
+  // Load forms data when documents section is expanded
+  useEffect(() => {
+    if (expanded.documents && !loadingForms) {
+      loadFormsData();
+    }
+  }, [expanded.documents, loadFormsData]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -2556,26 +2623,162 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             </div>
           </CollapsibleCard>
 
-          {/* Documents */}
-          <CollapsibleCard title="Documents" subtitle="Consents & signatures" icon={<FileText size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 text-white flex items-center justify-center shadow-lg shadow-slate-200" expanded={expanded.documents} onToggle={() => setExpanded((p) => ({ ...p, documents: !p.documents }))} maxHeight="800px" bodyClassName="p-5 space-y-3">
-            {(data?.documents?.signed_consents || []).map((doc: any, idx: number) => (
-              <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <FileText size={16} className="text-slate-400" />
-                <div className="flex-1 grid grid-cols-2 gap-3">
-                  {renderField(`documents.signed_consents.${idx}.name`, 'Form Name')}
-                  {renderField(`documents.signed_consents.${idx}.date`, 'Date Signed', 'date')}
-                </div>
-                <button onClick={() => updateNestedField('documents.signed_consents', data.documents.signed_consents.filter((_: any, i: number) => i !== idx))} className="p-2 text-slate-300 hover:text-rose-500">
-                  <X size={14} />
-                </button>
+          {/* Forms & Documents */}
+          <CollapsibleCard title="Forms & Documents" subtitle="Templates & signed copies" icon={<FileText size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 text-white flex items-center justify-center shadow-lg shadow-slate-200" expanded={expanded.documents} onToggle={() => setExpanded((p) => ({ ...p, documents: !p.documents }))} maxHeight="1200px" bodyClassName="p-5 space-y-4">
+            {loadingForms ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
+                    <div className="h-4 bg-slate-200 rounded w-32 mb-2" />
+                    <div className="h-3 bg-slate-100 rounded w-48" />
+                  </div>
+                ))}
               </div>
-            ))}
-            <button
-              onClick={() => updateNestedField('documents.signed_consents', [...(data.documents?.signed_consents || []), { name: '', date: '' }])}
-              className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-500 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            >
-              + Add Signed Form
-            </button>
+            ) : (
+              <>
+                {/* Info banner */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-3 flex gap-2.5 items-start">
+                  <AlertCircle className="flex-shrink-0 text-blue-600 mt-0.5" size={14} />
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Upload signed copies of each form per eye. Blank templates are managed in <span className="font-semibold">Clinic Setup &rarr; Documents</span>.
+                  </p>
+                </div>
+
+                {/* Form type sections */}
+                {FORM_TYPES.map(formDef => {
+                  const formData = patientForms[formDef.id] || {};
+                  const hasTemplate = formTemplates[formDef.id]?.uploaded;
+
+                  // Determine which eyes have surgery scheduled
+                  const odStatus = data?.surgical_plan?.operative_logistics?.od_right?.status;
+                  const osStatus = data?.surgical_plan?.operative_logistics?.os_left?.status;
+                  const scheduledEyes = EYE_CONFIG.filter(e =>
+                    (e.key === 'od_right' && odStatus) || (e.key === 'os_left' && osStatus)
+                  );
+                  // If no eyes scheduled, show both by default
+                  const eyesToShow = scheduledEyes.length > 0 ? scheduledEyes : EYE_CONFIG;
+
+                  return (
+                    <div key={formDef.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                      {/* Form type header */}
+                      <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-100">
+                        <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500">
+                          {formDef.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-slate-800">{formDef.label}</h4>
+                        </div>
+                        {hasTemplate ? (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-bold uppercase tracking-wide">
+                            Template Ready
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[9px] font-bold uppercase tracking-wide">
+                            No Template
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Per-eye rows */}
+                      <div className="divide-y divide-slate-100">
+                        {eyesToShow.map(eyeConf => {
+                          const eyeData = formData?.eyes?.[eyeConf.key] || {};
+                          const eyeStatus = eyeData.status || (hasTemplate ? 'ready' : 'not_available');
+                          const refKey = `${formDef.id}_${eyeConf.key}`;
+                          const isUploading = uploadingSignedForm === refKey;
+
+                          return (
+                            <div key={eyeConf.key} className="flex items-center gap-3 px-4 py-3">
+                              {/* Eye label */}
+                              <div className="flex items-center gap-2 min-w-[80px]">
+                                <div className={`w-2 h-2 rounded-full ${eyeConf.dotColor}`} />
+                                <span className="text-xs font-semibold text-slate-700">{eyeConf.shortLabel}</span>
+                              </div>
+
+                              {/* Status badge */}
+                              <div className="flex-1">
+                                {eyeStatus === 'signed' ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                                      Signed
+                                    </span>
+                                    {eyeData.signed_date && (
+                                      <span className="text-[10px] text-slate-400">{eyeData.signed_date}</span>
+                                    )}
+                                    {eyeData.file_name && (
+                                      <span className="text-[10px] text-slate-500 truncate max-w-[120px]">{eyeData.file_name}</span>
+                                    )}
+                                  </div>
+                                ) : eyeStatus === 'ready' ? (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">
+                                    Ready to Sign
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-bold">
+                                    Pending
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action buttons */}
+                              <div className="flex items-center gap-1.5">
+                                {eyeStatus === 'signed' && (
+                                  <button
+                                    onClick={() => handleFormDownload(formDef.id, 'signed', eyeConf.key)}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Download signed copy"
+                                  >
+                                    <Download size={13} />
+                                  </button>
+                                )}
+                                {hasTemplate && eyeStatus === 'ready' && (
+                                  <button
+                                    onClick={() => handleFormDownload(formDef.id, 'blank')}
+                                    className="px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
+                                    title="Download blank template"
+                                  >
+                                    Blank PDF
+                                  </button>
+                                )}
+                                {/* Upload signed copy button */}
+                                <button
+                                  onClick={() => signedFormInputRefs.current[refKey]?.click()}
+                                  disabled={isUploading}
+                                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                                    eyeStatus === 'signed'
+                                      ? 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
+                                      : 'text-white bg-blue-600 hover:bg-blue-700 shadow-sm'
+                                  } disabled:opacity-50`}
+                                  title={eyeStatus === 'signed' ? 'Replace signed copy' : 'Upload signed copy'}
+                                >
+                                  {isUploading ? (
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Upload size={11} />
+                                  )}
+                                  {eyeStatus === 'signed' ? 'Replace' : 'Upload'}
+                                </button>
+                                <input
+                                  type="file"
+                                  ref={(el) => { signedFormInputRefs.current[refKey] = el; }}
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleSignedFormUpload(formDef.id, eyeConf.key, file);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </CollapsibleCard>
         </div>
 

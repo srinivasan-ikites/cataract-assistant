@@ -1,0 +1,259 @@
+{
+  "patient_identity": {
+    "patient_id": "002",
+    "clinic_ref_id": "vision-care",
+    "first_name": "Shreya",
+    "middle_name": "",
+    "last_name": "Mishra",
+    "dob": "1956-01-20",
+    "gender": "Female"
+  },
+  "medical_profile": {
+    "systemic_conditions": [
+      "No diabetes"
+    ],
+    "medications_systemic": [
+      "Adults Multivitamin",
+      "Calcium"
+    ],
+    "allergies": [
+      "codeine"
+    ],
+    "review_of_systems": [
+      "No Artificial Joints",
+      "No Fever",
+      "No Chills",
+      "No Stuffy Nose",
+      "No Dry Mouth",
+      "No Diarrhea",
+      "No Urinary Frequency",
+      "No Insomnia",
+      "No Allergic Reactions"
+    ],
+    "surgical_history": {
+      "non_ocular": [
+        "None"
+      ],
+      "ocular": [
+        "None"
+      ]
+    }
+  },
+  "clinical_context": {
+    "od_right": {
+      "pathology": "1-2+ nuclear sclerosis and 2+cortical",
+      "primary_cataract_type": "combined",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.32,
+          "acd_mm": 3.77,
+          "wtw_mm": 11.6,
+          "cct_um": 495,
+          "flat_k_k1": 42.88,
+          "steep_k_k2": 45.6,
+          "astigmatism_power": -2.72,
+          "axis": 102,
+          "k_type": ""
+        },
+        "pentacam_topography": {
+          "source": "Oculus Pentacam",
+          "astigmatism_power": 1.7,
+          "axis": 102,
+          "cct_um": 521,
+          "belin_ambrosio_score": 0.93
+        }
+      }
+    },
+    "os_left": {
+      "pathology": "1+ cortical and 1-2+ nuclear sclerosis",
+      "primary_cataract_type": "combined",
+      "visual_acuity": {
+        "ucva": "",
+        "bcva": "20/20"
+      },
+      "biometry": {
+        "iol_master": {
+          "source": "IOLMaster 700",
+          "axial_length_mm": 25.23,
+          "acd_mm": 3.73,
+          "wtw_mm": 11.7,
+          "cct_um": 494,
+          "flat_k_k1": 43.76,
+          "steep_k_k2": 44.66,
+          "astigmatism_power": -0.9,
+          "axis": 51,
+          "k_type": ""
+        },
+        "pentacam_topography": {
+          "source": "",
+          "astigmatism_power": null,
+          "axis": null,
+          "cct_um": null,
+          "belin_ambrosio_score": null
+        }
+      }
+    },
+    "ocular_comorbidities": [
+      "Dry Eye Syndrome",
+      "Myopia",
+      "No glaucoma"
+    ],
+    "clinical_alerts": [
+      {
+        "trigger": "OD (Right) Biometry Discrepancy",
+        "alert_msg": "IOL Master (-2.72D) vs Pentacam (1.7D) differ by 4.42D - Consider intraoperative aberrometry"
+      }
+    ]
+  },
+  "lifestyle_profile": {
+    "occupation": "Teacher",
+    "hobbies": [],
+    "visual_goals": {
+      "primary_zone": "All",
+      "spectacle_independence_desire": "High"
+    },
+    "personality_traits": {
+      "perfectionism_score": null,
+      "risk_tolerance": ""
+    },
+    "symptoms_impact": {
+      "night_driving_difficulty": true,
+      "glare_halos": true
+    }
+  },
+  "surgical_plan": {
+    "same_plan_both_eyes": true,
+    "candidacy_profile": {
+      "od_right": {
+        "is_candidate_multifocal": true,
+        "is_candidate_edof": true,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
+      },
+      "os_left": {
+        "is_candidate_multifocal": true,
+        "is_candidate_edof": true,
+        "is_candidate_toric": false,
+        "is_candidate_lal": false
+      }
+    },
+    "offered_packages": [
+      "PKG_STD",
+      "PKG_LASER_LRI",
+      "PKG_EDOF",
+      "PKG_EDOF_LASER",
+      "PKG_MULTIFOCAL",
+      "PKG_MULTIFOCAL_LASER"
+    ],
+    "offered_packages_od": [],
+    "offered_packages_os": [],
+    "patient_selection": {
+      "selected_package_id": "",
+      "status": "pending",
+      "selection_date": ""
+    },
+    "patient_selection_od": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "patient_selection_os": {
+      "selected_package_id": "",
+      "status": "",
+      "selection_date": ""
+    },
+    "operative_logistics": {
+      "od_right": {
+        "status": "",
+        "surgery_date": "2026-02-18",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      },
+      "os_left": {
+        "status": "",
+        "surgery_date": "2026-02-25",
+        "arrival_time": "",
+        "lens_order": {
+          "model_name": "",
+          "model_code": "",
+          "power": "",
+          "cylinder": "",
+          "axis_alignment": ""
+        }
+      }
+    }
+  },
+  "medications_plan": {
+    "settings": {
+      "pre_op_protocol_type": "",
+      "post_op_protocol_type": "",
+      "glaucoma_meds_instruction": ""
+    },
+    "pre_op_schedule": {
+      "instruction": "",
+      "medications": []
+    },
+    "post_op_schedule": {
+      "instruction": "",
+      "medications": []
+    }
+  },
+  "documents": null,
+  "chat_history": [],
+  "module_content": {
+    "my diagnosis": {
+      "faqs": [
+        {
+          "answer": "**Nuclear sclerosis** is when the center of your eye's lens gradually yellows and hardens. This is a common type of age-related cataract and can make colors appear faded or yellowish.",
+          "question": "What is **nuclear sclerosis**?"
+        },
+        {
+          "answer": "A **cortical cataract** forms as white, wedge-shaped opacities that start at the outer edge of your lens and work their way inward. They can cause glare and difficulty with contrast.",
+          "question": "What is a **cortical cataract**?"
+        },
+        {
+          "answer": "It's common to have more than one type of cataract, especially as we age. This is called a **combined** or **senile cataract**. The good news is that surgery effectively treats all types at once.",
+          "question": "Why do I have multiple types of cataracts?"
+        },
+        {
+          "answer": "Yes! During cataract surgery, the entire cloudy lens is removed and replaced with a clear artificial lens. This treats all types of cataract in that eye at once, improving your vision.",
+          "question": "Will surgery fix both types of cataracts?"
+        }
+      ],
+      "title": "My Diagnosis",
+      "details": [],
+      "summary": "Lata, you have a **Combined form of senile cataract**. This means you have both **nuclear sclerosis** and **cortical** cataracts affecting your eyes. These types of clouding in your natural lenses can cause symptoms like blurred vision, faded colors, and difficulty with glare, especially at night.",
+      "left_eye": {
+        "condition": "1+ cortical and 1-2+ nuclear sclerosis",
+        "description": "Your left eye has mild **cortical cataract** (clouding that starts at the edge of the lens) and mild to moderate **nuclear sclerosis** (yellowing and hardening in the center of the lens)."
+      },
+      "right_eye": {
+        "condition": "1-2+ nuclear sclerosis and 2+cortical",
+        "description": "Your right eye has mild to moderate **nuclear sclerosis** (yellowing and hardening in the center of the lens) and moderate **cortical cataract** (clouding that starts at the edge of the lens)."
+      },
+      "cataract_types": [
+        "Nuclear sclerosis",
+        "Cortical"
+      ],
+      "botStarterPrompt": "Tell me more about my cataract diagnosis",
+      "eyes_same_condition": true,
+      "additional_conditions": [
+        "Dry Eye Syndrome",
+        "Myopia"
+      ],
+      "videoScriptSuggestion": "Video explaining combined cataracts and how surgery helps",
+      "primary_diagnosis_type": "Combined form of senile cataract"
+    }
+  }
+}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, Fragment } from 'react';
-import { X, Calendar, AlertCircle, CheckCircle2, ChevronDown, Clock, Phone, ArrowRight, ShieldCheck, MapPin, Coffee, Utensils, Car, Shirt, Droplets, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, Fragment } from 'react';
+import { X, Calendar, AlertCircle, CheckCircle2, ChevronDown, Clock, Phone, ArrowRight, ShieldCheck, MapPin, Coffee, Utensils, Car, Shirt, Droplets, MessageCircle, FileText, Download, Eye } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useToast } from './Toast';
 import { Patient, api, patientAuthStorage, patientAuthApi } from '../services/api';
@@ -192,6 +192,9 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
     const [lockedMessageDate, setLockedMessageDate] = useState<string | null>(null);
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'forms' | 'medications'>('forms');
+    const [formsData, setFormsData] = useState<Record<string, any> | null>(null);
+    const [loadingForms, setLoadingForms] = useState(false);
 
     // Get surgery date from v2 schema: surgical_plan.operative_logistics
     // If both eyes have different dates, show the earlier one (right eye by default)
@@ -406,6 +409,87 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
 
     const timelineDays = getTimelineDays();
 
+    // Form descriptions for display
+    const FORM_DESCRIPTIONS: Record<string, string> = {
+        medical_clearance: 'Confirms you are medically fit for surgery. This form must be completed by your primary care physician.',
+        iol_selection: 'Documents your chosen intraocular lens type and confirms your understanding of the options.',
+        consent: 'Your informed consent for the cataract surgery procedure, including risks and benefits.',
+    };
+
+    // Load forms data from backend
+    const loadForms = useCallback(async () => {
+        try {
+            setLoadingForms(true);
+            const result = await patientAuthApi.getMyForms();
+            if (result?.forms) setFormsData(result.forms);
+        } catch (err) {
+            console.error('Failed to load forms:', err);
+        } finally {
+            setLoadingForms(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'forms' && !formsData) {
+            loadForms();
+        }
+    }, [activeTab, formsData, loadForms]);
+
+    // Transform backend data to UI format
+    const formGroups = formsData ? Object.entries(formsData).map(([formType, formInfo]: [string, any]) => {
+        const eyeEntries = Object.entries(formInfo.eyes || {}) as [string, any][];
+        return {
+            id: formType,
+            title: formInfo.label || formType,
+            description: FORM_DESCRIPTIONS[formType] || '',
+            forms: eyeEntries.map(([eyeKey, eyeData]) => ({
+                eye: eyeKey === 'od_right' ? 'OD (Right Eye)' : 'OS (Left Eye)',
+                eyeKey,
+                eyeColor: eyeKey === 'od_right' ? 'blue' : 'green',
+                status: (eyeData.status || 'not_available') as 'signed' | 'ready' | 'not_available',
+                signedDate: eyeData.signed_date || null,
+            })),
+        };
+    }) : [];
+
+    const handleFormDownload = async (formType: string, docType: 'blank' | 'signed', eye?: string) => {
+        try {
+            const url = await patientAuthApi.getFormDownloadUrl(formType, docType, eye);
+            if (url) window.open(url, '_blank');
+        } catch (err: any) {
+            console.error('Download failed:', err);
+        }
+    };
+
+    const getFormStatusConfig = (status: 'signed' | 'ready' | 'not_available') => {
+        switch (status) {
+            case 'signed':
+                return {
+                    badge: 'Signed',
+                    badgeClass: 'bg-emerald-100 text-emerald-700',
+                    borderClass: 'border-l-emerald-500',
+                    bgClass: 'bg-white',
+                    icon: <CheckCircle2 size={20} className="text-emerald-500" />,
+                };
+            case 'ready':
+                return {
+                    badge: 'Ready to Sign',
+                    badgeClass: 'bg-blue-100 text-blue-700',
+                    borderClass: 'border-l-blue-500',
+                    bgClass: 'bg-white',
+                    icon: <Download size={20} className="text-blue-500" />,
+                };
+            case 'not_available':
+                return {
+                    badge: 'Pending',
+                    badgeClass: 'bg-slate-100 text-slate-500',
+                    borderClass: 'border-l-slate-300',
+                    bgClass: 'bg-slate-50',
+                    icon: <Clock size={20} className="text-slate-400" />,
+                };
+        }
+    };
+
     // UI Render Helpers
     if (activeCase === 'PENDING') {
         return (
@@ -482,10 +566,187 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                     </p>
                 </div>
 
+                {/* Tab Bar */}
+                <div className="flex border-b border-slate-200 px-8 bg-white shrink-0">
+                    <button
+                        onClick={() => setActiveTab('forms')}
+                        className={`flex-1 py-3.5 text-base font-semibold transition-colors relative ${activeTab === 'forms' ? 'text-violet-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Forms & Documents
+                        {activeTab === 'forms' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('medications')}
+                        className={`flex-1 py-3.5 text-base font-semibold transition-colors relative ${activeTab === 'medications' ? 'text-violet-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Medications & Preparation
+                        {activeTab === 'medications' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />}
+                    </button>
+                </div>
+
                 {/* Content Area - shows skeleton or actual content */}
                 {isLoading ? (
                     <BeforeSurgerySkeletonContent />
                 ) : (
+                <>
+                {/* === FORMS TAB === */}
+                {activeTab === 'forms' && (
+                <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8">
+                    {/* Overview */}
+                    <div className="bg-violet-50 border-l-4 border-violet-500 rounded-r-xl p-6 flex gap-4 items-start">
+                        <FileText className="flex-shrink-0 text-violet-600 mt-0.5" size={24} />
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-1">Your Surgery Documents</h3>
+                            <p className="text-slate-700 leading-relaxed text-base">
+                                These forms need to be completed before your surgery. Download the forms that are ready, sign them, and bring them to your next appointment. Your doctor will upload the signed copies here for your records.
+                            </p>
+                        </div>
+                    </div>
+
+                    {loadingForms ? (
+                        <div className="space-y-6">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="animate-pulse">
+                                    <div className="h-5 bg-slate-200 rounded w-40 mb-2" />
+                                    <div className="h-3 bg-slate-100 rounded w-64 mb-4" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-l-4 border-l-slate-300 h-28" />
+                                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-l-4 border-l-slate-300 h-28" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : formGroups.length === 0 ? (
+                        <div className="text-center py-12">
+                            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+                            <h3 className="text-lg font-bold text-slate-700 mb-2">No Forms Available Yet</h3>
+                            <p className="text-base text-slate-500">Your doctor will make forms available as your surgery date approaches.</p>
+                        </div>
+                    ) : (
+                    <>
+                    {/* Form Groups */}
+                    {formGroups.map((group) => (
+                        <div key={group.id}>
+                            <div className="mb-3">
+                                <h3 className="text-xl font-bold text-slate-900">{group.title}</h3>
+                                <p className="text-base text-slate-500 mt-1">{group.description}</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {group.forms.map((form) => {
+                                    const config = getFormStatusConfig(form.status);
+                                    return (
+                                        <div
+                                            key={`${group.id}-${form.eye}`}
+                                            className={`${config.bgClass} rounded-2xl p-5 border border-slate-200 border-l-4 ${config.borderClass} flex flex-col gap-4`}
+                                        >
+                                            {/* Top row: eye label + status badge */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2.5">
+                                                    <Eye size={18} className={form.eyeColor === 'blue' ? 'text-blue-600' : 'text-green-600'} />
+                                                    <span className="text-base font-bold text-slate-800">{form.eye}</span>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${config.badgeClass}`}>
+                                                    {config.badge}
+                                                </span>
+                                            </div>
+
+                                            {/* Status-specific content */}
+                                            {form.status === 'signed' && (
+                                                <div>
+                                                    <p className="text-base text-emerald-700 font-medium mb-3">
+                                                        Signed on {form.signedDate ? new Date(form.signedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                                    </p>
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            onClick={() => handleFormDownload(group.id, 'signed', form.eyeKey)}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors"
+                                                        >
+                                                            <Eye size={16} /> View
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleFormDownload(group.id, 'signed', form.eyeKey)}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                                                        >
+                                                            <Download size={16} /> Download
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {form.status === 'ready' && (
+                                                <div>
+                                                    <p className="text-base text-slate-600 mb-3">
+                                                        Download this form, sign it, and bring it to your next visit.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => handleFormDownload(group.id, 'blank')}
+                                                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        <Download size={16} /> Download Form
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {form.status === 'not_available' && (
+                                                <p className="text-base text-slate-500 italic">
+                                                    Your doctor will provide this form at your next appointment.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* Progress Summary */}
+                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Completion Status</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {(() => {
+                                const allForms = formGroups.flatMap(g => g.forms);
+                                const signed = allForms.filter(f => f.status === 'signed').length;
+                                const ready = allForms.filter(f => f.status === 'ready').length;
+                                const pending = allForms.filter(f => f.status === 'not_available').length;
+                                return (
+                                    <>
+                                        <div className="text-center">
+                                            <div className="text-3xl font-black text-emerald-600">{signed}</div>
+                                            <div className="text-sm font-semibold text-slate-500 mt-1">Completed</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-3xl font-black text-blue-600">{ready}</div>
+                                            <div className="text-sm font-semibold text-slate-500 mt-1">Ready to Sign</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-3xl font-black text-slate-400">{pending}</div>
+                                            <div className="text-sm font-semibold text-slate-500 mt-1">Pending</div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>
+
+                    {/* Chat CTA */}
+                    <div className={`p-6 rounded-2xl ${classes.surfaceVariant} border border-slate-200 text-center`}>
+                        <h3 className={`text-lg font-semibold ${classes.primaryText} mb-2`}>Have questions about your forms?</h3>
+                        <p className="text-slate-600 mb-4">Our AI assistant can help you understand what each form is for.</p>
+                        <button
+                            onClick={() => onOpenChat('Can you explain the forms I need to complete before surgery?')}
+                            className={`inline-flex items-center gap-2 px-6 py-3 rounded-full ${classes.fabBg} text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all`}
+                        >
+                            <MessageCircle size={20} />
+                            Chat with Assistant
+                        </button>
+                    </div>
+                    </>
+                    )}
+                </div>
+                )}
+
+                {/* === MEDICATIONS TAB === */}
+                {activeTab === 'medications' && (
                 <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8">
                     {/* Case 3: Surgery Day Banner */}
                     {activeCase === 'SURGERY_DAY' && (
@@ -747,6 +1008,8 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                         </button>
                     </div>
                 </div>
+                )}
+                </>
                 )}
             </div>
         </div>

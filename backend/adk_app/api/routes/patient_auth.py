@@ -680,6 +680,65 @@ async def update_medication_progress(
         )
 
 
+@router.delete("/me/chat")
+async def clear_my_chat(
+    authorization: str = Header(None, alias="Authorization")
+):
+    """
+    Clear the current patient's chat history.
+
+    Used by the chatbot delete button in the patient portal.
+    Requires patient JWT authentication.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header"
+        )
+
+    token = authorization.replace("Bearer ", "")
+    payload = verify_patient_token(token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token. Please login again."
+        )
+
+    client = get_supabase_admin_client()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection not available"
+        )
+
+    try:
+        patient_uuid = payload["sub"]
+        print(f"[Patient Auth] Clearing chat history for patient UUID: {patient_uuid}")
+
+        result = client.table("patients").update({
+            "chat_history": [],
+        }).eq("id", patient_uuid).execute()
+
+        if not result.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found"
+            )
+
+        print(f"[Patient Auth] Chat history cleared for patient UUID: {patient_uuid}")
+        return {"status": "ok", "message": "Chat history cleared"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Patient Auth] Clear chat error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while clearing chat history"
+        )
+
+
 @router.post("/logout")
 async def logout():
     """

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash, Trash2 } from 'lucide-react';
-import { api, Patient, ChatMessage } from '../services/api';
+import { api, patientAuthApi, Patient, ChatMessage } from '../services/api';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
 
@@ -251,9 +251,9 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
     // Optimistically clear UI
     setChatHistory(buildInitialChatHistory());
     setQuestion("");
-    // Also clear on backend (fire-and-forget)
+    // Clear on backend using patient auth (fire-and-forget)
     try {
-      await api.clearPatientChat(patient.patient_id);
+      await patientAuthApi.clearMyChat();
     } catch {
       // Swallow errors; UI is already cleared
     }
@@ -359,7 +359,7 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
                 <button
                   type="button"
                   onClick={handleClearChat}
-                  className="hover:bg-white/20 px-2 py-1 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
+                  className="hover:bg-red-500/40 px-2.5 py-2 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
                 >
                   <Trash2 size={18} />
                   {/* <span>Clear</span> */}

@@ -1,8 +1,9 @@
 """
 Doctor/Admin routes for uploads, extractions, and reviews.
 
-Note: Upload and extraction operations still use local filesystem.
-Patient data retrieval uses Supabase.
+All patient data is read from and written to Supabase (source of truth).
+Local JSON files are optional (controlled by SAVE_EXTRACTION_JSON env var)
+and exist only for debugging/recovery purposes.
 
 SECURITY: All routes require authentication and validate clinic access.
 """
@@ -33,6 +34,7 @@ from adk_app.utils.supabase_data_loader import (
     clear_patient_cache,
     update_patient_from_reviewed,
     update_clinic_from_reviewed,
+    save_extraction_to_patient,
 )
 # Module generation service
 from adk_app.services.module_service import (
@@ -53,6 +55,36 @@ from adk_app.api.middleware.auth import (
 PATIENT_DOCUMENTS_BUCKET = "patient-documents"
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
+
+
+def _to_schema_format(patient: dict, clinic_id: str) -> dict:
+    """
+    Remap get_patient_data() output (frontend format) to schema format
+    that the doctor portal's PatientOnboarding.tsx expects.
+
+    Only 2 fields differ:
+      - frontend: name.first/last    → schema: patient_identity.first_name/last_name
+      - frontend: medications         → schema: medications_plan
+    """
+    name = patient.get("name", {})
+    return {
+        "patient_identity": {
+            "first_name": name.get("first", ""),
+            "last_name": name.get("last", ""),
+            "dob": patient.get("dob", ""),
+            "gender": patient.get("gender", ""),
+            "patient_id": patient.get("patient_id", ""),
+            "clinic_ref_id": clinic_id,
+        },
+        "medical_profile": patient.get("medical_profile", {}),
+        "clinical_context": patient.get("clinical_context", {}),
+        "lifestyle_profile": patient.get("lifestyle_profile", {}),
+        "surgical_plan": patient.get("surgical_plan", {}),
+        "medications_plan": patient.get("medications", {}),
+        "module_content": patient.get("module_content", {}),
+        "chat_history": patient.get("chat_history", []),
+        "forms": patient.get("forms", {}),
+    }
 
 
 # -------------------------------
@@ -113,7 +145,15 @@ async def doctor_upload_patient_docs(
         extraction = normalize_extracted_data(extraction)
         extraction = apply_schema_template("extraction_schema_v2.json", extraction)
 
-        # Optional: Save extraction JSON locally for debugging/recovery (can be disabled in production)
+        # Save extraction to Supabase patients table (primary storage)
+        try:
+            save_extraction_to_patient(clinic_id, patient_id, extraction)
+            print(f"[Doctor Upload Patient] Extraction saved to Supabase for {clinic_id}/{patient_id}")
+        except Exception as db_err:
+            print(f"[Doctor Upload Patient] WARNING: Failed to save extraction to Supabase: {db_err}")
+            traceback.print_exc()
+
+        # Optional: Save extraction JSON locally for debugging/recovery (disabled in production)
         extracted_path = None
         if os.getenv("SAVE_EXTRACTION_JSON", "true").lower() == "true":
             base_dir = ensure_dir(UPLOAD_ROOT / clinic_id / patient_id)
@@ -246,23 +286,17 @@ async def get_extracted_patient(
     patient_id: str,
     user: AuthenticatedUser = Depends(require_clinic_user),  # AUTHENTICATION REQUIRED
 ) -> dict:
-    """Get extracted patient data from uploads. Requires authentication."""
+    """Get extracted patient data from Supabase. Requires authentication."""
     validate_clinic_access(user, clinic_id)
-    # First try direct path
-    path = UPLOAD_ROOT / clinic_id / patient_id / "extracted_patient.json"
 
-    if not path.exists():
-        # Fallback: find actual folder name from reviewed cache
-        try:
-            patient = get_patient_data(patient_id, clinic_id=clinic_id)
-            if patient.get("_file_path"):
-                actual_pid_folder = Path(patient["_file_path"]).parent.name
-                path = UPLOAD_ROOT / clinic_id / actual_pid_folder / "extracted_patient.json"
-        except Exception:
-            pass
+    try:
+        patient = get_patient_data(patient_id, clinic_id=clinic_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_id}' not found in clinic '{clinic_id}'")
 
-    data = read_json_or_404(path, "Extracted patient JSON")
-    return {"status": "ok", "extracted_path": str(path), "extracted": data}
+    # Remap from frontend format to schema format (doctor portal expects patient_identity, medications_plan)
+    data = _to_schema_format(patient, clinic_id)
+    return {"status": "ok", "extracted": data}
 
 
 @router.get("/extractions/clinic")
@@ -333,22 +367,17 @@ async def get_reviewed_patient(
     patient_id: str,
     user: AuthenticatedUser = Depends(require_clinic_user),  # AUTHENTICATION REQUIRED
 ) -> dict:
-    """Get reviewed patient data. Requires authentication."""
+    """Get reviewed patient data from Supabase. Requires authentication."""
     validate_clinic_access(user, clinic_id)
-    # First try direct path
-    path = REVIEW_ROOT / clinic_id / patient_id / "reviewed_patient.json"
 
-    if not path.exists():
-        # Fallback: find actual folder name from reviewed cache
-        try:
-            patient = get_patient_data(patient_id, clinic_id=clinic_id)
-            if patient.get("_file_path"):
-                path = Path(patient["_file_path"])
-        except Exception:
-            pass
+    try:
+        patient = get_patient_data(patient_id, clinic_id=clinic_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Patient '{patient_id}' not found in clinic '{clinic_id}'")
 
-    data = read_json_or_404(path, "Reviewed patient JSON")
-    return {"status": "ok", "reviewed_path": str(path), "reviewed": data}
+    # Remap from frontend format to schema format (doctor portal expects patient_identity, medications_plan)
+    data = _to_schema_format(patient, clinic_id)
+    return {"status": "ok", "reviewed": data}
 
 
 @router.get("/reviewed/clinic")
@@ -391,32 +420,30 @@ async def save_reviewed_patient(
     Save reviewed patient data (v2 schema).
 
     Requires authentication. User can only save to their own clinic.
+    Primary storage: Supabase. Local JSON is optional (for debugging only).
 
     Expected payload.data structure:
     - Extraction data (patient_identity, medical_profile, clinical_context, lifestyle_profile)
     - Doctor-entered data (surgical_plan, medications_plan)
-
-    This endpoint merges extracted data with doctor selections and saves to reviewed folder.
-    It also triggers "My Diagnosis" module generation in the background if needed.
     """
     # Validate clinic access
     validate_clinic_access(user, payload.clinic_id)
-    base_dir = ensure_dir(REVIEW_ROOT / payload.clinic_id / payload.patient_id)
     payload_data = payload.data if isinstance(payload.data, dict) else {}
 
-    # Load existing patient data BEFORE saving (to check for diagnosis changes)
+    # Load existing patient data from Supabase BEFORE saving (to check for diagnosis changes)
     existing_data = None
-    existing_file = base_dir / "reviewed_patient.json"
     try:
-        if existing_file.exists():
-            with open(existing_file, "r", encoding="utf-8") as f:
-                existing_data = json.load(f)
+        patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
+        if patient:
+            existing_data = _to_schema_format(patient, payload.clinic_id)
+            # Also carry over chat_history and module_content from DB
+            existing_data["chat_history"] = patient.get("chat_history", [])
+            existing_data["module_content"] = patient.get("module_content", {})
     except Exception as e:
         print(f"[Save Reviewed Patient] Could not load existing data for comparison: {e}")
 
     # Auto-generate clinical alerts if not already present or if data changed
     if "clinical_context" in payload_data:
-        # Regenerate alerts based on current data
         payload_data["clinical_context"]["clinical_alerts"] = generate_clinical_alerts(payload_data)
 
     # Apply normalization (handles both v1 and v2 schemas)
@@ -425,12 +452,12 @@ async def save_reviewed_patient(
     # Apply final_schema_v2.json template to ensure all fields present
     reviewed = apply_schema_template("final_schema_v2.json", reviewed)
 
-    # Preserve chat_history and module_content if they exist from previous save
+    # Preserve chat_history and module_content from existing DB data
     if existing_data:
-        if "chat_history" in existing_data:
-            reviewed["chat_history"] = existing_data.get("chat_history", [])
-        if "module_content" in existing_data:
-            reviewed["module_content"] = existing_data.get("module_content", {})
+        if existing_data.get("chat_history"):
+            reviewed["chat_history"] = existing_data["chat_history"]
+        if existing_data.get("module_content"):
+            reviewed["module_content"] = existing_data["module_content"]
 
     # Ensure legacy/convenience fields are populated (using the adapter)
     from adk_app.utils.data_adapter import normalize_patient, denormalize_patient
@@ -439,44 +466,45 @@ async def save_reviewed_patient(
     # Denormalize to strip legacy convenience fields and 'extra' duplication for storage
     to_save = denormalize_patient(full_normalized)
 
-    target = base_dir / "reviewed_patient.json"
-    with open(target, "w", encoding="utf-8") as f:
-        json.dump(to_save, f, ensure_ascii=False, indent=2)
-
-    print(f"[Save Reviewed Patient] Saved v2 schema patient: {payload.clinic_id}/{payload.patient_id}")
-
-    # Invalidate cache
-    clear_patient_cache()
-
-    # Sync to Supabase patients table (required for chatbot to work)
+    # Save to Supabase (primary storage)
     try:
         updated_patient = update_patient_from_reviewed(
             clinic_id=payload.clinic_id,
             patient_id=payload.patient_id,
             reviewed_data=full_normalized
         )
-        print(f"[Save Reviewed Patient] Synced to Supabase: {payload.patient_id}")
+        print(f"[Save Reviewed Patient] Saved to Supabase: {payload.clinic_id}/{payload.patient_id}")
     except Exception as sync_err:
-        print(f"[Save Reviewed Patient] Supabase sync FAILED: {sync_err}")
+        print(f"[Save Reviewed Patient] Supabase save FAILED: {sync_err}")
         traceback.print_exc()
         raise HTTPException(
             status_code=503,
-            detail=f"Data saved locally but cloud sync failed. Please try again. Error: {str(sync_err)}"
+            detail=f"Failed to save patient data. Please try again. Error: {str(sync_err)}"
         )
 
+    # Optional: Save local JSON for debugging (disabled in production)
+    if os.getenv("SAVE_EXTRACTION_JSON", "true").lower() == "true":
+        try:
+            base_dir = ensure_dir(REVIEW_ROOT / payload.clinic_id / payload.patient_id)
+            target = base_dir / "reviewed_patient.json"
+            with open(target, "w", encoding="utf-8") as f:
+                json.dump(to_save, f, ensure_ascii=False, indent=2)
+            print(f"[Save Reviewed Patient] Local JSON saved (debug): {target}")
+        except Exception as local_err:
+            print(f"[Save Reviewed Patient] Local JSON save failed (non-critical): {local_err}")
+
+    # Invalidate cache
+    clear_patient_cache()
+
     # Determine if we need to generate the "My Diagnosis" module
-    # Generate if: 1) First save (no existing data), 2) Diagnosis changed, 3) Module missing
     should_generate = False
     if existing_data is None:
-        # First save - generate module
         should_generate = True
         print(f"[Save Reviewed Patient] First save - will generate diagnosis module")
     elif should_generate_diagnosis_module(full_normalized):
-        # Module is missing
         should_generate = True
         print(f"[Save Reviewed Patient] Diagnosis module missing - will generate")
     elif has_diagnosis_changed(existing_data, full_normalized):
-        # Diagnosis changed - regenerate
         should_generate = True
         print(f"[Save Reviewed Patient] Diagnosis changed - will regenerate module")
     else:
@@ -490,11 +518,11 @@ async def save_reviewed_patient(
             config=runtime.config,
             old_patient=existing_data,
             force=False,
-            clinic_id=payload.clinic_id  # Required for unique patient lookup
+            clinic_id=payload.clinic_id
         )
         print(f"[Save Reviewed Patient] Queued background module generation for: {payload.clinic_id}/{payload.patient_id}")
 
-    return {"status": "ok", "reviewed_path": str(target), "reviewed": full_normalized}
+    return {"status": "ok", "reviewed": full_normalized}
 
 
 @router.delete("/patient")

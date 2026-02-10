@@ -23,6 +23,7 @@ import {
   Award,
   LayoutDashboard,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
@@ -1481,49 +1482,171 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
     </div>
   );
 
+  // ── Form Templates State (separate from main clinic data) ──
+  const [formTemplates, setFormTemplates] = useState<Record<string, any>>({});
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [uploadingForm, setUploadingForm] = useState<string | null>(null);
+  const formFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const FORM_TYPES = [
+    { id: 'medical_clearance', label: 'Medical Clearance', description: 'Confirms the patient is medically fit for surgery. Completed by the patient\'s primary care physician.', icon: <ShieldCheck size={20} /> },
+    { id: 'iol_selection', label: 'IOL Selection', description: 'Documents the patient\'s chosen intraocular lens type and confirms understanding of the options.', icon: <Eye size={20} /> },
+    { id: 'consent', label: 'Consent Form', description: 'Informed consent for the cataract surgery procedure, including risks, benefits, and alternatives.', icon: <FileText size={20} /> },
+  ];
+
+  const loadFormTemplates = useCallback(async () => {
+    try {
+      setLoadingTemplates(true);
+      const result = await api.getFormTemplates(clinicId);
+      if (result?.templates) setFormTemplates(result.templates);
+    } catch (err) {
+      console.error('Failed to load form templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, [clinicId]);
+
+  // Load templates when Documents tab is activated
+  useEffect(() => {
+    if (activeTab === 'documents') {
+      loadFormTemplates();
+    }
+  }, [activeTab, loadFormTemplates]);
+
+  const handleFormTemplateUpload = async (formType: string, file: File) => {
+    try {
+      setUploadingForm(formType);
+      await api.uploadFormTemplate(clinicId, formType, file);
+      toast.success('Uploaded', `${FORM_TYPES.find(f => f.id === formType)?.label} template uploaded successfully.`);
+      await loadFormTemplates();
+    } catch (err: any) {
+      toast.error('Upload failed', err.message || 'Could not upload the form template.');
+    } finally {
+      setUploadingForm(null);
+    }
+  };
+
+  const handleFormTemplateDelete = async (formType: string) => {
+    try {
+      setUploadingForm(formType);
+      await api.deleteFormTemplate(clinicId, formType);
+      toast.success('Deleted', 'Form template removed.');
+      await loadFormTemplates();
+    } catch (err: any) {
+      toast.error('Delete failed', err.message || 'Could not delete the template.');
+    } finally {
+      setUploadingForm(null);
+    }
+  };
+
   const renderDocumentsSection = () => {
-    const forms = getValue('documents.standard_forms') || [];
+    if (loadingTemplates) {
+      return (
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 animate-pulse">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-slate-200 rounded w-40" />
+                  <div className="h-3 bg-slate-100 rounded w-72" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
-            <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800">Standard Forms</h3>
-              <button
-            onClick={() => updateNestedField('documents.standard_forms', [...forms, { doc_id: '', name: '', required: true }])}
-            className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 flex items-center gap-1"
-              >
-            <Plus size={14} /> Add Form
-              </button>
-            </div>
-        {forms.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <FileText size={32} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No forms configured</p>
+        <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-4 flex gap-3 items-start">
+          <AlertCircle className="flex-shrink-0 text-blue-600 mt-0.5" size={18} />
+          <div>
+            <h4 className="text-sm font-bold text-slate-800 mb-0.5">Form Templates</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Upload blank form PDFs here once. These will be available for all patients to download, sign, and bring to their appointment. You can replace a template by uploading a new file.
+            </p>
           </div>
-        ) : (
-          forms.map((form: any, idx: number) => (
-            <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 relative group">
-                <button
-                onClick={() => updateNestedField('documents.standard_forms', forms.filter((_: any, i: number) => i !== idx))}
-                className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                >
-                <Trash2 size={14} />
-                </button>
-              <div className="grid grid-cols-2 gap-4">
-                {renderTextField(`documents.standard_forms.${idx}.doc_id`, "Document ID")}
-                {renderTextField(`documents.standard_forms.${idx}.name`, "Form Name")}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.required ?? false}
-                  onChange={(e) => updateNestedField(`documents.standard_forms.${idx}.required`, e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-xs font-medium text-slate-600">Required for all patients</span>
+        </div>
+
+        {FORM_TYPES.map(formDef => {
+          const template = formTemplates[formDef.id];
+          const isUploaded = template?.uploaded;
+          const isProcessing = uploadingForm === formDef.id;
+
+          return (
+            <div key={formDef.id} className={`bg-white border rounded-2xl p-5 transition-all ${isUploaded ? 'border-emerald-200' : 'border-slate-200'}`}>
+              <div className="flex items-start gap-4">
+                {/* Icon */}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isUploaded ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                  {formDef.icon}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-sm font-bold text-slate-800">{formDef.label}</h4>
+                    {isUploaded && (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wide">
+                        Uploaded
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-3">{formDef.description}</p>
+
+                  {isUploaded ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                        <FileText size={14} className="text-slate-400" />
+                        <span className="text-slate-700 font-medium truncate max-w-[200px]">{template.file_name}</span>
+                      </div>
+                      <button
+                        onClick={() => formFileInputRefs.current[formDef.id]?.click()}
+                        disabled={isProcessing}
+                        className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      >
+                        Replace
+                      </button>
+                      <button
+                        onClick={() => handleFormTemplateDelete(formDef.id)}
+                        disabled={isProcessing}
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => formFileInputRefs.current[formDef.id]?.click()}
+                      disabled={isProcessing}
+                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-xs font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <><div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload size={14} /> Upload PDF</>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={(el) => { formFileInputRefs.current[formDef.id] = el; }}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFormTemplateUpload(formDef.id, file);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
               </div>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     );
   };

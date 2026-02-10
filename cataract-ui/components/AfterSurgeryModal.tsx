@@ -207,8 +207,8 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
     // Get surgery date from v2 schema: surgical_plan.operative_logistics
     const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
     const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
-    const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
-    // const surgeryDateStr = "2026-01-25";
+    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
+    const surgeryDateStr = "2026-02-08";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dateKey = today.toISOString().split('T')[0];

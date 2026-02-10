@@ -146,8 +146,9 @@ const DiagnosisModal: React.FC<DiagnosisModalProps> = ({
     const odCataractTypeInfo = getCataractTypeFromId(odCataractType);
     const osCataractTypeInfo = getCataractTypeFromId(osCataractType);
 
-    // Get the primary cataract image from structured field
-    const primaryCataractImage = patientCataractType?.eyeImage || '/assets/diagnosis/eye_healthy.png';
+    // Get the primary cataract image and matching healthy eye from structured field
+    const primaryCataractImage = patientCataractType?.eyeImage || '/assets/diagnosis/eye_healthy2.png';
+    const primaryHealthyImage = patientCataractType?.healthyEyeImage || '/assets/diagnosis/eye_healthy2.png';
 
     // Fallback to parsing pathology if LLM tags not available
     const pathologyTags = cataractTypeTags.length > 0
@@ -368,8 +369,9 @@ const DiagnosisModal: React.FC<DiagnosisModalProps> = ({
                                         />
                                     ) : (
                                         <VisionSlider
-                                            leftImage="/assets/diagnosis/eye_healthy.png"
+                                            leftImage={primaryHealthyImage}
                                             rightImage={primaryCataractImage}
+                                            rightScale={patientCataractType?.imageScale}
                                             leftLabel="Healthy Eye"
                                             rightLabel="Your Eye"
                                             caption={`${diagnosisType} - Anatomical comparison`}
@@ -488,8 +490,9 @@ const DiagnosisModal: React.FC<DiagnosisModalProps> = ({
                                                         </h4>
                                                         <div className="bg-slate-900 rounded-lg overflow-hidden h-[200px] relative">
                                                             <VisionSlider
-                                                                leftImage="/assets/diagnosis/eye_healthy.png"
+                                                                leftImage={selectedOtherCataract.healthyEyeImage}
                                                                 rightImage={selectedOtherCataract.eyeImage}
+                                                                rightScale={selectedOtherCataract.imageScale}
                                                                 leftLabel="Healthy"
                                                                 rightLabel={selectedOtherCataract.shortName}
                                                                 caption=""

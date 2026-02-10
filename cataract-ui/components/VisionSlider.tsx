@@ -6,6 +6,8 @@ interface VisionSliderProps {
     leftLabel: string;
     rightLabel: string;
     rightFilter?: string;
+    leftScale?: number;
+    rightScale?: number;
     caption?: string;
 }
 
@@ -15,6 +17,8 @@ const VisionSlider: React.FC<VisionSliderProps> = ({
     leftLabel,
     rightLabel,
     rightFilter,
+    leftScale,
+    rightScale,
     caption,
 }) => {
     const [sliderPosition, setSliderPosition] = useState(50);
@@ -60,7 +64,7 @@ const VisionSlider: React.FC<VisionSliderProps> = ({
             {/* Container */}
             <div
                 ref={containerRef}
-                className="relative w-full h-full rounded-2xl overflow-hidden cursor-ew-resize select-none"
+                className="relative w-full h-full overflow-hidden cursor-ew-resize select-none"
                 onMouseDown={handleMouseDown}
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
@@ -74,6 +78,7 @@ const VisionSlider: React.FC<VisionSliderProps> = ({
                     style={{
                         backgroundImage: `url(${rightImage})`,
                         filter: rightFilter || 'none',
+                        transform: rightScale ? `scale(${rightScale})` : undefined,
                     }}
                 />
 
@@ -83,6 +88,7 @@ const VisionSlider: React.FC<VisionSliderProps> = ({
                     style={{
                         backgroundImage: `url(${leftImage})`,
                         clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
+                        transform: leftScale ? `scale(${leftScale})` : undefined,
                     }}
                 />
 

@@ -70,7 +70,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onRegister }) => 
                         <Building2 className="text-white" size={32} />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                        Cataract Counsellor
+                        Cataract Counselor
                     </h1>
                     <p className="text-slate-500 mt-1 text-sm font-medium">
                         Sign in to your clinic portal
@@ -216,7 +216,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onRegister }) => 
 
                 {/* Footer */}
                 <p className="text-center text-xs text-slate-400 mt-6">
-                    &copy; {new Date().getFullYear()} Cataract Counsellor. All rights reserved.
+                    &copy; {new Date().getFullYear()} Cataract Counselor. All rights reserved.
                 </p>
             </div>
 

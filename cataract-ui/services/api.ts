@@ -1,8 +1,7 @@
 import { ModuleItem } from '../types';
 
-// const API_BASE = 'http://localhost:8000';
-// const API_BASE = 'http://35.244.44.106:8000';
-const API_BASE = 'https://cataract-assistant.ikites.ai/api';
+const API_BASE = 'http://localhost:8000';
+// const API_BASE = 'https://cataract-assistant.ikites.ai/api';
 // const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
@@ -849,6 +848,79 @@ export const api = {
     },
 
     // =========================================================================
+    // FORMS & DOCUMENTS
+    // =========================================================================
+
+    async getFormTemplates(clinicId: string): Promise<any> {
+        const res = await authFetch(`${API_BASE}/forms/templates?clinic_id=${clinicId}`);
+        if (!res.ok) throw new Error('Failed to fetch form templates');
+        return res.json();
+    },
+
+    async uploadFormTemplate(clinicId: string, formType: string, file: File): Promise<any> {
+        const formData = new FormData();
+        formData.append('clinic_id', clinicId);
+        formData.append('form_type', formType);
+        formData.append('file', file);
+
+        const res = await authFetch(`${API_BASE}/forms/templates/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!res.ok) {
+            let msg = 'Failed to upload form template';
+            try { const body = await res.json(); msg = body?.detail || msg; } catch {}
+            throw new Error(msg);
+        }
+        return res.json();
+    },
+
+    async deleteFormTemplate(clinicId: string, formType: string): Promise<any> {
+        const res = await authFetch(`${API_BASE}/forms/templates/${formType}?clinic_id=${clinicId}`, {
+            method: 'DELETE',
+        });
+        if (!res.ok) throw new Error('Failed to delete form template');
+        return res.json();
+    },
+
+    async getPatientForms(clinicId: string, patientId: string): Promise<any> {
+        const res = await authFetch(`${API_BASE}/forms?clinic_id=${clinicId}&patient_id=${patientId}`);
+        if (!res.ok) throw new Error('Failed to fetch patient forms');
+        return res.json();
+    },
+
+    async uploadSignedForm(clinicId: string, patientId: string, formType: string, eye: string, file: File): Promise<any> {
+        const formData = new FormData();
+        formData.append('clinic_id', clinicId);
+        formData.append('patient_id', patientId);
+        formData.append('form_type', formType);
+        formData.append('eye', eye);
+        formData.append('file', file);
+
+        const res = await authFetch(`${API_BASE}/forms/signed/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!res.ok) {
+            let msg = 'Failed to upload signed form';
+            try { const body = await res.json(); msg = body?.detail || msg; } catch {}
+            throw new Error(msg);
+        }
+        return res.json();
+    },
+
+    async getFormDownloadUrl(clinicId: string, formType: string, docType: 'blank' | 'signed', patientId?: string, eye?: string): Promise<string> {
+        let url = `${API_BASE}/forms/download/${formType}?clinic_id=${clinicId}&doc_type=${docType}`;
+        if (patientId) url += `&patient_id=${patientId}`;
+        if (eye) url += `&eye=${eye}`;
+
+        const res = await authFetch(url);
+        if (!res.ok) throw new Error('Failed to get download URL');
+        const data = await res.json();
+        return data.url;
+    },
+
+    // =========================================================================
     // DASHBOARD STATISTICS
     // =========================================================================
 
@@ -1263,6 +1335,60 @@ export const patientAuthApi = {
         }
 
         return res.json();
+    },
+
+    /**
+     * Clear the current patient's chat history
+     */
+    async clearMyChat(): Promise<void> {
+        const token = patientAuthStorage.getToken();
+        if (!token) return;
+
+        const res = await fetch(`${API_BASE}/api/patient/auth/me/chat`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+            console.error('Failed to clear patient chat history');
+        }
+    },
+
+    /**
+     * Get combined forms status (templates + signed copies) for current patient
+     */
+    async getMyForms(): Promise<any> {
+        const token = patientAuthStorage.getToken();
+        if (!token) throw new Error('Not authenticated');
+
+        const res = await fetch(`${API_BASE}/forms/patient-view`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ detail: 'Failed to load forms' }));
+            throw new Error(error.detail || 'Failed to load forms');
+        }
+        return res.json();
+    },
+
+    /**
+     * Get download URL for a form (blank template or signed copy)
+     */
+    async getFormDownloadUrl(formType: string, docType: 'blank' | 'signed', eye?: string): Promise<string> {
+        const token = patientAuthStorage.getToken();
+        if (!token) throw new Error('Not authenticated');
+
+        let url = `${API_BASE}/forms/patient-download/${formType}?doc_type=${docType}`;
+        if (eye) url += `&eye=${eye}`;
+
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ detail: 'Failed to get download URL' }));
+            throw new Error(error.detail || 'Failed to get download URL');
+        }
+        const data = await res.json();
+        return data.url;
     },
 
     /**

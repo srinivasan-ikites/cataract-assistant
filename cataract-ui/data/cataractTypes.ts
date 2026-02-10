@@ -20,6 +20,8 @@ export interface CataractType {
 
     symptoms: string[];
     eyeImage: string;
+    healthyEyeImage: string;         // Which healthy eye image to compare against
+    imageScale?: number;             // Zoom level for cataract image in slider (default 1)
     color: string;
     bgColor: string;
 }
@@ -68,7 +70,9 @@ export const ALL_CATARACT_TYPES: CataractType[] = [
         detailedDescription: 'Nuclear Sclerosis is the most common type of age-related cataract. It occurs when the central part of the lens (the nucleus) gradually hardens and turns yellow or brown over time. This process is a natural part of aging, typically beginning in middle age and progressing slowly.',
 
         symptoms: ['Yellowed vision', 'Difficulty with contrast', 'Gradual vision dimming', 'Changes in nearsightedness'],
-        eyeImage: '/assets/diagnosis/eye_nuclear_sclerosis.png',
+        eyeImage: '/assets/diagnosis/eye_nuclear_sclerosis1.png',
+        healthyEyeImage: '/assets/diagnosis/eye_healthy2.png',
+        imageScale: 1.05,
         color: '#F59E0B',
         bgColor: '#FEF3C7',
     },
@@ -110,7 +114,8 @@ export const ALL_CATARACT_TYPES: CataractType[] = [
         detailedDescription: 'Cortical Cataracts develop in the lens cortex, the outer edge of the lens. They appear as white, wedge-shaped opacities or spokes that start at the periphery and gradually extend toward the center of the lens, much like the spokes of a bicycle wheel.',
 
         symptoms: ['Glare from lights', 'Hazy vision', 'Difficulty with bright light', 'Night driving problems'],
-        eyeImage: '/assets/diagnosis/eye_cortical.png',
+        eyeImage: '/assets/diagnosis/eye_cortical1.png',
+        healthyEyeImage: '/assets/diagnosis/eye_healthy1.png',
         color: '#8B5CF6',
         bgColor: '#EDE9FE',
     },
@@ -155,7 +160,8 @@ export const ALL_CATARACT_TYPES: CataractType[] = [
         detailedDescription: 'Posterior Subcapsular Cataracts (PSC) develop at the back of the lens, directly in the path of light entering the eye. This location makes them particularly disruptive to vision, even when they are relatively small.',
 
         symptoms: ['Reading difficulty', 'Glare and halos', 'Worse vision in bright light', 'Rapid vision changes'],
-        eyeImage: '/assets/diagnosis/eye_posterior_subcapsular.png',
+        eyeImage: '/assets/diagnosis/eye_posterior_subcapsular1.png',
+        healthyEyeImage: '/assets/diagnosis/eye_healthy2.png',
         color: '#3B82F6',
         bgColor: '#DBEAFE',
     },
@@ -191,7 +197,8 @@ export const ALL_CATARACT_TYPES: CataractType[] = [
         detailedDescription: 'Combined Cataracts occur when multiple types of cataracts develop in the same eye simultaneously. The most common combination involves both Nuclear Sclerosis (central lens hardening) and Cortical Cataracts (spoke-like opacities from the edges).',
 
         symptoms: ['Blurred vision', 'Glare from headlights', 'Difficulty reading', 'Night driving problems', 'Faded colors'],
-        eyeImage: '/assets/diagnosis/eye_combined.png',
+        eyeImage: '/assets/diagnosis/eye_combined1.png',
+        healthyEyeImage: '/assets/diagnosis/eye_healthy2.png',
         color: '#EC4899',
         bgColor: '#FCE7F3',
     },
@@ -235,7 +242,8 @@ export const ALL_CATARACT_TYPES: CataractType[] = [
         detailedDescription: 'Congenital Cataracts are lens opacities that are present at birth or develop during early childhood. Unlike age-related cataracts, these form during the critical period of visual development.',
 
         symptoms: ['Present from birth', 'Variable severity', 'May affect one or both eyes', 'Previous childhood treatment possible'],
-        eyeImage: '/assets/diagnosis/eye_congenital.png',
+        eyeImage: '/assets/diagnosis/eye_congenital1.png',
+        healthyEyeImage: '/assets/diagnosis/eye_healthy1.png',
         color: '#10B981',
         bgColor: '#D1FAE5',
     },

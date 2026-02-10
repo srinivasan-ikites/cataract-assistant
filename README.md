@@ -96,18 +96,8 @@ admin emailid - admin@cataract.com
 password - admin
 
 <!-- clinic 1 -->
-vision-forever
-srinivasan@thekites.ai
-annaanna
+gitanjali@gmail.com
+gitanjali
 
-<!-- clinic 2 -->
-harry@gmail.com
-harry1
-james - 6666666666
-
-
-<!-- clinic 3 -->
-real-madrid
-ronaldo@gmail.com
-ronaldo
+latha Bhagia - 9999999999
 

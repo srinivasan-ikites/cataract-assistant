@@ -13,6 +13,7 @@ from .admin import router as admin_router
 from .users import router as users_router
 from .patient_auth import router as patient_auth_router
 from .dashboard import router as dashboard_router
+from .forms import router as forms_router
 
 # Create the main API router
 api_router = APIRouter()
@@ -28,5 +29,6 @@ api_router.include_router(admin_router)  # Super admin routes
 api_router.include_router(users_router)  # Clinic user management
 api_router.include_router(patient_auth_router)  # Patient OTP authentication
 api_router.include_router(dashboard_router)  # Dashboard statistics
+api_router.include_router(forms_router)  # Forms & Documents management
 
 __all__ = ["api_router"]

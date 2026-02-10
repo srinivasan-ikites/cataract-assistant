@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI application
 app = FastAPI(
-    title="Cataract Counsellor API",
+    title="Cataract Counselor API",
     description="API for the Cataract Surgery Counselling Assistant",
     version="2.0.0",
     lifespan=lifespan,

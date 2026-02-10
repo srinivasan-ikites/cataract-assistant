@@ -80,6 +80,68 @@ def get_patient_data(patient_id: str, clinic_id: str = None) -> dict:
         raise ValueError(f"Error fetching patient: {e}")
 
 
+def save_extraction_to_patient(clinic_id: str, patient_id: str, extraction: dict) -> None:
+    """
+    Save Gemini extraction data directly to the patients table in Supabase.
+
+    Called after document upload + extraction so the data persists in the database
+    rather than only in local JSON files.
+
+    Args:
+        clinic_id: The clinic slug (e.g., "vision-care")
+        patient_id: The clinic's internal patient ID (e.g., "001")
+        extraction: The extraction result from Gemini Vision
+    """
+    print(f"[SupabaseDataLoader] Saving extraction to Supabase: {clinic_id}/{patient_id}")
+
+    client = get_supabase_admin_client()
+    if not client:
+        raise ValueError("Database connection not available")
+
+    # Get clinic UUID
+    clinic_result = client.table("clinics").select("id").eq("clinic_id", clinic_id).single().execute()
+    if not clinic_result.data:
+        raise ValueError(f"Clinic '{clinic_id}' not found")
+    clinic_uuid = clinic_result.data["id"]
+
+    # Find patient
+    patient_result = client.table("patients").select("id, status").eq("clinic_id", clinic_uuid).eq("patient_id", patient_id).single().execute()
+    if not patient_result.data:
+        raise ValueError(f"Patient '{patient_id}' not found in clinic '{clinic_id}'")
+
+    patient_uuid = patient_result.data["id"]
+    current_status = patient_result.data.get("status")
+
+    # Build update from extraction fields
+    update_data = {}
+
+    identity = extraction.get("patient_identity", {})
+    if identity.get("first_name"):
+        update_data["first_name"] = identity["first_name"]
+    if identity.get("last_name"):
+        update_data["last_name"] = identity["last_name"]
+    if identity.get("dob"):
+        update_data["dob"] = identity["dob"]
+    if identity.get("gender"):
+        update_data["gender"] = identity["gender"]
+
+    if "medical_profile" in extraction:
+        update_data["medical_profile"] = extraction["medical_profile"]
+    if "clinical_context" in extraction:
+        update_data["clinical_context"] = extraction["clinical_context"]
+    if "lifestyle_profile" in extraction:
+        update_data["lifestyle_profile"] = extraction["lifestyle_profile"]
+
+    # Update status to 'extracted' if still pending
+    if current_status in [None, "pending", "new"]:
+        update_data["status"] = "extracted"
+
+    update_data["updated_at"] = "now()"
+
+    client.table("patients").update(update_data).eq("id", patient_uuid).execute()
+    print(f"[SupabaseDataLoader] Extraction saved to Supabase: {clinic_id}/{patient_id}")
+
+
 def get_patient_by_uuid(patient_uuid: str) -> dict:
     """
     Get patient data by UUID (database primary key).
@@ -198,6 +260,9 @@ def _transform_patient_for_frontend(patient: dict) -> dict:
         # AI content
         "module_content": patient.get("module_content", {}),
         "chat_history": patient.get("chat_history", []),
+
+        # Forms & Documents
+        "forms": patient.get("forms", {}),
 
         # Status
         "status": patient.get("status"),

@@ -110,7 +110,7 @@ const iolOptions: IOLOption[] = [
             'If you have astigmatism, you may also need glasses for distance',
             'Does not correct astigmatism (unless Toric version or laser correction is used)'
         ],
-        toricInfo: 'A Monofocal Toric IOL is available to correct moderate to high astigmatism, giving you sharper distance vision without glasses. For low levels of astigmatism, your doctor may recommend laser-assisted surgery as an alternative.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision at all distances — a Monofocal Toric IOL can correct it, giving you sharper distance vision without glasses. For low levels of astigmatism, your doctor may recommend laser-assisted surgery as an alternative.'
     },
     {
         id: 'multifocal',
@@ -128,7 +128,7 @@ const iolOptions: IOLOption[] = [
             'Your brain needs time to adapt (usually 3-6 months)',
             'Premium cost not covered by insurance'
         ],
-        toricInfo: 'If you have astigmatism, a Toric Multifocal IOL can correct it while also providing vision at all distances. For low levels of astigmatism, laser correction during surgery may be an alternative option.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision — a Toric Multifocal IOL can correct it while also providing clear vision at all distances. For low levels of astigmatism, laser correction during surgery may be an alternative option.'
     },
     {
         id: 'edof',
@@ -146,7 +146,7 @@ const iolOptions: IOLOption[] = [
             'Does not provide full near vision like multifocal',
             'Premium cost not covered by insurance'
         ],
-        toricInfo: 'Toric EDOF lenses are available to correct astigmatism while providing the extended range of vision. For low levels of astigmatism, laser correction may be an alternative option.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision — a Toric EDOF lens can correct it while still providing the extended range of vision. For low levels of astigmatism, laser correction may be an alternative option.'
     },
     {
         id: 'lal',
@@ -166,7 +166,7 @@ const iolOptions: IOLOption[] = [
             'Multiple follow-up visits needed for light adjustment treatments',
             'Premium cost not covered by insurance'
         ],
-        toricInfo: 'The LAL can treat astigmatism with extreme precision during the light adjustment phase. This allows fine-tuning after surgery to ensure the sharpest possible vision.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision — the LAL can correct it with extreme precision during the light adjustment phase. This allows fine-tuning after surgery to ensure the sharpest possible vision.'
     }
 ];
 
@@ -250,6 +250,20 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                                     </div>
                                 </button>
                             ))}
+                        </div>
+
+                        {/* What is Astigmatism? Section */}
+                        <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-6 mb-12 flex gap-4 items-start shadow-sm">
+                            <AlertCircle className="flex-shrink-0 text-blue-600 mt-0.5" size={26} />
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-3">What is Astigmatism?</h3>
+                                <p className="text-slate-700 leading-relaxed text-xl mb-4">
+                                    Astigmatism is when your <strong className="text-blue-700">cornea</strong> (the clear front surface of your eye) is curved more like a <strong className="text-blue-700">football</strong> than a basketball. This irregular shape causes blurry or distorted vision at all distances.
+                                </p>
+                                <p className="text-slate-700 leading-relaxed text-xl">
+                                    A <strong className="text-blue-700">Toric lens</strong> is a special version of any IOL that is designed to correct astigmatism during your cataract surgery. If your doctor has identified astigmatism, you will see a Toric option available within each lens type above.
+                                </p>
+                            </div>
                         </div>
 
                         {/* FAQs Section - Always render with hardcoded FAQs */}
@@ -376,9 +390,9 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                                 <div className="bg-blue-50 rounded-3xl p-8 relative overflow-hidden">
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <h3 className="text-xl font-bold text-slate-900">About the Toric Option</h3>
+                                            <h3 className="text-xl font-bold text-slate-900">If You Have Astigmatism</h3>
                                             <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase rounded tracking-wide">
-                                                Astigmatism Correction
+                                                Toric Lens
                                             </span>
                                         </div>
                                         <p className="text-blue-900 leading-relaxed text-base">
