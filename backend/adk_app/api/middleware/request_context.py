@@ -30,6 +30,12 @@ from starlette.responses import Response
 
 from adk_app.api.middleware.patient_token import decode_patient_token
 
+try:
+    import newrelic.agent
+    HAS_NEW_RELIC = True
+except ImportError:
+    HAS_NEW_RELIC = False
+
 
 def generate_request_id() -> str:
     """Generate a short unique request ID."""
@@ -93,6 +99,38 @@ def format_user_context(context: dict) -> str:
         parts.append(f"role:{context['role']}")
 
     return " ".join(f"[{p}]" for p in parts)
+
+
+def set_newrelic_attributes(request: Request, user_context: dict, request_id: str, status_code: int = 0, duration_ms: float = 0, error: str = None):
+    """Tag the current New Relic transaction with user context and request details."""
+    if not HAS_NEW_RELIC:
+        return
+    try:
+        newrelic.agent.add_custom_attribute('request_id', request_id)
+        newrelic.agent.add_custom_attribute('endpoint', f"{request.method} {request.url.path}")
+        newrelic.agent.add_custom_attribute('http_method', request.method)
+        newrelic.agent.add_custom_attribute('url_path', request.url.path)
+
+        if status_code:
+            newrelic.agent.add_custom_attribute('http_status', status_code)
+        if duration_ms:
+            newrelic.agent.add_custom_attribute('duration_ms', round(duration_ms, 1))
+
+        # User context
+        if user_context.get("user"):
+            newrelic.agent.add_custom_attribute('user_email', user_context["user"])
+        if user_context.get("patient_id"):
+            newrelic.agent.add_custom_attribute('patient_id', user_context["patient_id"])
+        if user_context.get("clinic"):
+            newrelic.agent.add_custom_attribute('clinic_id', user_context["clinic"])
+        if user_context.get("role"):
+            newrelic.agent.add_custom_attribute('user_role', user_context["role"])
+
+        # Error context
+        if error:
+            newrelic.agent.add_custom_attribute('error_message', str(error)[:500])
+    except Exception:
+        pass  # Never let NR instrumentation break the app
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -164,6 +202,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             status_text = "OK" if response.status_code < 400 else "ERROR"
             print(f"[REQ-{request_id}] {context_str} <- {response.status_code} {status_text} ({duration_ms:.0f}ms)")
 
+            # Tag New Relic transaction with user context
+            set_newrelic_attributes(request, user_context, request_id, response.status_code, duration_ms)
+
             # Add request ID to response headers (useful for debugging)
             response.headers["X-Request-ID"] = request_id
 
@@ -175,4 +216,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             user_context = get_user_context(request)
             context_str = format_user_context(user_context)
             print(f"[REQ-{request_id}] {context_str} <- 500 EXCEPTION ({duration_ms:.0f}ms): {exc}")
+
+            # Tag New Relic with error context
+            set_newrelic_attributes(request, user_context, request_id, 500, duration_ms, error=str(exc))
+
             raise
