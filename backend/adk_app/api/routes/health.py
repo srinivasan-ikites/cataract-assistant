@@ -156,6 +156,12 @@ def clinic_access_test(user: AuthenticatedUser = Depends(require_clinic_user)):
     }
 
 
+@router.get("/healthz/test-error")
+def test_error() -> dict:
+    """Temporary test endpoint to trigger a 500 error for New Relic alert testing. REMOVE AFTER TESTING."""
+    raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify New Relic alerting pipeline")
+
+
 @router.get("/healthz/storage-debug")
 def storage_debug() -> dict:
     """
