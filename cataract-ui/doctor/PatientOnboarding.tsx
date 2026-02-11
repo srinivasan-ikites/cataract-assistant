@@ -1019,6 +1019,18 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
               {/* Packages grouped by category */}
               {(() => {
+                if (surgicalPackages.length === 0) {
+                  return (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                      <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">No clinical packages configured</p>
+                        <p className="text-xs text-amber-600 mt-0.5">Please go to Clinic Setup → Surgical Packages to add packages before offering them to patients.</p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const samePlanBothEyes = data?.surgical_plan?.same_plan_both_eyes ?? true;
                 const odCandidacy = data?.surgical_plan?.candidacy_profile?.od_right || {};
                 const osCandidacy = data?.surgical_plan?.candidacy_profile?.os_left || {};
@@ -1108,7 +1120,6 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 };
 
                 const visibleCategories = packageCategories.filter(cat => cat.alwaysShow || cat.showWhen);
-                const hiddenCategories = packageCategories.filter(cat => !cat.alwaysShow && !cat.showWhen);
 
                 // Helper to get visible categories for a specific eye
                 const getVisibleCategoriesForEye = (eye: 'od' | 'os') => {
@@ -1334,61 +1345,6 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       );
                     })}
 
-                    {/* Hidden categories (not matching candidacy) */}
-                    {hiddenCategories.length > 0 && (
-                      <div className="border-t border-slate-100 pt-4">
-                        <button
-                          onClick={() => setExpanded(p => ({ ...p, otherPackages: !p.otherPackages }))}
-                          className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
-                        >
-                          <ChevronDown size={14} className={`transition-transform ${expanded.otherPackages ? 'rotate-180' : ''}`} />
-                          {hiddenCategories.length} additional categories (patient not currently a candidate)
-                        </button>
-                        {expanded.otherPackages && (
-                          <div className="space-y-3 mt-3 opacity-60">
-                            {hiddenCategories.map(category => {
-                              const colors = colorClasses[category.color];
-                              const categoryPackages = surgicalPackages.filter(pkg => category.packages.includes(pkg.package_id));
-                              if (categoryPackages.length === 0) return null;
-
-                              return (
-                                <div key={category.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                  <p className="text-xs font-bold text-slate-600 mb-2">{category.title}</p>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {categoryPackages.map(pkg => {
-                                      const isOffered = offeredPackages.includes(pkg.package_id);
-                                      return (
-                                        <div
-                                          key={pkg.package_id}
-                                          onClick={() => {
-                                            const newList = isOffered
-                                              ? offeredPackages.filter((id: string) => id !== pkg.package_id)
-                                              : [...offeredPackages, pkg.package_id];
-                                            updateNestedField('surgical_plan.offered_packages', newList);
-                                          }}
-                                          className={`p-2.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-                                            isOffered ? 'bg-indigo-100 border-indigo-300' : 'bg-white border-slate-200 hover:border-slate-300'
-                                          }`}
-                                        >
-                                          <span className={`text-xs font-medium ${isOffered ? 'text-indigo-700' : 'text-slate-600'}`}>
-                                            {pkg.display_name}
-                                          </span>
-                                          <div className={`w-4 h-4 rounded flex items-center justify-center ${
-                                            isOffered ? 'bg-indigo-600' : 'border border-slate-300'
-                                          }`}>
-                                            {isOffered && <Check size={10} className="text-white" />}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Summary of offered packages */}
                     {offeredPackages.length > 0 && (
