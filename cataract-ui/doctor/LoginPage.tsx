@@ -9,7 +9,8 @@
  */
 
 import React, { useState, FormEvent } from 'react';
-import { Eye, EyeOff, LogIn, Building2, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LoginPageProps {
@@ -66,14 +67,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onRegister }) => 
             <div className="relative w-full max-w-md">
                 {/* Logo and Title */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-200 mb-4">
-                        <Building2 className="text-white" size={32} />
+                    <div className="inline-block mb-1">
+                        <Logo size="xl" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                        Cataract Counselor
+                    <h1 className="text-3xl font-bold tracking-tight"
+                        style={{
+                            background: 'linear-gradient(135deg, #06b6d4, #1e3a8a)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                        }}
+                    >
+                        Mira
                     </h1>
-                    <p className="text-slate-500 mt-1 text-sm font-medium">
-                        Sign in to your clinic portal
+                    <p className="text-slate-400 mt-2 text-sm tracking-wide">
+                        Your AI Assistant for Cataract Patient Education
                     </p>
                 </div>
 
@@ -192,7 +199,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onRegister }) => 
                     {/* Help Text */}
                     <div className="text-center text-sm text-slate-500 space-y-2">
                         <p>
-                            New clinic?{' '}
+                            Don't have an account?{' '}
                             <button
                                 type="button"
                                 className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
@@ -216,7 +223,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onRegister }) => 
 
                 {/* Footer */}
                 <p className="text-center text-xs text-slate-400 mt-6">
-                    &copy; {new Date().getFullYear()} Cataract Counselor. All rights reserved.
+                    &copy; {new Date().getFullYear()} Mira. All rights reserved.
                 </p>
             </div>
 

@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { api } from '../services/api';
+import Logo from '../components/Logo';
 
 interface ClinicRegistrationProps {
   onBack: () => void;
@@ -202,8 +203,8 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-            <Building2 className="text-white" size={28} />
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Register Your Clinic</h1>
           <p className="text-slate-500 mt-1">

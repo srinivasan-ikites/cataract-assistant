@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Calendar, Building2, ShieldCheck, LogOut } from 'lucide-react';
+import { User, Calendar, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from '../theme';
 
 interface HeaderProps {
@@ -82,10 +82,7 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Title & clinic pill */}
         <div className="flex items-center gap-3">
-          <div className={`hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ${accent.guidePill}`}>
-            <Building2 size={14} />
-            <span>Cataract Surgery Guide</span>
-          </div>
+          {/* Removed Mira branding — this is the clinic's patient portal */}
           <div className={`flex items-center gap-2 ${accent.badge} ${accent.badgeIcon} rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm`}>
             <ShieldCheck size={14} className={accent.badgeIcon} />
             <span>Education Portal</span>

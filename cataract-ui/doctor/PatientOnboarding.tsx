@@ -75,7 +75,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
     postop_meds: false,
     documents: false,
   });
-  const [showUploads, setShowUploads] = useState(true);
+  const [showUploads, setShowUploads] = useState(false);
   const [showAllUploads, setShowAllUploads] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -243,6 +243,13 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
     };
     loadData();
   }, [clinicId, patientId]);
+
+  // Auto-show upload panel only for new patients (no data yet)
+  useEffect(() => {
+    if (!loading) {
+      setShowUploads(status === 'idle');
+    }
+  }, [loading, status]);
 
   // Load forms data when documents section is expanded
   useEffect(() => {
@@ -664,26 +671,33 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
       {/* Clinical Alerts */}
       {clinicalAlerts.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-amber-100 rounded-lg"><AlertTriangle size={18} className="text-amber-600" /></div>
-            <div>
-              <h3 className="font-bold text-amber-900">Clinical Alerts</h3>
-              <p className="text-xs text-amber-600">{clinicalAlerts.length} alert{clinicalAlerts.length > 1 ? 's' : ''} require attention</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {clinicalAlerts.map((alert: any, idx: number) => (
-              <div key={idx} className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-amber-100">
-                <AlertCircle size={16} className="text-amber-500 mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-amber-800">{alert.trigger}</p>
-                  <p className="text-xs text-amber-600 mt-0.5">{alert.alert_msg}</p>
-                </div>
-                <button onClick={() => updateNestedField('clinical_context.clinical_alerts', clinicalAlerts.filter((_: any, i: number) => i !== idx))} className="text-amber-300 hover:text-amber-600"><X size={14} /></button>
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 overflow-hidden">
+          <button
+            onClick={() => setExpanded(p => ({ ...p, alerts: !p.alerts }))}
+            className="w-full flex items-center justify-between p-4 hover:bg-amber-50/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-lg"><AlertTriangle size={18} className="text-amber-600" /></div>
+              <div className="text-left">
+                <h3 className="font-bold text-amber-900">Clinical Alerts</h3>
+                <p className="text-xs text-amber-600">{clinicalAlerts.length} alert{clinicalAlerts.length > 1 ? 's' : ''} require attention</p>
               </div>
-            ))}
-          </div>
+            </div>
+            <ChevronDown size={18} className={`text-amber-400 transition-transform ${expanded.alerts ? 'rotate-180' : ''}`} />
+          </button>
+          {expanded.alerts && (
+            <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+              {clinicalAlerts.map((alert: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-amber-100">
+                  <AlertCircle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-800">{alert.trigger}</p>
+                    <p className="text-xs text-amber-600 mt-0.5">{alert.alert_msg}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

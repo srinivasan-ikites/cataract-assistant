@@ -24,6 +24,7 @@ import ClinicSetup from './ClinicSetup';
 import UserManagement from './UserManagement';
 import { api, Clinic, DashboardResponse } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 
 type View = 'dashboard' | 'onboarding' | 'clinic' | 'patients' | 'appointments' | 'team';
 
@@ -390,8 +391,8 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
               onClick={() => sidebarCollapsed && toggleSidebar()}
               title={sidebarCollapsed ? 'Expand sidebar' : undefined}
             >
-              <div className={`w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-100 transition-transform duration-500 group-hover:scale-105 shrink-0 ${sidebarCollapsed ? 'hover:ring-2 hover:ring-blue-300' : ''}`}>
-                <Building2 className="text-white" size={20} strokeWidth={2.5} />
+              <div className={`shrink-0 transition-transform duration-500 group-hover:scale-105 ${sidebarCollapsed ? '' : ''}`}>
+                <Logo size="sm" />
               </div>
               <span className={`font-bold text-lg tracking-tight text-blue-900 transition-all duration-300 truncate ${
                 sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100 max-w-[140px]'

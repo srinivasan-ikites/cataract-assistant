@@ -136,31 +136,95 @@ const ExtractionLoader: React.FC<{ fileCount: number }> = ({ fileCount }) => {
   const currentMessage = EXTRACTION_PHASES[currentPhase]?.messages[messageIndex] || 'Processing...';
 
   return (
-    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white via-blue-50/50 to-indigo-50/50 backdrop-blur-sm flex flex-col items-center justify-center p-6 z-10">
+    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white via-blue-50 to-indigo-50 flex flex-col items-center justify-center p-6 z-10">
+      <style>{`
+        @keyframes lensFocus {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.08); }
+        }
+        @keyframes medicalPulse {
+          0%, 100% { transform: scale(1); opacity: 0.7; }
+          50% { transform: scale(1.1); opacity: 1; }
+        }
+        @keyframes medicalFloat {
+          0%, 100% { opacity: 0.2; filter: blur(0.5px); }
+          50% { opacity: 0.9; filter: blur(0px); }
+        }
+      `}</style>
       {/* Main loader animation */}
-      <div className="relative mb-6">
-        {/* Outer pulsing ring */}
-        <div className="absolute inset-0 w-24 h-24 rounded-full bg-blue-100 animate-ping opacity-20" />
-
-        {/* Middle rotating ring */}
-        <div className="absolute inset-2 w-20 h-20 rounded-full border-2 border-dashed border-blue-200 animate-[spin_8s_linear_infinite]" />
-
-        {/* Inner gradient ring */}
+      <div className="relative mb-6 flex items-center justify-center" style={{ width: 140, height: 140 }}>
+        {/* Soft ambient glow */}
         <div
-          className="absolute inset-3 w-18 h-18 rounded-full animate-[spin_3s_linear_infinite]"
+          className="absolute rounded-full animate-[medicalPulse_3s_ease-in-out_infinite]"
           style={{
-            width: 72,
-            height: 72,
-            background: 'conic-gradient(from 0deg, transparent, #3B82F6, #6366F1, transparent)',
-            mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px))',
-            WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px))',
+            width: 140,
+            height: 140,
+            background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, rgba(59,130,246,0.03) 50%, transparent 70%)',
           }}
         />
 
-        {/* Center icon */}
-        <div className="relative w-24 h-24 flex items-center justify-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-200 flex items-center justify-center">
-            <CurrentIcon className="text-white animate-pulse" size={28} />
+        {/* Outer orbit with glowing dot */}
+        <div
+          className="absolute rounded-full animate-[spin_7s_linear_infinite]"
+          style={{ width: 120, height: 120 }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 6, height: 6, top: -3, left: '50%', marginLeft: -3,
+              background: 'linear-gradient(135deg, #6366F1, #3B82F6)',
+              boxShadow: '0 0 8px 2px rgba(99,102,241,0.5)',
+            }}
+          />
+        </div>
+
+        {/* Inner orbit with smaller dot — counter-rotation */}
+        <div
+          className="absolute rounded-full animate-[spin_4s_linear_infinite_reverse]"
+          style={{ width: 95, height: 95 }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 4, height: 4, top: -2, left: '50%', marginLeft: -2,
+              background: 'linear-gradient(135deg, #818CF8, #60A5FA)',
+              boxShadow: '0 0 6px 1px rgba(129,140,248,0.5)',
+            }}
+          />
+        </div>
+
+        {/* Subtle track rings */}
+        <div className="absolute rounded-full border border-indigo-100/50" style={{ width: 120, height: 120 }} />
+        <div className="absolute rounded-full border border-blue-100/30" style={{ width: 95, height: 95 }} />
+
+        {/* Floating particles */}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="absolute rounded-full animate-[medicalFloat_ease-in-out_infinite]"
+            style={{
+              width: 3, height: 3,
+              background: i % 2 === 0 ? 'rgba(99,102,241,0.4)' : 'rgba(59,130,246,0.35)',
+              boxShadow: i % 2 === 0 ? '0 0 4px rgba(99,102,241,0.3)' : '0 0 4px rgba(59,130,246,0.25)',
+              top: '50%', left: '50%',
+              transform: `rotate(${(360 / 5) * i}deg) translateY(-55px)`,
+              animationDuration: `${3.5 + i * 0.7}s`,
+              animationDelay: `${i * 0.5}s`,
+            }}
+          />
+        ))}
+
+        {/* Center icon with lens focus */}
+        <div className="relative z-10 animate-[lensFocus_3s_ease-in-out_infinite]">
+          <div
+            className="rounded-2xl flex items-center justify-center"
+            style={{
+              width: 56, height: 56,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.3), 0 1px 4px rgba(0,0,0,0.1)',
+            }}
+          >
+            <CurrentIcon className="text-white" size={26} />
           </div>
         </div>
       </div>

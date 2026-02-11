@@ -53,7 +53,7 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ onSelect }) => {
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
             <div className="max-w-4xl w-full">
                 <div className="text-center mb-12">
-                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Welcome to Cataract Counselor</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Welcome to Mira</h1>
                     <p className="text-slate-600 text-lg">Select a patient profile to begin the session.</p>
                 </div>
 

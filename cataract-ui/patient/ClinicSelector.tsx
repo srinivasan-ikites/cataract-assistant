@@ -65,7 +65,7 @@ const ClinicSelector: React.FC = () => {
           size="xl"
           variant="medical"
           message="Loading clinics"
-          subMessage="Please wait..."
+          // subMessage="Please wait..."
         />
       </div>
     );

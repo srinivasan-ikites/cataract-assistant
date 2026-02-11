@@ -17,6 +17,7 @@ import ClinicRegistration from './doctor/ClinicRegistration';
 import AdminDashboard from './doctor/AdminDashboard';
 import { ToastProvider } from './components/Toast';
 import Loader, { LoaderStyles } from './components/Loader';
+import Logo from './components/Logo';
 import { patientAuthStorage, patientAuthApi } from './services/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -306,6 +307,7 @@ const PatientLoginRoute: React.FC = () => {
   const navigate = useNavigate();
 
   const [clinicName, setClinicName] = useState<string>('');
+  const [clinicLogoUrl, setClinicLogoUrl] = useState<string | undefined>(undefined);
   const [clinicLoading, setClinicLoading] = useState(true);
   const [clinicError, setClinicError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -326,6 +328,7 @@ const PatientLoginRoute: React.FC = () => {
         setClinicLoading(true);
         const clinic = await api.getClinicDetails(clinicId);
         setClinicName(clinic.clinic_profile?.name || clinicId);
+        setClinicLogoUrl(clinic.clinic_profile?.branding?.logo_url || undefined);
         setClinicError(null);
       } catch (err: any) {
         console.error('[PatientLoginRoute] Failed to load clinic:', err);
@@ -414,6 +417,7 @@ const PatientLoginRoute: React.FC = () => {
     <PatientLogin
       clinicId={clinicId!}
       clinicName={clinicName}
+      clinicLogoUrl={clinicLogoUrl}
       onLoginSuccess={handleLoginSuccess}
     />
   );
@@ -803,7 +807,7 @@ const PatientRoute: React.FC = () => {
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   onClick={() => setIsChatOpen(true)}
-                  className="px-5 py-3 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                  className={`px-5 py-3 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all ${classes.buttonPrimary}`}
                 >
                   Ask a question
                 </button>
@@ -937,13 +941,9 @@ const AdminRouteContent: React.FC = () => {
       {/* Admin Header */}
       <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
+          <Logo size="sm" />
           <div>
-            <h1 className="font-bold text-slate-900">Cataract Counselor</h1>
+            <h1 className="font-bold text-slate-900">Mira</h1>
             <p className="text-xs text-slate-500">Super Admin Portal</p>
           </div>
         </div>
@@ -1178,7 +1178,7 @@ const DemoRoute: React.FC = () => {
                 Explore the interactive guide below to understand every step of your cataract surgery with confidence.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <button onClick={() => setIsChatOpen(true)} className="px-5 py-3 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                <button onClick={() => setIsChatOpen(true)} className={`px-5 py-3 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all ${classes.buttonPrimary}`}>
                   Ask a question
                 </button>
                 <button onClick={() => { if (modules.length) setSelectedModule(modules[0]); }} className="px-5 py-3 rounded-full bg-white/70 text-slate-800 text-sm font-semibold border border-slate-200 shadow hover:border-slate-300 transition-all">

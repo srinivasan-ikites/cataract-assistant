@@ -1,0 +1,143 @@
+{
+  "clinic_profile": {
+    "clinic_id": "garuda-clinic",
+    "name": "Garuda Clinic",
+    "parent_organization": "",
+    "address": {
+      "street": "321 Main Street",
+      "city": "Delhi",
+      "state": "DL",
+      "zip": "110034"
+    },
+    "contact_info": {
+      "phone_main": "",
+      "phone_surgical_coordinator": "",
+      "fax": "",
+      "emergency_hotline": "",
+      "website": "",
+      "phone": "(777) 777 7777"
+    },
+    "branding": {
+      "logo_url": "",
+      "primary_color_hex": ""
+    }
+  },
+  "staff_directory": [],
+  "surgical_packages": [],
+  "lens_inventory": {
+    "MONOFOCAL": {
+      "display_name": "Standard Monofocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "MONOFOCAL_TORIC": {
+      "display_name": "Monofocal Toric",
+      "description": "",
+      "parent_category": "MONOFOCAL",
+      "is_toric": true,
+      "models": [
+        {
+          "model": "",
+          "model_code": "",
+          "description": "",
+          "toric_range": "",
+          "manufacturer": ""
+        }
+      ]
+    },
+    "EDOF": {
+      "display_name": "Extended Depth of Focus",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "EDOF_TORIC": {
+      "display_name": "EDOF Toric",
+      "description": "",
+      "parent_category": "EDOF",
+      "is_toric": true,
+      "models": []
+    },
+    "MULTIFOCAL": {
+      "display_name": "Multifocal / Trifocal",
+      "description": "",
+      "has_toric_variant": true,
+      "models": []
+    },
+    "MULTIFOCAL_TORIC": {
+      "display_name": "Multifocal Toric",
+      "description": "",
+      "parent_category": "MULTIFOCAL",
+      "is_toric": true,
+      "models": []
+    },
+    "LAL": {
+      "display_name": "Light Adjustable Lens",
+      "description": "",
+      "has_toric_variant": false,
+      "models": []
+    }
+  },
+  "medications": {
+    "pre_op": {
+      "antibiotics": [],
+      "frequencies": [],
+      "default_start_days_before_surgery": 3
+    },
+    "post_op": {
+      "antibiotics": [],
+      "nsaids": [],
+      "steroids": [],
+      "glaucoma_drops": [],
+      "combination_drops": [],
+      "dropless_option": {
+        "available": false,
+        "description": "",
+        "medications": []
+      }
+    },
+    "frequency_options": []
+  },
+  "standard_operating_procedures": {
+    "procedure_codes": [],
+    "risks_categorized": {
+      "common_minor": [],
+      "rare_serious": []
+    }
+  },
+  "billing_and_insurance": {
+    "payment_policy": "",
+    "post_op_refraction_fee": {
+      "amount": 0,
+      "description": ""
+    },
+    "anesthesia_billing": "",
+    "accepted_insurance_notes": "",
+    "payment_methods": [],
+    "financing": {
+      "available": false,
+      "providers": [],
+      "zero_interest_months": 0,
+      "minimum_amount": 0
+    }
+  },
+  "documents": {
+    "standard_forms": []
+  },
+  "metadata": {
+    "schema_version": "2.1.0",
+    "created_at": "",
+    "updated_at": "",
+    "updated_by": ""
+  },
+  "_uuid": "cd671ab0-94e6-43a8-94ef-3d019330394f",
+  "_status": "active"
+}

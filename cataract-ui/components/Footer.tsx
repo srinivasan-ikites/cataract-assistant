@@ -1,6 +1,7 @@
 import React from 'react';
-import { Phone, Building2, Stethoscope, ShieldCheck } from 'lucide-react';
+import { Phone, Eye, Stethoscope, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../theme';
+import Logo from './Logo';
 import type { Clinic, Patient } from '../services/api';
 
 type FooterProps = {
@@ -34,25 +35,36 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
 
   const clinicName = clinicProfile?.name || 'Clinic';
   const clinicTagline = clinicProfile?.parent_organization || 'Excellence in Eye Care';
+  const clinicLogoUrl = clinicProfile?.branding?.logo_url;
   const phone = clinicProfile?.contact_info?.phone_work || 'Contact clinic';
 
   return (
-    <footer className="w-full bg-slate-950 text-slate-200 mt-auto">
+    <footer className={`w-full ${classes.footerBg} text-slate-200 mt-auto`}>
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-sm">
 
+          {/* Clinic identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-white shadow-sm">
-              <Building2 size={18} />
-            </div>
+            {clinicLogoUrl ? (
+              <img
+                src={clinicLogoUrl}
+                alt={clinicName}
+                className="w-10 h-10 rounded-full object-contain bg-white/10 p-1"
+              />
+            ) : (
+              <div className={`w-10 h-10 rounded-full ${classes.footerAccent} flex items-center justify-center`}>
+                <Eye size={18} />
+              </div>
+            )}
             <div>
               <p className="font-semibold text-white">{clinicName}</p>
               <p className="text-slate-400">{clinicTagline}</p>
             </div>
           </div>
 
+          {/* Surgeon */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
+            <div className={`w-10 h-10 rounded-full ${classes.footerAccent} flex items-center justify-center`}>
               <Stethoscope size={18} />
             </div>
             <div>
@@ -61,8 +73,9 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
             </div>
           </div>
 
+          {/* Contact */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
+            <div className={`w-10 h-10 rounded-full ${classes.footerAccent} flex items-center justify-center`}>
               <Phone size={18} />
             </div>
             <div className="text-right md:text-left">
@@ -70,7 +83,7 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
               {clinicProfile?.contact_info?.phone_work ? (
                 <a
                   href={`tel:${clinicProfile.contact_info.phone_work.replace(/[^0-9+]/g, '')}`}
-                  className="text-cyan-200 hover:text-white transition-colors"
+                  className={`${classes.footerLink} transition-colors`}
                 >
                   {phone}
                 </a>
@@ -81,13 +94,21 @@ const Footer: React.FC<FooterProps> = ({ clinic, patient }) => {
           </div>
 
         </div>
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-2 text-xs text-slate-500">
-          <div className="flex items-center gap-2 text-slate-300">
-            <ShieldCheck size={14} />
-            <span>Trusted cataract care</span>
+
+        {/* Bottom bar */}
+        <div className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-4 border-t ${classes.footerBorder}`}>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 text-xs text-slate-500">
+            <div className={`flex items-center gap-2 ${classes.footerIcon}`}>
+              <ShieldCheck size={14} />
+              <span>Trusted cataract care</span>
+            </div>
+            <span className="hidden md:inline text-slate-700">&middot;</span>
+            <div className="text-slate-500">&copy; {new Date().getFullYear()} {clinicName}. All rights reserved.</div>
           </div>
-          <span className="hidden md:inline text-slate-700">•</span>
-          <div className="text-slate-400">&copy; {new Date().getFullYear()} Visionary Eye Center. All rights reserved.</div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>Powered by</span>
+            <Logo size="sm" />
+          </div>
         </div>
       </div>
     </footer>

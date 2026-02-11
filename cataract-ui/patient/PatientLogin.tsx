@@ -16,20 +16,22 @@ import {
   AlertCircle,
   CheckCircle,
   RefreshCw,
-  Shield,
   Eye,
+  ShieldCheck,
 } from 'lucide-react';
 import { patientAuthApi, RequestOTPResponse } from '../services/api';
+import Logo from '../components/Logo';
 
 interface PatientLoginProps {
   clinicId: string;
   clinicName?: string;
+  clinicLogoUrl?: string;
   onLoginSuccess: () => void;
 }
 
 type Step = 'phone' | 'otp';
 
-const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLoginSuccess }) => {
+const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, clinicLogoUrl, onLoginSuccess }) => {
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -206,31 +208,71 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const displayName = clinicName || clinicId;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      {/* Background Pattern */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4">
+      {/* Subtle background pattern */}
       <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        className="absolute inset-0 opacity-[0.02] pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
+          backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
         }}
       />
 
       <div className="relative w-full max-w-md">
-        {/* Header */}
+        {/* ── Header: Clinic Identity ── */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-200 mb-4">
-            <Shield className="text-white" size={32} />
+          {/* Clinic Logo or Fallback */}
+          <div className="inline-flex items-center justify-center mb-4">
+            {clinicLogoUrl ? (
+              <img
+                src={clinicLogoUrl}
+                alt={displayName}
+                className="h-16 w-auto object-contain"
+              />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-2xl flex items-center justify-center border border-sky-200/50">
+                <Eye className="text-sky-600" size={30} />
+              </div>
+            )}
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Patient Portal</h1>
-          {clinicName && (
-            <p className="text-slate-500 mt-1">{clinicName}</p>
-          )}
+
+          {/* Clinic Name — the hero */}
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {displayName}
+          </h1>
+          <p className="text-slate-500 mt-2 text-base font-medium">
+            Access your personalized cataract surgery guide
+          </p>
         </div>
 
-        {/* Card */}
+        {/* ── Card ── */}
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
+          {/* Step indicator */}
+          <div className="flex items-center gap-3 mb-6 pb-5 border-b border-slate-100">
+            <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+              step === 'phone'
+                ? 'bg-blue-600 text-white'
+                : 'bg-emerald-500 text-white'
+            }`}>
+              {step === 'otp' ? <CheckCircle size={14} /> : '1'}
+            </div>
+            <div className="flex-1 h-0.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className={`h-full bg-blue-500 rounded-full transition-all duration-500 ${
+                step === 'otp' ? 'w-full' : 'w-0'
+              }`} />
+            </div>
+            <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+              step === 'otp'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-200 text-slate-400'
+            }`}>
+              2
+            </div>
+          </div>
+
           {/* Dev Mode OTP Toast */}
           {devOtp && step === 'otp' && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 animate-[fadeIn_0.3s_ease-out]">
@@ -259,7 +301,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
             /* Step 1: Phone Number */
             <form onSubmit={handlePhoneSubmit}>
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-base font-semibold text-slate-700 mb-2">
                   Mobile Number
                 </label>
                 <div className="relative">
@@ -277,7 +319,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
                     disabled={loading}
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-sm font-medium text-slate-500 mt-2">
                   We'll send you a one-time verification code
                 </p>
               </div>
@@ -285,7 +327,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
               <button
                 type="submit"
                 disabled={loading || getPhoneDigits(phone).length !== 10}
-                className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
                   <>
@@ -305,7 +347,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
             <form onSubmit={handleOtpSubmit}>
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-slate-700">
+                  <label className="block text-base font-semibold text-slate-700">
                     Enter OTP
                   </label>
                   {otpExpiry > 0 && (
@@ -315,7 +357,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
                   )}
                 </div>
 
-                <p className="text-sm text-slate-500 mb-4">
+                <p className="text-base text-slate-500 mb-4">
                   Code sent to <span className="font-semibold text-slate-700">+1 {phone}</span>
                 </p>
 
@@ -360,7 +402,7 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
               <button
                 type="submit"
                 disabled={loading || otp.join('').length !== 6}
-                className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
                   <>
@@ -392,10 +434,17 @@ const PatientLogin: React.FC<PatientLoginProps> = ({ clinicId, clinicName, onLog
           )}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-400 mt-6">
-          Secure patient portal for your cataract surgery journey
-        </p>
+        {/* ── Footer: Trust badge + Powered by ── */}
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-sm text-slate-400">
+            <ShieldCheck size={15} />
+            <span>Secure, encrypted patient portal</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
+            <span>Powered by</span>
+            <Logo size="sm" />
+          </div>
+        </div>
       </div>
 
       <style>{`

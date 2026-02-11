@@ -96,8 +96,27 @@ admin emailid - admin@cataract.com
 password - admin
 
 <!-- clinic 1 -->
+Vision Care
 gitanjali@gmail.com
 gitanjali
 
 latha Bhagia - 9999999999
+Shreya Mishra - 88888888
+
+<!-- clinic 2 -->
+Crystal Clear Clinic
+ashwin@gmail.com
+ashwin
+
+Ramesh Rao - 77777777
+
+<!-- clinic 3 -->
+Garuda Clinic
+deepika@gmail.com
+deepika
+
+Deepak - 66666666666
+
+
+
 

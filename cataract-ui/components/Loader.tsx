@@ -78,32 +78,120 @@ const Loader: React.FC<LoaderProps> = ({
     </div>
   );
 
-  const renderMedicalLoader = () => (
-    <div className="relative flex items-center justify-center">
-      {/* Pulsing background */}
-      <div
-        className="absolute rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 animate-[pulse_2s_ease-in-out_infinite]"
-        style={{ width: config.ring * 1.2, height: config.ring * 1.2 }}
-      />
-      
-      {/* Spinning gradient ring */}
-      <div
-        className="absolute rounded-full animate-[spin_2s_linear_infinite]"
-        style={{
-          width: config.ring,
-          height: config.ring,
-          background: 'conic-gradient(from 0deg, transparent, #3B82F6, #6366F1, transparent)',
-          mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px))',
-          WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px))',
-        }}
-      />
-      
-      {/* Center icon with glow */}
-      <div className="relative z-10 p-2 bg-white rounded-full shadow-lg shadow-blue-100">
-        <Eye size={config.icon} className="text-blue-600" strokeWidth={2} />
+  const renderMedicalLoader = () => {
+    const outerSize = config.ring * 1.6;
+    const particleCount = size === 'sm' ? 4 : size === 'md' ? 5 : 6;
+
+    return (
+      <div className="relative flex items-center justify-center" style={{ width: outerSize, height: outerSize }}>
+        {/* Soft ambient glow */}
+        <div
+          className="absolute rounded-full animate-[medicalPulse_3s_ease-in-out_infinite]"
+          style={{
+            width: outerSize,
+            height: outerSize,
+            background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, rgba(59,130,246,0.04) 50%, transparent 70%)',
+          }}
+        />
+
+        {/* Outer orbit ring — slow rotation */}
+        <div
+          className="absolute rounded-full animate-[spin_6s_linear_infinite]"
+          style={{ width: config.ring * 1.3, height: config.ring * 1.3 }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 6,
+              height: 6,
+              top: -3,
+              left: '50%',
+              marginLeft: -3,
+              background: 'linear-gradient(135deg, #6366F1, #3B82F6)',
+              boxShadow: '0 0 8px 2px rgba(99,102,241,0.5)',
+            }}
+          />
+        </div>
+
+        {/* Inner orbit ring — faster, counter-rotation */}
+        <div
+          className="absolute rounded-full animate-[spin_4s_linear_infinite_reverse]"
+          style={{ width: config.ring * 1.05, height: config.ring * 1.05 }}
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 4,
+              height: 4,
+              top: -2,
+              left: '50%',
+              marginLeft: -2,
+              background: 'linear-gradient(135deg, #818CF8, #60A5FA)',
+              boxShadow: '0 0 6px 1px rgba(129,140,248,0.5)',
+            }}
+          />
+        </div>
+
+        {/* Subtle track rings */}
+        <div
+          className="absolute rounded-full border border-indigo-100/60"
+          style={{ width: config.ring * 1.3, height: config.ring * 1.3 }}
+        />
+        <div
+          className="absolute rounded-full border border-blue-100/40"
+          style={{ width: config.ring * 1.05, height: config.ring * 1.05 }}
+        />
+
+        {/* Floating light particles */}
+        {Array.from({ length: particleCount }).map((_, i) => {
+          const angle = (360 / particleCount) * i;
+          const radius = config.ring * 0.7;
+          const duration = 4 + i * 0.8;
+          const delay = i * 0.6;
+          return (
+            <div
+              key={i}
+              className="absolute rounded-full animate-[medicalFloat_ease-in-out_infinite]"
+              style={{
+                width: 3,
+                height: 3,
+                background: i % 2 === 0
+                  ? 'rgba(99,102,241,0.4)'
+                  : 'rgba(59,130,246,0.35)',
+                boxShadow: i % 2 === 0
+                  ? '0 0 4px rgba(99,102,241,0.3)'
+                  : '0 0 4px rgba(59,130,246,0.25)',
+                top: '50%',
+                left: '50%',
+                transform: `rotate(${angle}deg) translateY(-${radius}px)`,
+                animationDuration: `${duration}s`,
+                animationDelay: `${delay}s`,
+              }}
+            />
+          );
+        })}
+
+        {/* Center eye — lens focus animation */}
+        <div className="relative z-10 animate-[lensFocus_3s_ease-in-out_infinite]">
+          <div
+            className="rounded-full flex items-center justify-center"
+            style={{
+              width: config.ring * 0.7,
+              height: config.ring * 0.7,
+              background: 'linear-gradient(145deg, #ffffff 0%, #EEF2FF 100%)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.15), 0 1px 4px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)',
+            }}
+          >
+            <Eye
+              size={config.icon}
+              className="text-indigo-600"
+              strokeWidth={1.8}
+            />
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMinimalLoader = () => (
     <div className="flex items-center justify-center" style={{ width: config.ring, height: config.ring }}>
@@ -579,6 +667,18 @@ const GlobalStyles = () => (
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
+    }
+    @keyframes lensFocus {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    @keyframes medicalPulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    @keyframes medicalFloat {
+      0%, 100% { opacity: 0.2; filter: blur(0.5px); }
+      50% { opacity: 0.9; filter: blur(0px); }
     }
   `}</style>
 );
