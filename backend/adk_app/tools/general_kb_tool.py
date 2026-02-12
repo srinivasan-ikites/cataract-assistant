@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from google.adk.tools import FunctionTool
-
 from adk_app.services.embedding_service import embed_query
 from adk_app.services.qdrant_service import QdrantSearchService
 
@@ -83,6 +81,4 @@ def general_kb_search_tool(
     }
 
 
-def build_general_kb_tool() -> FunctionTool:
-    return FunctionTool(general_kb_search_tool)
 

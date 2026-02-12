@@ -21,9 +21,7 @@ openai
 qdrant-client
 # Token-aware chunking utilities
 tiktoken
-# Google Agent Development Kit for runtime orchestration
-google-adk
-# LiteLLM adapter used for non-Gemini providers inside ADK
+# LiteLLM for multi-provider LLM support (chat service, module generation)
 litellm>=1.35.0
 # FastAPI + server dependencies for the API layer
 fastapi

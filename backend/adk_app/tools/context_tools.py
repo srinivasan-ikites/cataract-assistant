@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Literal
-
-from google.adk.tools import FunctionTool
+from typing import Literal
 
 from adk_app.telemetry.logger import get_logger
 # Use Supabase data loader instead of JSON-based one
@@ -80,13 +78,6 @@ def patient_context_tool(
     }
     return handlers[info_type](patient)
 
-
-def build_context_tools() -> List[FunctionTool]:
-    """Builds FunctionTool wrappers for clinic/patient context helpers."""
-    return [
-        FunctionTool(clinic_context_tool),
-        FunctionTool(patient_context_tool),
-    ]
 
 
 def _clinic_overview(clinic: dict) -> str:

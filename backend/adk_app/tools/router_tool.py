@@ -7,8 +7,6 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from google.adk.tools import FunctionTool
-
 load_dotenv()
 
 TOPIC_KEYWORDS = {
@@ -293,10 +291,6 @@ def _build_prompt(question: str, clinic_id: Optional[str], patient_id: Optional[
         f"Question: {question}\n"
         "JSON:"
     )
-
-
-def build_router_tool() -> FunctionTool:
-    return FunctionTool(router_tool)
 
 
 
