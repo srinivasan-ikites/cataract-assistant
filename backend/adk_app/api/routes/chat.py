@@ -3,9 +3,29 @@ Chat and module content routes for the patient assistant.
 
 Updated to use Supabase instead of JSON files.
 """
+import re
 import time
 
 from fastapi import APIRouter, Depends, HTTPException
+
+
+def normalize_input_text(text: str) -> str:
+    """Normalize special Unicode characters to ASCII equivalents."""
+    replacements = {
+        "\u201c": '"', "\u201d": '"',  # smart double quotes
+        "\u2018": "'", "\u2019": "'",  # smart single quotes / apostrophes
+        "\u2014": "-", "\u2013": "-",  # em dash, en dash
+        "\u2026": "...",               # ellipsis
+        "\u00a0": " ",                 # non-breaking space
+        "\u200b": "",                  # zero-width space
+        "\u200c": "", "\u200d": "",    # zero-width non-joiner/joiner
+        "\ufeff": "",                  # BOM
+    }
+    for char, replacement in replacements.items():
+        text = text.replace(char, replacement)
+    # Collapse multiple spaces
+    text = re.sub(r" {2,}", " ", text)
+    return text.strip()
 
 # New Relic for custom attributes (patient tracking in chat)
 try:
@@ -54,6 +74,9 @@ def ask_endpoint(
         except Exception as e:
             print(f"[Chat] New Relic attribute error (non-fatal): {e}")
 
+    # Normalize input to handle smart quotes, special chars, etc.
+    question = normalize_input_text(payload.question)
+
     try:
         # Use clinic_id for unique patient lookup (required when multiple clinics exist)
         patient = get_patient_data(payload.patient_id, clinic_id=payload.clinic_id)
@@ -71,7 +94,7 @@ def ask_endpoint(
     clinic_id = patient.get("clinic_id")
     t_context_start = time.perf_counter()
     context_package: ContextPackage = prepare_context(
-        question=payload.question,
+        question=question,
         clinic_id=clinic_id,
         patient_id=payload.patient_id,
     )
@@ -85,7 +108,7 @@ def ask_endpoint(
         chat_history=recent_history,
         config=runtime.config,
         topics=context_package.router_summary.get("topics", []),
-        question=payload.question,
+        question=question,
     )
     t_after_answer = time.perf_counter()
     print(f"####### timing ask.generate_answer_ms={(t_after_answer - t_answer_start)*1000:.1f}")
@@ -101,7 +124,7 @@ def ask_endpoint(
     t_save_start = time.perf_counter()
     save_patient_chat_history(
         payload.patient_id,
-        payload.question,
+        question,
         answer,
         suggestions,
         blocks,

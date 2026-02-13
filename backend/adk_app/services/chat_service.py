@@ -106,6 +106,40 @@ def sanitize_control_chars(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f]", " ", text)
 
 
+def repair_json(text: str) -> str:
+    """Attempt to fix common JSON issues from LLM output."""
+    s = text.strip()
+
+    # Strip code fences (```json ... ``` or ``` ... ```)
+    if s.startswith("```"):
+        # Remove opening fence
+        first_newline = s.find("\n")
+        if first_newline != -1:
+            s = s[first_newline + 1:]
+        else:
+            s = s[3:]
+        # Remove closing fence
+        if s.rstrip().endswith("```"):
+            s = s.rstrip()[:-3].rstrip()
+
+    # Remove trailing commas before closing brackets/braces
+    s = re.sub(r",\s*([}\]])", r"\1", s)
+
+    # Sanitize control characters
+    s = sanitize_control_chars(s)
+
+    # Try to fix truncated JSON by closing open brackets/braces
+    open_braces = s.count("{") - s.count("}")
+    open_brackets = s.count("[") - s.count("]")
+    if open_braces > 0 or open_brackets > 0:
+        # Remove trailing incomplete key-value (e.g., `"key": "unfini`)
+        s = re.sub(r',\s*"[^"]*"?\s*:\s*"?[^"]*$', "", s)
+        s = s.rstrip().rstrip(",")
+        s += "]" * max(0, open_brackets) + "}" * max(0, open_braces)
+
+    return s
+
+
 def generate_answer_with_history(
     context_prompt: str,
     chat_history: list[dict],
@@ -143,17 +177,23 @@ LENGTH: Concise - aim for 100-150 words, max 200 words
      "I can explain each option and their differences, but the final decision should be made with your surgeon who knows your eyes best."
    - If the patient pushes for a recommendation, firmly but kindly redirect them to consult their surgeon
 
-2. MANDATORY DISCLAIMER BLOCKS:
-   When the question involves ANY of these topics, you MUST add a SEPARATE "warning" block at the END of your blocks array:
+2. CONTEXTUAL DISCLAIMERS (use good judgment):
+   Add a "warning" block at the END of your blocks array ONLY when the patient's question is DIRECTLY and PRIMARILY asking about one of these specific topics:
 
-   - COSTS, INSURANCE, or PRICES → Add warning block with content:
-     "Please speak with our surgical coordinator for your exact costs and coverage."
+   - The question is PRIMARILY about COSTS, INSURANCE, or PRICING (e.g., "How much does surgery cost?", "Does insurance cover this?")
+     → Add warning: "Please speak with our surgical coordinator for your exact costs and coverage."
 
-   - CHOOSING, DECIDING, or COMPARING options → Add warning block with content:
-     "Please talk to your surgeon about your options before making your final decision."
+   - The question is PRIMARILY asking you to CHOOSE or RECOMMEND a specific option (e.g., "Which lens should I pick?", "What do you recommend?")
+     → Add warning: "Please talk to your surgeon about your options before making your final decision."
 
-   - RISKS, COMPLICATIONS, or SIDE EFFECTS → Add warning block with content:
-     "Your surgeon can discuss how these risks apply to your specific situation."
+   - The question is PRIMARILY about RISKS or COMPLICATIONS (e.g., "What are the risks?", "What can go wrong?")
+     → Add warning: "Your surgeon can discuss how these risks apply to your specific situation."
+
+   DO NOT add disclaimers when:
+   - The topic is only mentioned tangentially (e.g., a question about recovery that mentions a risk in passing)
+   - You are explaining general medical facts or education
+   - The patient is asking about their personal medical data or diagnosis
+   - The question is a simple factual query (e.g., "What eye drops do I need?")
 
 === END CRITICAL RULES ===
 
@@ -167,7 +207,7 @@ When answering medical questions, follow this pattern:
 Example for "How is cataract surgery performed?":
 - General: "Cataract surgery removes your cloudy lens and replaces it with an artificial one."
 - Variations: "There are two approaches: traditional (ultrasound) and laser-assisted."
-- Personal: "For you, Dr. [Name] has recommended laser-assisted surgery..."
+- Personal: "For you, your surgeon has recommended laser-assisted surgery..."
 - Implication: "This precision helps position your trifocal toric lens accurately."
 
 DO NOT give only generic answers when patient data is available. The patient should feel the bot KNOWS them.
@@ -264,6 +304,8 @@ JSON only, no prose, no markdown fences.""",
             model=model_ref,
             messages=messages,
             temperature=config.temperature,
+            num_retries=2,
+            timeout=60,
         )
         print(f"####### timing llm.chat_ms={(time.perf_counter() - t_llm_start)*1000:.1f}")
     except Exception as exc:
@@ -282,35 +324,30 @@ JSON only, no prose, no markdown fences.""",
         raw = response["choices"][0]["message"]["content"].strip()
         print(f"[LLM Raw Response Length] {len(raw)} chars")
 
-        # Strip optional code fences
-        if raw.startswith("```"):
-            raw = raw.strip("`").strip()
-            if raw.lower().startswith("json"):
-                raw = raw[4:].strip()
-
         # Attempt direct JSON parse
         try:
             parsed = json.loads(raw)
             json_parsed_successfully = True
             print("[JSON Parse] Success - parsed as valid JSON")
         except json.JSONDecodeError:
-            # Try sanitized control characters
+            # Try repair (strips fences, fixes trailing commas, truncation)
             try:
-                sanitized = sanitize_control_chars(raw)
-                parsed = json.loads(sanitized)
+                repaired = repair_json(raw)
+                parsed = json.loads(repaired)
                 json_parsed_successfully = True
-                print("[JSON Parse] Success after sanitizing control chars")
+                print("[JSON Parse] Success after repair_json")
             except Exception:
                 # Try to extract the first JSON object in the text
                 match = re.search(r"\{.*\}", raw, re.DOTALL)
                 if match:
                     try:
-                        parsed = json.loads(sanitize_control_chars(match.group(0)))
+                        repaired = repair_json(match.group(0))
+                        parsed = json.loads(repaired)
                         json_parsed_successfully = True
-                        print("[JSON Parse] Success - extracted JSON from text")
+                        print("[JSON Parse] Success - extracted and repaired JSON from text")
                     except Exception:
                         parsed = {}
-                        print("[JSON Parse] Extracted JSON failed to parse after sanitize")
+                        print("[JSON Parse] Extracted JSON failed to parse after repair")
                 else:
                     parsed = {}
                     print("[JSON Parse] Failed - no valid JSON found")

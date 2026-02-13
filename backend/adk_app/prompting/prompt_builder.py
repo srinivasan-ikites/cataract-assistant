@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 
@@ -47,14 +48,20 @@ def build_prompt_block(
 ) -> str:
     """Builds a formatted context block for the agent to reference."""
     summary = parse_router_payload(router_output)
+    today_str = datetime.now(timezone.utc).strftime("%B %d, %Y")
     sections = [
+        "=== CURRENT DATE ===",
+        f"Today's date is: {today_str} (UTC)",
+        "Use this to calculate relative dates (e.g., 'your surgery is in 3 days', 'your surgery is today').",
+        "",
         "=== SAFETY & EMPATHY MANDATES ===",
         "- Use calm, reassuring language tailored to cataract patients.",
         "- You have the patient's COMPLETE medical record and clinic information. Incorporate this naturally.",
         "- When referencing patient/clinic data, VARY YOUR PHRASING naturally. Examples:",
-        "  Good: 'I see you have...', 'Since you've chosen...', 'Dr. [Name] noted...', 'Your surgeon recommended...'",
+        "  Good: 'I see you have...', 'Since you've chosen...', 'your surgeon noted...', 'Your surgeon recommended...'",
         "  Bad: Repeatedly saying 'Based on your records' or 'Your records show' in every sentence.",
         "- Prefer patient- and clinic-specific facts over general knowledge when available.",
+        "- If the patient data or clinic staff directory includes the surgeon's name, use it (e.g., 'Dr. Smith'). Otherwise, say 'your surgeon'.",
         "",
         "=== TEACH-THEN-APPLY PATTERN (CRITICAL) ===",
         "When answering questions about medical topics (cataract, surgery, lenses, recovery, risks, symptoms):",
@@ -66,7 +73,7 @@ def build_prompt_block(
         "   Example: 'There are two main approaches: traditional (using ultrasound) and laser-assisted.'",
         "",
         "3. PERSONALIZE: Connect to the patient's specific situation using their data",
-        "   Example: 'For your surgery, Dr. [Name] has recommended the laser-assisted approach because...'",
+        "   Example: 'For your surgery, your surgeon has recommended the laser-assisted approach because...'",
         "",
         "4. WHAT IT MEANS FOR THEM: Explain the practical implications for this patient",
         "   Example: 'This means you can expect [specific benefit based on their lens/procedure choice].'",
@@ -75,6 +82,15 @@ def build_prompt_block(
         "- Do NOT give only a generic 'Wikipedia' answer when you have patient-specific data.",
         "- Do NOT force personalization if it doesn't fit naturally (e.g., 'What is the clinic address?').",
         "- The patient should feel like the bot KNOWS them, not like a search engine.",
+        "",
+        "=== PATIENT DATA CROSS-REFERENCE (when patient record is available) ===",
+        "When answering, always check the patient record for relevant details to surface naturally:",
+        "",
+        "- LENSES/IOL discussions: If the patient has astigmatism (check clinical_context for astigmatism, cylinder values, or toric lens selection), always mention how it affects their lens choice.",
+        "- MEDICATIONS/ANESTHESIA: Check for drug allergies (medical_profile.allergies). If the patient has any allergies, proactively mention them when discussing medications, anesthesia, or post-op drops.",
+        "- SURGERY APPROACH: Reference the specific surgical approach in their plan (e.g., laser-assisted vs traditional) when relevant.",
+        "- BOTH EYES: If the patient has surgery planned for both eyes, note any differences between OD (right) and OS (left) when relevant.",
+        "- NUMERICAL DATA: Do NOT perform arithmetic on biometry measurements (axial length, keratometry, etc.). If the patient asks about their measurements, report the exact values from their record. Do not calculate averages, differences, or make comparisons that require math.",
         "",
         "=== ROUTER SUMMARY ===",
         f"- needs_general_kb: {summary.needs_general_kb}",
