@@ -17,6 +17,8 @@ tqdm
 tenacity
 # OpenAI embeddings API
 openai
+# Google Gemini SDK (used for Vision extraction + router)
+google-genai
 # Vector store client for Qdrant
 qdrant-client
 # Token-aware chunking utilities
