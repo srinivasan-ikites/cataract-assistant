@@ -509,9 +509,9 @@ def update_patient_from_reviewed(clinic_id: str, patient_id: str, reviewed_data:
         elif "module_content" in reviewed_data:
             update_data["module_content"] = reviewed_data["module_content"]
 
-        # Update status to 'reviewed' if it was 'pending' or 'new'
+        # Update status to 'reviewed' when doctor saves reviewed data
         current_status = existing_patient.get("status")
-        if current_status in [None, "pending", "new"]:
+        if current_status in [None, "pending", "new", "extracted"]:
             update_data["status"] = "reviewed"
 
         # Add timestamp

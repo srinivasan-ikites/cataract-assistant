@@ -244,12 +244,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
     loadData();
   }, [clinicId, patientId]);
 
-  // Auto-show upload panel only for new patients (no data yet)
+  // Auto-show upload panel for patients with no uploaded documents yet
   useEffect(() => {
     if (!loading) {
-      setShowUploads(status === 'idle');
+      setShowUploads(recentUploads.length === 0);
     }
-  }, [loading, status]);
+  }, [loading, recentUploads]);
 
   // Load forms data when documents section is expanded
   useEffect(() => {
