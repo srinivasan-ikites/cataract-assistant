@@ -128,7 +128,8 @@ def ask_endpoint(
         answer,
         suggestions,
         blocks,
-        clinic_id=payload.clinic_id
+        clinic_id=payload.clinic_id,
+        sources=context_package.sources or [],
     )
     t_after_save = time.perf_counter()
     print(f"####### timing ask.save_history_ms={(t_after_save - t_save_start)*1000:.1f}")

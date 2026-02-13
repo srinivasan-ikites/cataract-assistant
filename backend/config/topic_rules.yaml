@@ -1,28 +1,40 @@
 default_topic: OTHER
 
+# IMPORTANT: Rules are matched in ORDER - first match wins.
+# More specific rules MUST come before generic ones.
 article_rules:
-  - topic: BASICS
-    keywords: ["overview", "what are", "basics"]
-  - topic: SYMPTOMS
-    keywords: ["symptom", "vision problem", "signs"]
-  - topic: CAUSES_RISK
-    keywords: ["cause", "risk factor", "why", "trigger"]
-  - topic: DIAGNOSIS
-    keywords: ["diagnos", "exam", "test", "evaluation"]
-  - topic: TREATMENT_OVERVIEW
-    keywords: ["treatment", "manage", "therapy"]
-  - topic: SURGERY_EXPECT
-    keywords: ["surgery", "procedure", "operation", "surgeon"]
-  - topic: SURGERY_RECOVERY
-    keywords: ["recovery", "after surgery", "healing", "post-op"]
-  - topic: SURGERY_RISKS
-    keywords: ["risk", "complication", "danger", "side effect"]
-  - topic: SURGERY_COSTS
-    keywords: ["cost", "price", "insurance", "afford"]
+  # --- Specific topics first (narrow keywords) ---
   - topic: PCO
-    keywords: ["pco", "posterior capsular opacification"]
-  - topic: FAQ
-    keywords: ["question", "faq"]
+    keywords: ["pco", "posterior capsular opacification", "capsulotomy", "yag laser", "secondary cataract"]
+
+  - topic: SURGERY_RECOVERY
+    keywords: ["recovery", "after surgery", "post-op", "postop", "healing time", "weeks after", "driving after", "exercise after", "activity after", "return to normal", "resume exercise", "how long after surgery"]
+
+  - topic: SURGERY_RISKS
+    keywords: ["complication", "side effect", "adverse", "infection after surgery", "bleeding after", "swelling after", "retinal detachment", "endophthalmitis", "surgical risk", "surgery risk", "what can go wrong"]
+
+  - topic: SURGERY_COSTS
+    keywords: ["cost", "price", "insurance", "afford", "coverage", "medicare", "billing", "out of pocket"]
+
+  # --- Medium specificity ---
+  - topic: SURGERY_EXPECT
+    keywords: ["surgery", "procedure", "operation", "surgeon", "incision", "phacoemulsification", "intraoperative", "anesthesia", "sedation"]
+
+  - topic: TREATMENT_OVERVIEW
+    keywords: ["treatment", "lens implant", "iol", "intraocular lens", "manage", "therapy", "toric", "multifocal", "monofocal", "edof"]
+
+  - topic: DIAGNOSIS
+    keywords: ["diagnos", "exam", "test", "evaluation", "visual acuity", "dilated eye"]
+
+  - topic: SYMPTOMS
+    keywords: ["symptom", "blurry", "blurred vision", "cloudy vision", "halo", "glare", "double vision", "faded color", "vision problem", "signs"]
+
+  - topic: CAUSES_RISK
+    keywords: ["cause", "risk factor", "why do cataracts", "trigger", "diabetes and cataract", "smoking and cataract", "uv exposure", "radiation cataract"]
+
+  # --- Generic catch-all last ---
+  - topic: BASICS
+    keywords: ["overview", "what are", "what is a cataract", "basics", "definition", "types of cataract"]
 
 qa_category_map:
   Cataracts: BASICS
@@ -35,16 +47,17 @@ qa_category_map:
   Cataracts and Recovery: SURGERY_RECOVERY
 
 qa_keyword_rules:
-  - topic: SURGERY_RISKS
-    keywords: ["risk", "complication", "infection", "side effect"]
+  - topic: PCO
+    keywords: ["pco", "capsulotomy", "secondary cataract", "yag"]
   - topic: SURGERY_RECOVERY
-    keywords: ["recover", "healing", "weeks after", "months after"]
+    keywords: ["recover", "healing", "weeks after", "months after", "after surgery", "post-op", "driving after", "exercise after"]
+  - topic: SURGERY_RISKS
+    keywords: ["complication", "infection", "side effect", "adverse", "what can go wrong"]
   - topic: SURGERY_EXPECT
     keywords: ["before surgery", "during surgery", "procedure"]
   - topic: TREATMENT_OVERVIEW
-    keywords: ["lens", "iol", "treatment option"]
+    keywords: ["lens", "iol", "treatment option", "toric", "multifocal", "monofocal"]
   - topic: SYMPTOMS
-    keywords: ["blurred vision", "pain", "symptom"]
+    keywords: ["blurred vision", "pain", "symptom", "halo", "glare"]
   - topic: CAUSES_RISK
     keywords: ["cause", "why", "trigger", "risk factor"]
-

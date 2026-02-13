@@ -6,14 +6,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
 .vercel
 node_modules/
 package-lock.json
 package.json
+
+# Test / scratch files
+test-*.mjs
+backend/test_model_compare.py
+backend/data/_backup/
 

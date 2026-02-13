@@ -118,6 +118,8 @@ class QdrantSearchService:
                     "chunk_id": payload.get("chunk_id", point.id),
                     "text": payload.get("text"),
                     "topic": payload.get("topic"),
+                    "source_url": payload.get("source_url"),
+                    "source_id": payload.get("source_id"),
                     "score": point.score,
                     "metadata": payload.get("metadata", {}),
                 }

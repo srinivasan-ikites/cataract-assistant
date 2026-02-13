@@ -6,6 +6,8 @@ defaults:
   snapshot_html: true
 
 sources:
+  # ─── EXISTING SOURCES ───
+
   - id: aao-what-are-cataracts
     url: https://www.aao.org/eye-health/diseases/what-are-cataracts
     type: article
@@ -59,8 +61,8 @@ sources:
     url: https://www.aao.org/eye-health/diseases/what-are-pediatric-cataracts
     type: article
     tags: [pediatric, diagnosis, treatment]
-    enabled: true
-    notes: Pediatric-specific cataract information and care pathways.
+    enabled: false
+    notes: Pediatric-specific cataract information. Disabled - not relevant for adult patient portal.
 
   - id: aao-astigmatism
     url: https://www.aao.org/eye-health/astigmatism
@@ -76,6 +78,49 @@ sources:
     enabled: true
     notes: Tips on selecting premium IOL implants after cataract surgery.
 
+  # ─── NEW SOURCES (Phase 2 gap-fill) ───
+
+  # RECOVERY / POST-OP (was 0 chunks)
+  - id: aao-cataract-surgery-recovery
+    url: https://www.aao.org/eye-health/tips-prevention/safe-exercise-driving-cataract-surgery-recovery
+    type: article
+    tags: [recovery, post_op, activity_restrictions]
+    enabled: true
+    notes: Recovery timeline - exercising, driving, and activity restrictions after cataract surgery.
+
+  # RISKS / COMPLICATIONS / SIDE EFFECTS (was 2 chunks)
+  - id: aao-cataract-surgery-side-effects
+    url: https://www.aao.org/eye-health/tips-prevention/side-effects-cataract-surgery-complications-cope
+    type: article
+    tags: [surgery_risks, complications, side_effects, recovery]
+    enabled: true
+    notes: 10 common side effects after cataract surgery and how to cope with each.
+
+  - id: aao-cataract-surgery-complications
+    url: https://www.aao.org/eye-health/diseases/cataract-surgery-complications
+    type: article
+    tags: [surgery_risks, complications, intraoperative]
+    enabled: true
+    notes: Intraoperative complications and patient care strategies.
+
+  # PCO / SECONDARY CATARACT
+  - id: aao-posterior-capsulotomy
+    url: https://www.aao.org/eye-health/treatments/what-is-posterior-capsulotomy
+    type: article
+    tags: [pco, secondary_cataract, yag_laser, post_op]
+    enabled: true
+    notes: What is posterior capsulotomy (YAG laser) for PCO/secondary cataract.
+
+  # DRY EYE + CATARACT (common comorbidity)
+  - id: aao-dry-eye-cataract-surgery
+    url: https://www.aao.org/eye-health/tips-prevention/dry-eye-cataract-surgery-ocular-surface-disease
+    type: article
+    tags: [dry_eye, comorbidity, surgery_expect, pre_op]
+    enabled: true
+    notes: How dry eye affects cataract surgery outcomes and what to do about it.
+
+  # ─── Q&A INDEX ───
+
   - id: aao-cataract-qa-index
     url: https://www.aao.org/eye-health/ask-ophthalmologist/categories?tid=dfb23dca-407a-4860-82f8-ffd316212c7c
     type: qa_index
@@ -85,4 +130,3 @@ sources:
       mode: view_all
       follow_links: question_detail
     notes: Entry point for ~579 cataract Q&A items. Fetch detail pages discovered on this index.
-

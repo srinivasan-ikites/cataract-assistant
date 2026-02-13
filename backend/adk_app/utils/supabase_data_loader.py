@@ -541,7 +541,7 @@ def update_patient_from_reviewed(clinic_id: str, patient_id: str, reviewed_data:
 # PATIENT UPDATE FUNCTIONS
 # =============================================================================
 
-def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None, clinic_id: str = None) -> None:
+def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, suggestions: List[str] = None, blocks: List[dict] | None = None, clinic_id: str = None, sources: List[dict] | None = None) -> None:
     """
     Append a chat turn to the patient's history.
 
@@ -552,6 +552,7 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
         suggestions: Optional list of suggested follow-up questions
         blocks: Optional structured content blocks
         clinic_id: The clinic's slug ID (required for unique patient lookup)
+        sources: Optional list of source references from KB retrieval
     """
     print(f"[SupabaseDataLoader] Saving chat history for patient: {patient_id}, clinic: {clinic_id}")
 
@@ -596,6 +597,7 @@ def save_patient_chat_history(patient_id: str, user_msg: str, bot_msg: str, sugg
             "text": bot_msg,
             "blocks": blocks or [],
             "suggestions": suggestions or [],
+            "sources": sources or [],
             "timestamp": timestamp
         })
 
