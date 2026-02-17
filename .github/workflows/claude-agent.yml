@@ -52,6 +52,10 @@ jobs:
           # Your Anthropic API key (stored in GitHub Secrets)
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
+          # GitHub token for repo access (push branches, create PRs)
+          # GITHUB_TOKEN is automatically provided by GitHub Actions
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
           # When an issue gets the "agent" label, Claude auto-starts working
           # No need for @claude mention — just add the label
           label_trigger: "agent"
