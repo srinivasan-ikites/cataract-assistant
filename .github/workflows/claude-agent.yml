@@ -68,5 +68,8 @@ jobs:
           branch_prefix: "claude/"
 
           # Additional Claude Code CLI arguments
+          # --max-turns 50: TDD workflow needs more steps (read→test→code→verify)
+          # --allowedTools: Allow bash commands needed for testing and verification
           claude_args: |
-            --max-turns 25
+            --max-turns 50
+            --allowedTools "Edit,Write,Read,Bash(pip:*),Bash(python:*),Bash(cd:*),Bash(npm:*),Bash(git:*),Glob,Grep"
