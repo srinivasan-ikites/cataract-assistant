@@ -183,6 +183,18 @@ def test_error() -> dict:
     raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify New Relic alerting pipeline")
 
 
+@router.get("/healthz/test-error-2")
+def test_error_upload() -> dict:
+    """Temporary test endpoint simulating an upload failure. REMOVE AFTER TESTING."""
+    raise RuntimeError("TEST ERROR: Simulated document upload processing failure")
+
+
+@router.get("/healthz/test-error-3")
+def test_error_chat() -> dict:
+    """Temporary test endpoint simulating a chat/RAG failure. REMOVE AFTER TESTING."""
+    raise RuntimeError("TEST ERROR: Simulated RAG pipeline failure")
+
+
 @router.get("/healthz/storage-debug")
 def storage_debug() -> dict:
     """
