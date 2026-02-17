@@ -55,6 +55,46 @@ def _get_clinic_uuid_from_slug(clinic_slug: str) -> Optional[str]:
         return None
 
 
+@router.get("/count")
+def count_patients(
+    clinic_id: Optional[str] = Query(None, description="Clinic ID (slug) to filter patients"),
+    user: AuthenticatedUser = Depends(require_clinic_user),  # AUTHENTICATION REQUIRED
+) -> dict:
+    """
+    Return the count of patients for a clinic.
+
+    Requires authentication. Users can only see count for their own clinic.
+
+    Args:
+        clinic_id: Optional clinic slug (e.g., "mclean-eye-clinic") to filter patients.
+                   If not provided, uses the user's clinic.
+
+    Returns:
+        {"count": <number>}
+    """
+    # Use user's clinic if not specified
+    effective_clinic_id = clinic_id or user.clinic_id
+
+    # Validate clinic access - users can only see their own clinic's patient count
+    if effective_clinic_id:
+        validate_clinic_access(user, effective_clinic_id)
+
+    print(f"[Patient API] GET /patients/count - Counting patients for clinic: {effective_clinic_id} (user: {user.email})")
+
+    # Validate clinic exists before querying
+    if effective_clinic_id:
+        clinic_uuid = _get_clinic_uuid_from_slug(effective_clinic_id)
+        if not clinic_uuid:
+            print(f"[Patient API] Clinic not found: {effective_clinic_id}")
+            raise HTTPException(status_code=404, detail=f"Clinic '{effective_clinic_id}' not found")
+
+    # Get all patients and count them
+    patients = get_all_patients(clinic_id=effective_clinic_id)
+    count = len(patients)
+    print(f"[Patient API] Returning count: {count}")
+    return {"count": count}
+
+
 @router.get("")
 def list_patients(
     clinic_id: Optional[str] = Query(None, description="Clinic ID (slug) to filter patients"),

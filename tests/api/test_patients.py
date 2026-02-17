@@ -122,3 +122,37 @@ class TestGetPatient:
         """Get non-existent patient returns 404."""
         response = api.get("/patients/DOES_NOT_EXIST_999")
         assert response.status_code == 404
+
+
+class TestCountPatients:
+    """Tests for GET /patients/count"""
+
+    def test_count_patients_for_clinic(self, api, config):
+        """Count patients returns integer count for the clinic."""
+        response = api.get(f"/patients/count?clinic_id={config.TEST_CLINIC_ID}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert isinstance(data["count"], int)
+        assert data["count"] >= 0
+
+    def test_count_patients_without_clinic_id(self, api):
+        """Count without clinic_id uses user's clinic."""
+        response = api.get("/patients/count")
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert isinstance(data["count"], int)
+
+    def test_count_patients_without_auth(self, http_client, config):
+        """Count patients without auth returns 401/403."""
+        response = http_client.get(
+            f"/patients/count?clinic_id={config.TEST_CLINIC_ID}"
+        )
+        assert response.status_code in (401, 403)
+
+    def test_count_patients_invalid_clinic(self, api):
+        """Non-existent clinic returns 404."""
+        response = api.get("/patients/count?clinic_id=nonexistent-clinic")
+        # Either 403 (access denied) or 404 (not found)
+        assert response.status_code in (403, 404)
