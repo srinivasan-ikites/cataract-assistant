@@ -3,12 +3,12 @@ name: Claude Agent
 # ─────────────────────────────────────────────────────────────
 # WHEN does this workflow run?
 # ─────────────────────────────────────────────────────────────
-# 1. When an issue is opened, assigned, or labeled
+# 1. When an issue gets labeled (e.g., "agent" label added)
 # 2. When someone comments on an issue or PR (to talk to @claude)
 # 3. When someone comments on a PR review
 on:
   issues:
-    types: [opened, assigned, labeled]
+    types: [labeled]
   issue_comment:
     types: [created]
   pull_request_review_comment:
@@ -51,6 +51,10 @@ jobs:
         with:
           # Your Anthropic API key (stored in GitHub Secrets)
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # GitHub token for repo access (push branches, create PRs)
+          # GITHUB_TOKEN is automatically provided by GitHub Actions
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # When an issue gets the "agent" label, Claude auto-starts working
           # No need for @claude mention — just add the label
