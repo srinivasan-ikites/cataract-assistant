@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (installed fresh in Docker)
+cataract-ui/node_modules
+backend/venv
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+
+# Tests (not needed in production image)
+tests/
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation
+docs/
+diagrams/
+*.md
+!backend/README.md
+
+# CI/CD config
+.github/
+
+# Claude Code
+.claude/
+
+# Environment files (secrets - never bake into images)
+backend/.env
+backend/.env.*
+tests/.env*
+
+# OS files
+Thumbs.db
+.DS_Store

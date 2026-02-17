@@ -1,0 +1,79 @@
+name: CI
+
+# When does this run?
+# - On every Pull Request targeting main (opened, updated, reopened)
+# - On every direct push to main (as a safety check)
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Check backend (Python)
+  # ─────────────────────────────────────────────
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get the code onto this runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      # Step 4: Check Python syntax (catches syntax errors, bad imports)
+      - name: Python syntax check
+        run: python -m compileall -q backend/adk_app/
+
+      # Step 5: Verify FastAPI app can start (catches import errors, missing deps)
+      - name: Verify app imports
+        run: python -c "from adk_app.api.app import app; print('FastAPI app loaded successfully')"
+        working-directory: backend
+
+  # ─────────────────────────────────────────────
+  # Job 2: Check frontend (TypeScript + React)
+  # ─────────────────────────────────────────────
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get the code onto this runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+        working-directory: cataract-ui
+
+      # Step 4: TypeScript type check (catches type errors without building)
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        working-directory: cataract-ui
+
+      # Step 5: Build the app (catches build-time errors)
+      - name: Build
+        run: npm run build
+        working-directory: cataract-ui
+        env:
+          VITE_API_URL: http://localhost:8000
