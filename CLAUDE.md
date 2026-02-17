@@ -830,6 +830,12 @@ Before writing ANY code:
 
 ### Phase 2: TEST — Write tests BEFORE code (TDD)
 
+**Before writing any new tests, CHECK if tests already exist for the endpoint/feature you're modifying:**
+- Search `tests/api/` for the endpoint name (e.g., grep for `/ask` or `test_chat`)
+- If adequate tests exist and behavior is NOT changing → **do NOT create duplicates**, skip to Phase 3
+- If adequate tests exist but behavior IS changing → **update the existing tests** to match the new expected behavior (update assertions, add new test cases for new behavior)
+- If no tests exist for this feature → **write new tests** following the patterns below
+
 **For new features and bug fixes, ALWAYS write tests first.** This forces you to think through all scenarios before coding.
 
 **What to test (think through ALL of these):**
@@ -911,8 +917,14 @@ Now write the implementation:
    ```
 
 **If existing tests break because of your intentional behavior change:**
-- Update those tests to match the new expected behavior
-- Add a comment explaining why the expected value changed
+- Find the specific test(s) that assert the old behavior
+- Update the assertions in those existing tests to match the new expected behavior
+- Do NOT delete the test and write a new one — modify it in place
+- Add a brief comment explaining why the expected value changed, e.g.:
+  ```python
+  # Updated: /version now returns "timezone" field (added in issue #11)
+  assert "timezone" in data
+  ```
 
 ### Phase 4: REVIEW — Self-check before pushing
 
