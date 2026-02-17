@@ -205,6 +205,22 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             # Tag New Relic transaction with user context
             set_newrelic_attributes(request, user_context, request_id, response.status_code, duration_ms)
 
+            # Explicitly report server errors to New Relic so alerts fire.
+            # Without notice_error(), a 500 returned via HTTPException is just
+            # a "successful transaction that returned 500" — New Relic won't
+            # classify it as an error and alerts won't trigger.
+            if response.status_code >= 500 and HAS_NEW_RELIC:
+                try:
+                    newrelic.agent.notice_error(
+                        attributes={
+                            'request_id': request_id,
+                            'endpoint': f"{request.method} {request.url.path}",
+                            'status_code': response.status_code,
+                        }
+                    )
+                except Exception:
+                    pass
+
             # Add request ID to response headers (useful for debugging)
             response.headers["X-Request-ID"] = request_id
 
@@ -219,5 +235,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
             # Tag New Relic with error context
             set_newrelic_attributes(request, user_context, request_id, 500, duration_ms, error=str(exc))
+
+            # Explicitly report unhandled exceptions to New Relic
+            if HAS_NEW_RELIC:
+                try:
+                    newrelic.agent.notice_error()
+                except Exception:
+                    pass
 
             raise
