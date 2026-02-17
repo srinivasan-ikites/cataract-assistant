@@ -811,4 +811,184 @@ Chatbot:           cataract-ui/components/FAQOverlay.tsx
 
 ---
 
+## 17. Agent Development Workflow (MANDATORY)
+
+> **This section defines how you MUST work when implementing features, fixing bugs, or making any code changes. Follow these phases in order. Do NOT skip phases.**
+
+### Phase 1: PLAN — Understand before you act
+
+Before writing ANY code:
+
+1. **Read the issue/request carefully.** Identify exactly what is being asked.
+2. **Read relevant source files.** Understand the existing code you'll be modifying.
+3. **Read existing tests** for the area you're changing (`tests/api/`, `tests/e2e/`).
+4. **If requirements are unclear or ambiguous**, post a comment on the issue asking for clarification. List specific questions. Do NOT guess — wait for a response.
+5. **Determine the task type:**
+   - **New feature**: You will write tests FIRST, then code (Phase 2 → 3).
+   - **Bug fix**: You will write a test that reproduces the bug FIRST, then fix (Phase 2 → 3).
+   - **Refactoring**: Run existing tests first to confirm they pass, then refactor, then re-run (Phase 3 → 4).
+
+### Phase 2: TEST — Write tests BEFORE code (TDD)
+
+**For new features and bug fixes, ALWAYS write tests first.** This forces you to think through all scenarios before coding.
+
+**What to test (think through ALL of these):**
+- Happy path: Does it work with valid input?
+- Edge cases: Empty input? Missing fields? Very long input?
+- Error cases: Invalid auth? Wrong data type? Non-existent resource?
+- Security: Can unauthorized users access it? SQL injection? XSS?
+
+**Test file conventions (MUST follow these patterns):**
+
+```python
+# File location: tests/api/test_<feature>.py for API tests
+# Use synchronous httpx — NOT async (no pytest-asyncio)
+# Use class-based test organization
+
+import pytest
+
+pytestmark = pytest.mark.api  # Always mark with the appropriate layer
+
+class TestFeatureName:
+    """Tests for POST /endpoint"""
+
+    def test_happy_path(self, http_client, config):
+        """Description of what this tests."""
+        response = http_client.post("/endpoint", json={...})
+        assert response.status_code == 200
+        data = response.json()
+        assert "expected_field" in data
+
+    def test_missing_required_field(self, http_client, config):
+        """Missing required field returns 422."""
+        response = http_client.post("/endpoint", json={})
+        assert response.status_code == 422
+
+    def test_unauthorized_access(self, http_client):
+        """No auth token returns 401."""
+        response = http_client.get("/endpoint")
+        assert response.status_code in (401, 403)
+```
+
+**Available test fixtures** (defined in `tests/conftest.py`):
+- `http_client` — synchronous httpx client pointing at localhost:8000
+- `config` — test configuration (credentials, clinic IDs, URLs)
+- `admin_auth` — clinic admin auth headers (for `/patients/*`, `/doctor/*`)
+- `super_admin_auth` — super admin auth headers (for `/api/admin/*`)
+- `test_patient_factory` — creates test patients with random phone numbers
+- `api` — pre-authenticated convenience client (from `tests/api/conftest.py`)
+
+**Test markers:**
+- `pytest.mark.api` — backend API tests
+- `pytest.mark.e2e` — browser tests
+- `pytest.mark.security` — security tests
+- `pytest.mark.slow` — tests that take >30 seconds
+
+**IMPORTANT test rules:**
+- Use **synchronous** httpx calls, NOT async
+- Phone numbers must be **random per test run** (use `test_patient_factory`)
+- Never hard-code patient phones — use `config.TEST_PATIENT_PHONE` or random
+- Test clinic is `garuda-clinic` (NOT vision-forever)
+- OTP rate limit: max 3 per phone per 10 minutes
+- Backend returns 500 (not 401) for malformed JWT — accept both in tests
+- For endpoints needing clinic access, use `admin_auth` (not `super_admin_auth`)
+- For endpoints needing super admin, use `super_admin_auth`
+
+### Phase 3: CODE — Write the minimum code to pass all tests
+
+Now write the implementation:
+
+1. Write the code to make your tests pass.
+2. Follow existing patterns in the codebase (check similar files).
+3. **Run the tests** to verify they pass:
+   ```bash
+   cd tests && python -m pytest tests/api/test_<your_file>.py -v
+   ```
+4. If tests fail, fix the code (not the tests) until they pass.
+5. Also run related existing tests to ensure no regressions:
+   ```bash
+   cd tests && python -m pytest tests/api/ -v --timeout=120
+   ```
+
+**If existing tests break because of your intentional behavior change:**
+- Update those tests to match the new expected behavior
+- Add a comment explaining why the expected value changed
+
+### Phase 4: REVIEW — Self-check before pushing
+
+Before committing, verify:
+
+1. **All tests pass** (both new and existing):
+   ```bash
+   cd tests && python -m pytest tests/api/ -v
+   ```
+2. **No security issues**: No hardcoded secrets, no SQL injection, no XSS vectors
+3. **No unnecessary changes**: Only modify files directly related to the task
+4. **Code follows existing patterns**: Check similar files in the codebase
+5. **Python syntax is valid**:
+   ```bash
+   python -m compileall -q backend/adk_app/
+   ```
+6. **Frontend builds** (if you changed frontend files):
+   ```bash
+   cd cataract-ui && npm run build
+   ```
+
+### Summary: Phase order by task type
+
+| Task Type | Phase 1 (Plan) | Phase 2 (Test) | Phase 3 (Code) | Phase 4 (Review) |
+|-----------|----------------|----------------|-----------------|-------------------|
+| New feature | Read issue + code | Write tests FIRST | Write code to pass tests | Run all tests + verify |
+| Bug fix | Reproduce + understand | Write test that fails on the bug | Fix code so test passes | Run all tests + verify |
+| Refactoring | Understand current code | Run existing tests (confirm pass) | Refactor code | Run existing tests (confirm still pass) |
+| Test update | Read what changed | Update test expectations | N/A | Run all tests + verify |
+
+---
+
+## 18. Testing Infrastructure Reference
+
+```
+tests/
+├── conftest.py              # Shared fixtures: auth, http_client, patient factory
+├── pytest.ini               # Config: markers, timeout, verbosity
+├── .env.test                # Test environment variables
+├── api/                     # Layer 1: API tests (pytest + httpx, synchronous)
+│   ├── conftest.py          # API-specific fixtures (authenticated client)
+│   ├── test_auth.py         # Clinic user auth (login, refresh, logout)
+│   ├── test_patient_auth.py # Patient OTP (request, verify, rate limit)
+│   ├── test_patients.py     # Patient CRUD
+│   ├── test_doctor.py       # Document upload, extraction, review
+│   ├── test_chat.py         # RAG /ask endpoint
+│   └── test_security.py     # Auth bypass, injection, IDOR
+├── e2e/                     # Layer 2: Browser tests (playwright.sync_api)
+│   ├── conftest.py          # Playwright fixtures, screenshot-on-fail
+│   ├── pages/               # Page Object Models
+│   └── test_*.py            # Doctor flow, patient flow, cross-portal
+├── ai/                      # Layer 3: AI evaluation (LLM-as-judge)
+└── agent/                   # Layer 4: Autonomous exploration
+```
+
+**Running tests:**
+```bash
+# All API tests
+cd tests && python -m pytest tests/api/ -v
+
+# Specific test file
+cd tests && python -m pytest tests/api/test_auth.py -v
+
+# Only security tests
+cd tests && python -m pytest tests/api/ -v -m security
+
+# With timeout
+cd tests && python -m pytest tests/api/ -v --timeout=120
+```
+
+**Test credentials:**
+- Super admin: `admin@cataract.com` / `admin` (role: super_admin, no clinic)
+- Clinic admin: `deepika@gmail.com` / `deepika` (role: clinic_admin, garuda-clinic)
+- Test clinic: `garuda-clinic` (active)
+- Test patient phone: `6666666666`
+
+---
+
 *Last Updated: February 2026*
