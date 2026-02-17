@@ -25,10 +25,12 @@ def ping() -> dict:
 
 @router.get("/version")
 def version() -> dict:
-    """Version endpoint returning app version and environment."""
+    """Version endpoint returning app version, environment, and timezone information."""
     return {
         "version": "1.0.0",
-        "environment": "development"
+        "environment": "development",
+        "timezone": "UTC",
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
