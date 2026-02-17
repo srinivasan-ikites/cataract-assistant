@@ -23,6 +23,15 @@ def ping() -> dict:
     }
 
 
+@router.get("/version")
+def version() -> dict:
+    """Version endpoint returning app version and environment."""
+    return {
+        "version": "1.0.0",
+        "environment": "development"
+    }
+
+
 @router.get("/healthz")
 def health() -> dict:
     """Health check endpoint."""
