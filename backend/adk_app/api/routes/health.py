@@ -1,6 +1,7 @@
 """
 Health check route.
 """
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 
 from adk_app.services.supabase_service import get_supabase_admin_client
@@ -11,6 +12,15 @@ from adk_app.api.middleware.auth import (
 )
 
 router = APIRouter(tags=["Health"])
+
+
+@router.get("/ping")
+def ping() -> dict:
+    """Ping endpoint with status and timestamp."""
+    return {
+        "status": 200,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 @router.get("/healthz")
