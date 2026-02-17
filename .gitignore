@@ -16,3 +16,7 @@ test-*.mjs
 backend/test_model_compare.py
 backend/data/_backup/
 
+
+diagrams
+invention Disclosure Record.pdf
+.playwright-mcp

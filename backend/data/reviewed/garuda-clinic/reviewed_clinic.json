@@ -1,116 +1,347 @@
 {
   "clinic_profile": {
     "clinic_id": "garuda-clinic",
-    "name": "Garuda Clinic",
-    "parent_organization": "",
+    "name": "garuda-clinic",
+    "parent_organization": "ClearView Ophthalmology Group",
     "address": {
-      "street": "321 Main Street",
-      "city": "Delhi",
-      "state": "DL",
-      "zip": "110034"
+      "street": "123 Vision Boulevard",
+      "city": "San Jose",
+      "state": "California",
+      "zip": "95110"
     },
     "contact_info": {
-      "phone_main": "",
-      "phone_surgical_coordinator": "",
-      "fax": "",
-      "emergency_hotline": "",
-      "website": "",
-      "phone": "(777) 777 7777"
+      "phone_main": "(408) 555-2020",
+      "phone_surgical_coordinator": "(408) 555-2021",
+      "fax": "(408) 555-2022",
+      "emergency_hotline": "(408) 555-9999",
+      "website": "https://clearvieweye.example.com"
     },
     "branding": {
       "logo_url": "",
-      "primary_color_hex": ""
+      "primary_color_hex": "#1E3A5F"
     }
   },
-  "staff_directory": [],
-  "surgical_packages": [],
+  "staff_directory": [
+    {
+      "provider_id": "DR001",
+      "name": "Dr. Meera Reddy",
+      "role": "Surgeon",
+      "specialty": "Cataract & Refractive Surgery",
+      "qualifications": [
+        "MD",
+        "FACS",
+        "Board Certified Ophthalmologist"
+      ],
+      "experience_years": 15,
+      "availability": {
+        "surgery_days": [
+          "Tuesday",
+          "Thursday"
+        ],
+        "consultation_days": [
+          "Monday",
+          "Wednesday",
+          "Friday"
+        ],
+        "consultation_hours": "9:00 AM - 5:00 PM"
+      }
+    },
+    {
+      "provider_id": "DR002",
+      "name": "Dr. Anil Kapoor",
+      "role": "Optometrist",
+      "specialty": "Pre and Post-operative Care",
+      "qualifications": [
+        "OD",
+        "FAAO"
+      ],
+      "experience_years": 10,
+      "availability": {
+        "surgery_days": [],
+        "consultation_days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "consultation_hours": "8:00 AM - 4:00 PM"
+      }
+    },
+    {
+      "provider_id": "ST001",
+      "name": "Kavitha Nair",
+      "role": "Patient Counselor",
+      "specialty": "Surgical Coordination & Patient Education",
+      "qualifications": [
+        "Certified Ophthalmic Assistant"
+      ],
+      "experience_years": 8,
+      "availability": {
+        "surgery_days": [
+          "Tuesday",
+          "Thursday"
+        ],
+        "consultation_days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "consultation_hours": "8:30 AM - 5:30 PM"
+      }
+    }
+  ],
+  "surgical_packages": [
+    {
+      "package_id": "standard",
+      "display_name": "Standard Package",
+      "description": "Basic cataract removal with standard monofocal IOL. Covers pre-op assessment, surgery, and 3 post-op visits.",
+      "price_cash": 3500,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONO_STD_ACRYSOF",
+        "MONO_STD_CLAREON"
+      ],
+      "insurance_coverage": "Most insurance plans cover standard cataract surgery",
+      "fees_breakdown": {
+        "physician_fee": 1500,
+        "facility_fee": 1500,
+        "total_estimated": 3500
+      },
+      "notes": "Includes pre-op assessment, surgery, and 3 post-op visits"
+    },
+    {
+      "package_id": "premium",
+      "display_name": "Premium Package",
+      "description": "Laser-assisted cataract surgery with premium or toric IOL. Includes femtosecond laser and ORA wavefront guidance.",
+      "price_cash": 5500,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONO_PREM_CLAREON",
+        "TORIC_ACRYSOF",
+        "TORIC_CLAREON",
+        "EDOF_VIVITY"
+      ],
+      "insurance_coverage": "Insurance covers basic surgery; patient pays upgrade fee for premium lens",
+      "fees_breakdown": {
+        "physician_fee": 2000,
+        "facility_fee": 2000,
+        "total_estimated": 5500
+      },
+      "notes": "Includes femtosecond laser, premium IOL, ORA guidance"
+    },
+    {
+      "package_id": "advanced",
+      "display_name": "Advanced Package",
+      "description": "Full premium experience with multifocal or EDOF IOL for maximum spectacle independence.",
+      "price_cash": 8000,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MF_PANOPTIX",
+        "MF_SYNERGY",
+        "EDOF_VIVITY",
+        "EDOF_TORIC_VIVITY",
+        "MF_TORIC_PANOPTIX"
+      ],
+      "insurance_coverage": "Insurance covers basic surgery; patient pays upgrade fee",
+      "fees_breakdown": {
+        "physician_fee": 3000,
+        "facility_fee": 3000,
+        "total_estimated": 8000
+      },
+      "notes": "Includes femtosecond laser, premium IOL, ORA guidance, enhanced recovery protocol"
+    }
+  ],
   "lens_inventory": {
     "MONOFOCAL": {
       "display_name": "Standard Monofocal",
-      "description": "",
+      "description": "Single focus lens providing clear vision at one distance (usually far). Most common and proven option.",
       "has_toric_variant": true,
       "models": [
         {
-          "model": "",
-          "model_code": "",
-          "description": "",
-          "manufacturer": ""
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ SN60WF",
+          "model_code": "MONO_STD_ACRYSOF",
+          "description": "Proven monofocal with blue-light filtering and aspheric optics"
+        },
+        {
+          "manufacturer": "Alcon",
+          "model": "Clareon SY60WF",
+          "model_code": "MONO_STD_CLAREON",
+          "description": "Next-gen monofocal with superior clarity and reduced glistening"
+        },
+        {
+          "manufacturer": "Alcon",
+          "model": "Clareon CNA0T0",
+          "model_code": "MONO_PREM_CLAREON",
+          "description": "Premium Clareon monofocal with enhanced optical quality"
         }
       ]
     },
     "MONOFOCAL_TORIC": {
       "display_name": "Monofocal Toric",
-      "description": "",
+      "description": "Corrects astigmatism while providing clear single-focus vision. Reduces or eliminates the need for glasses at the chosen focal point.",
       "parent_category": "MONOFOCAL",
       "is_toric": true,
       "models": [
         {
-          "model": "",
-          "model_code": "",
-          "description": "",
-          "toric_range": "",
-          "manufacturer": ""
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ Toric SN6AT",
+          "model_code": "TORIC_ACRYSOF",
+          "toric_range": "1.0D - 6.0D cylinder",
+          "description": "Astigmatism-correcting monofocal IOL with proven rotational stability"
+        },
+        {
+          "manufacturer": "Alcon",
+          "model": "Clareon Toric CNA3T",
+          "model_code": "TORIC_CLAREON",
+          "toric_range": "1.0D - 3.75D cylinder",
+          "description": "Premium toric with enhanced rotational stability and clarity"
         }
       ]
     },
     "EDOF": {
       "display_name": "Extended Depth of Focus",
-      "description": "",
+      "description": "Provides continuous range of vision from distance to intermediate, with minimal halos and glare.",
       "has_toric_variant": true,
-      "models": []
+      "models": [
+        {
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ Vivity DFT015",
+          "model_code": "EDOF_VIVITY",
+          "description": "Non-diffractive EDOF lens with X-WAVE technology for seamless distance-to-intermediate vision"
+        }
+      ]
     },
     "EDOF_TORIC": {
       "display_name": "EDOF Toric",
-      "description": "",
+      "description": "Extended depth of focus with built-in astigmatism correction.",
       "parent_category": "EDOF",
       "is_toric": true,
-      "models": []
+      "models": [
+        {
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ Vivity Toric DFT315",
+          "model_code": "EDOF_TORIC_VIVITY",
+          "toric_range": "1.0D - 3.75D cylinder",
+          "description": "EDOF with built-in astigmatism correction for extended vision range"
+        }
+      ]
     },
     "MULTIFOCAL": {
       "display_name": "Multifocal / Trifocal",
-      "description": "",
+      "description": "Multiple focus points for distance, intermediate, and near vision. Best option for maximum spectacle independence.",
       "has_toric_variant": true,
-      "models": []
+      "models": [
+        {
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ PanOptix TFNT00",
+          "model_code": "MF_PANOPTIX",
+          "description": "Trifocal IOL providing excellent near (40cm), intermediate (60cm), and distance vision"
+        },
+        {
+          "manufacturer": "Johnson & Johnson Vision",
+          "model": "TECNIS Synergy DFR00V",
+          "model_code": "MF_SYNERGY",
+          "description": "Combines EDOF and diffractive technology for continuous range of vision"
+        }
+      ]
     },
     "MULTIFOCAL_TORIC": {
       "display_name": "Multifocal Toric",
-      "description": "",
+      "description": "Full range of vision with astigmatism correction for maximum glasses-free living.",
       "parent_category": "MULTIFOCAL",
       "is_toric": true,
-      "models": []
+      "models": [
+        {
+          "manufacturer": "Alcon",
+          "model": "AcrySof IQ PanOptix Toric TFNT",
+          "model_code": "MF_TORIC_PANOPTIX",
+          "toric_range": "1.0D - 2.25D cylinder",
+          "description": "Trifocal with astigmatism correction"
+        }
+      ]
     },
     "LAL": {
       "display_name": "Light Adjustable Lens",
-      "description": "",
+      "description": "Unique lens that can be precisely adjusted after surgery using UV light treatments to fine-tune your vision.",
       "has_toric_variant": false,
-      "models": []
+      "models": [
+        {
+          "manufacturer": "RxSight",
+          "model": "RxSight LAL",
+          "model_code": "LAL_RXSIGHT",
+          "description": "Post-operatively adjustable IOL for fine-tuned customized vision"
+        }
+      ]
     }
   },
   "medications": {
     "pre_op": {
-      "antibiotics": [],
-      "frequencies": [],
+      "antibiotics": [
+        "Moxifloxacin 0.5% (Vigamox) - 1 drop 4 times daily",
+        "Besivance 0.6% - 1 drop 3 times daily"
+      ],
+      "frequencies": [
+        "4 times daily for 3 days before surgery",
+        "3 times daily for 3 days before surgery"
+      ],
       "default_start_days_before_surgery": 3
     },
     "post_op": {
-      "antibiotics": [],
-      "nsaids": [],
-      "steroids": [],
+      "antibiotics": [
+        "Moxifloxacin 0.5% (Vigamox) - 1 drop 4 times daily for 1 week"
+      ],
+      "nsaids": [
+        "Nepafenac 0.3% (Ilevro) - 1 drop daily for 4 weeks",
+        "Ketorolac 0.5% (Acular LS) - 1 drop 4 times daily for 2 weeks"
+      ],
+      "steroids": [
+        "Prednisolone acetate 1% (Pred Forte) - 1 drop 4 times daily, taper over 4 weeks",
+        "Difluprednate 0.05% (Durezol) - 1 drop 4 times daily for 2 weeks, then twice daily for 2 weeks"
+      ],
       "glaucoma_drops": [],
       "combination_drops": [],
       "dropless_option": {
-        "available": false,
-        "description": "",
-        "medications": []
+        "available": true,
+        "description": "Intracameral injection of antibiotics and steroids at the end of surgery, reducing the need for eye drops post-operatively.",
+        "medications": [
+          "Moxifloxacin 500mcg/0.1mL intracameral",
+          "Triamcinolone acetonide 2mg/0.05mL intracameral"
+        ]
       }
     },
-    "frequency_options": []
+    "frequency_options": [
+      "4 times daily",
+      "3 times daily",
+      "2 times daily",
+      "Once daily",
+      "Every 2 hours",
+      "As needed"
+    ]
   },
   "standard_operating_procedures": {
-    "procedure_codes": [],
+    "procedure_codes": [
+      "CPT 66984 - Standard Cataract Surgery",
+      "CPT 66982 - Complex Cataract Surgery"
+    ],
     "risks_categorized": {
-      "common_minor": [],
-      "rare_serious": []
+      "common_minor": [
+        "Mild eye discomfort for 1-2 days",
+        "Temporary blurry vision during healing",
+        "Mild light sensitivity",
+        "Slight itching or foreign body sensation"
+      ],
+      "rare_serious": [
+        "Infection (endophthalmitis) - <0.1%",
+        "Retinal detachment - <0.5%",
+        "Posterior capsule opacity (secondary cataract) - 10-20% within 5 years",
+        "Cystoid macular edema",
+        "Intraocular pressure elevation",
+        "IOL dislocation"
+      ]
     }
   },
   "billing_and_insurance": {
@@ -137,7 +368,5 @@
     "created_at": "",
     "updated_at": "",
     "updated_by": ""
-  },
-  "_uuid": "cd671ab0-94e6-43a8-94ef-3d019330394f",
-  "_status": "active"
+  }
 }

@@ -1,0 +1,9 @@
+{
+  "clinic_registration": "skipped_using_existing",
+  "clinic_approval": "skipped_already_active",
+  "clinic_config": "success",
+  "patients_created": 3,
+  "patients_reviewed": 3,
+  "patients_with_auth": 3,
+  "errors": []
+}
