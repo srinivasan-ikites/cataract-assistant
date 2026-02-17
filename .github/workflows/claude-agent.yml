@@ -3,12 +3,12 @@ name: Claude Agent
 # ─────────────────────────────────────────────────────────────
 # WHEN does this workflow run?
 # ─────────────────────────────────────────────────────────────
-# 1. When an issue is opened, assigned, or labeled
+# 1. When an issue gets labeled (e.g., "agent" label added)
 # 2. When someone comments on an issue or PR (to talk to @claude)
 # 3. When someone comments on a PR review
 on:
   issues:
-    types: [opened, assigned, labeled]
+    types: [labeled]
   issue_comment:
     types: [created]
   pull_request_review_comment:
