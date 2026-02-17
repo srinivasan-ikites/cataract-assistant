@@ -1,0 +1,68 @@
+name: Claude Agent
+
+# ─────────────────────────────────────────────────────────────
+# WHEN does this workflow run?
+# ─────────────────────────────────────────────────────────────
+# 1. When an issue is opened, assigned, or labeled
+# 2. When someone comments on an issue or PR (to talk to @claude)
+# 3. When someone comments on a PR review
+on:
+  issues:
+    types: [opened, assigned, labeled]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+# ─────────────────────────────────────────────────────────────
+# PERMISSIONS: What can this workflow do?
+# ─────────────────────────────────────────────────────────────
+# These are the minimum permissions the action needs:
+# - contents: write  → push code to branches
+# - issues: write    → comment on issues
+# - pull-requests: write → create and update PRs
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # The single job: let Claude handle the issue/comment
+  # ─────────────────────────────────────────────────────────
+  claude:
+    name: Claude Code Agent
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Run Claude Code Action
+      # This single step does EVERYTHING:
+      #   - Checks out your repo
+      #   - Installs Claude Code
+      #   - Reads the issue or comment
+      #   - Understands the codebase (reads CLAUDE.md)
+      #   - Makes code changes
+      #   - Creates a branch and opens a PR
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Your Anthropic API key (stored in GitHub Secrets)
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # When an issue gets the "agent" label, Claude auto-starts working
+          # No need for @claude mention — just add the label
+          label_trigger: "agent"
+
+          # You can also @claude in any issue or PR comment to talk to it
+          # This is the default trigger phrase for interactive use
+          trigger_phrase: "@claude"
+
+          # All branches created by Claude will start with "claude/"
+          # Example: claude/fix-chat-crash-issue-42
+          branch_prefix: "claude/"
+
+          # Additional Claude Code CLI arguments
+          claude_args: |
+            --max-turns 25
