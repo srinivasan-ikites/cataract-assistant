@@ -38,14 +38,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Run Claude Code Action
-      # This single step does EVERYTHING:
-      #   - Checks out your repo
-      #   - Installs Claude Code
-      #   - Reads the issue or comment
-      #   - Understands the codebase (reads CLAUDE.md)
-      #   - Makes code changes
-      #   - Creates a branch and opens a PR
+      # Step 1: Check out the repository so Claude can read/modify files
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Step 2: Run Claude Code Action
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
