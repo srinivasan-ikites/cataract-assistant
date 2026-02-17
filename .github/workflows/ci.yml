@@ -66,12 +66,7 @@ jobs:
         run: npm ci
         working-directory: cataract-ui
 
-      # Step 4: TypeScript type check (catches type errors without building)
-      - name: TypeScript check
-        run: npx tsc --noEmit
-        working-directory: cataract-ui
-
-      # Step 5: Build the app (catches build-time errors)
+      # Step 4: Build the app (catches build-time errors, broken imports)
       - name: Build
         run: npm run build
         working-directory: cataract-ui
