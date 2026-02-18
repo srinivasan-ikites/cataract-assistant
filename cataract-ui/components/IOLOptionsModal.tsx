@@ -322,7 +322,7 @@ const PACKAGE_INFO: Record<string, {
             'Corrects astigmatism during cataract surgery',
         ],
         considerations: [
-            'Additional cost for toric feature',
+            'Additional out-of-pocket cost — not covered by insurance',
             'Lens will be precisely positioned manually without laser incision',
             'Will still need glasses for reading and intermediate range',
         ],
@@ -337,7 +337,7 @@ const PACKAGE_INFO: Record<string, {
             'Laser-guided precision for optimal lens alignment',
         ],
         considerations: [
-            'Higher cost for combined technology',
+            'Additional out-of-pocket cost — not covered by insurance',
             'Will still need glasses for reading and intermediate range',
         ],
         category: 'toric',

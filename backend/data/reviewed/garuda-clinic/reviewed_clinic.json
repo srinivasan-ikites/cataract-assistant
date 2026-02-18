@@ -23,16 +23,10 @@
   },
   "staff_directory": [
     {
-      "provider_id": "DR001",
       "name": "Dr. Meera Reddy",
       "role": "Surgeon",
       "specialty": "Cataract & Refractive Surgery",
-      "qualifications": [
-        "MD",
-        "FACS",
-        "Board Certified Ophthalmologist"
-      ],
-      "experience_years": 15,
+      "provider_id": "DR001",
       "availability": {
         "surgery_days": [
           "Tuesday",
@@ -44,18 +38,19 @@
           "Friday"
         ],
         "consultation_hours": "9:00 AM - 5:00 PM"
-      }
+      },
+      "qualifications": [
+        "MD",
+        "FACS",
+        "Board Certified Ophthalmologist"
+      ],
+      "experience_years": 15
     },
     {
-      "provider_id": "DR002",
       "name": "Dr. Anil Kapoor",
       "role": "Optometrist",
       "specialty": "Pre and Post-operative Care",
-      "qualifications": [
-        "OD",
-        "FAAO"
-      ],
-      "experience_years": 10,
+      "provider_id": "DR002",
       "availability": {
         "surgery_days": [],
         "consultation_days": [
@@ -66,17 +61,18 @@
           "Friday"
         ],
         "consultation_hours": "8:00 AM - 4:00 PM"
-      }
+      },
+      "qualifications": [
+        "OD",
+        "FAAO"
+      ],
+      "experience_years": 10
     },
     {
-      "provider_id": "ST001",
       "name": "Kavitha Nair",
       "role": "Patient Counselor",
       "specialty": "Surgical Coordination & Patient Education",
-      "qualifications": [
-        "Certified Ophthalmic Assistant"
-      ],
-      "experience_years": 8,
+      "provider_id": "ST001",
       "availability": {
         "surgery_days": [
           "Tuesday",
@@ -90,68 +86,138 @@
           "Friday"
         ],
         "consultation_hours": "8:30 AM - 5:30 PM"
-      }
+      },
+      "qualifications": [
+        "Certified Ophthalmic Assistant"
+      ],
+      "experience_years": 8
     }
   ],
   "surgical_packages": [
     {
+      "notes": "Includes pre-op assessment, surgery, and 3 post-op visits",
       "package_id": "standard",
-      "display_name": "Standard Package",
-      "description": "Basic cataract removal with standard monofocal IOL. Covers pre-op assessment, surgery, and 3 post-op visits.",
       "price_cash": 3500,
+      "description": "Basic cataract removal with standard monofocal IOL. Covers pre-op assessment, surgery, and 3 post-op visits.",
+      "display_name": "Standard Package",
+      "fees_breakdown": {
+        "facility_fee": 1500,
+        "physician_fee": 1500,
+        "total_estimated": 3500
+      },
       "includes_laser": false,
       "allowed_lens_codes": [
         "MONO_STD_ACRYSOF",
         "MONO_STD_CLAREON"
       ],
-      "insurance_coverage": "Most insurance plans cover standard cataract surgery",
-      "fees_breakdown": {
-        "physician_fee": 1500,
-        "facility_fee": 1500,
-        "total_estimated": 3500
-      },
-      "notes": "Includes pre-op assessment, surgery, and 3 post-op visits"
+      "insurance_coverage": "Most insurance plans cover standard cataract surgery"
     },
     {
-      "package_id": "premium",
-      "display_name": "Premium Package",
-      "description": "Laser-assisted cataract surgery with premium or toric IOL. Includes femtosecond laser and ORA wavefront guidance.",
-      "price_cash": 5500,
-      "includes_laser": true,
+      "package_id": "PKG_STD",
+      "display_name": "Standard Monofocal",
+      "description": "Basic cataract surgery with standard monofocal IOL. Covered by most insurance plans.",
+      "price_cash": 0,
+      "includes_laser": false,
       "allowed_lens_codes": [
-        "MONO_PREM_CLAREON",
-        "TORIC_ACRYSOF",
-        "TORIC_CLAREON",
-        "EDOF_VIVITY"
+        "MONOFOCAL"
       ],
-      "insurance_coverage": "Insurance covers basic surgery; patient pays upgrade fee for premium lens",
-      "fees_breakdown": {
-        "physician_fee": 2000,
-        "facility_fee": 2000,
-        "total_estimated": 5500
-      },
-      "notes": "Includes femtosecond laser, premium IOL, ORA guidance"
+      "insurance_coverage": "Fully covered by Medicare/most insurances"
     },
     {
-      "package_id": "advanced",
-      "display_name": "Advanced Package",
-      "description": "Full premium experience with multifocal or EDOF IOL for maximum spectacle independence.",
-      "price_cash": 8000,
+      "package_id": "PKG_LASER_LRI",
+      "display_name": "Monofocal + Laser",
+      "description": "Femtosecond laser-assisted surgery with limbal relaxing incisions for minor astigmatism.",
+      "price_cash": 1900,
       "includes_laser": true,
       "allowed_lens_codes": [
-        "MF_PANOPTIX",
-        "MF_SYNERGY",
-        "EDOF_VIVITY",
-        "EDOF_TORIC_VIVITY",
-        "MF_TORIC_PANOPTIX"
+        "MONOFOCAL"
       ],
-      "insurance_coverage": "Insurance covers basic surgery; patient pays upgrade fee",
-      "fees_breakdown": {
-        "physician_fee": 3000,
-        "facility_fee": 3000,
-        "total_estimated": 8000
-      },
-      "notes": "Includes femtosecond laser, premium IOL, ORA guidance, enhanced recovery protocol"
+      "insurance_coverage": "Laser portion is out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF",
+      "display_name": "EDOF (Extended Depth)",
+      "description": "Extended Depth of Focus lens for excellent intermediate vision with minimal halos.",
+      "price_cash": 2500,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_EDOF_LASER",
+      "display_name": "EDOF + Laser",
+      "description": "Extended Depth of Focus lens with femtosecond laser precision for enhanced results.",
+      "price_cash": 3000,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "EDOF",
+        "EDOF_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL",
+      "display_name": "Multifocal",
+      "description": "Multifocal IOL for near, intermediate, and distance vision with reduced glasses dependence.",
+      "price_cash": 3500,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_MULTIFOCAL_LASER",
+      "display_name": "Multifocal + Laser",
+      "description": "Multifocal IOL with femtosecond laser precision for optimal visual outcomes.",
+      "price_cash": 4000,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MULTIFOCAL",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_LAL",
+      "display_name": "Light Adjustable Lens",
+      "description": "RxSight LAL - vision fine-tuned after surgery using UV light treatments.",
+      "price_cash": 4900,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "LAL"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC",
+      "display_name": "Toric (Astigmatism)",
+      "description": "Toric IOL for patients with significant corneal astigmatism. Can be combined with any base lens type.",
+      "price_cash": 1800,
+      "includes_laser": false,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
+    },
+    {
+      "package_id": "PKG_TORIC_LASER",
+      "display_name": "Toric + Laser",
+      "description": "Toric IOL with femtosecond laser precision for enhanced astigmatism correction.",
+      "price_cash": 2200,
+      "includes_laser": true,
+      "allowed_lens_codes": [
+        "MONOFOCAL_TORIC",
+        "EDOF_TORIC",
+        "MULTIFOCAL_TORIC"
+      ],
+      "insurance_coverage": "Premium portion out-of-pocket"
     }
   ],
   "lens_inventory": {
@@ -161,22 +227,22 @@
       "has_toric_variant": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ SN60WF",
           "model_code": "MONO_STD_ACRYSOF",
-          "description": "Proven monofocal with blue-light filtering and aspheric optics"
+          "description": "Proven monofocal with blue-light filtering and aspheric optics",
+          "manufacturer": "Alcon"
         },
         {
-          "manufacturer": "Alcon",
           "model": "Clareon SY60WF",
           "model_code": "MONO_STD_CLAREON",
-          "description": "Next-gen monofocal with superior clarity and reduced glistening"
+          "description": "Next-gen monofocal with superior clarity and reduced glistening",
+          "manufacturer": "Alcon"
         },
         {
-          "manufacturer": "Alcon",
           "model": "Clareon CNA0T0",
           "model_code": "MONO_PREM_CLAREON",
-          "description": "Premium Clareon monofocal with enhanced optical quality"
+          "description": "Premium Clareon monofocal with enhanced optical quality",
+          "manufacturer": "Alcon"
         }
       ]
     },
@@ -187,18 +253,18 @@
       "is_toric": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ Toric SN6AT",
           "model_code": "TORIC_ACRYSOF",
+          "description": "Astigmatism-correcting monofocal IOL with proven rotational stability",
           "toric_range": "1.0D - 6.0D cylinder",
-          "description": "Astigmatism-correcting monofocal IOL with proven rotational stability"
+          "manufacturer": "Alcon"
         },
         {
-          "manufacturer": "Alcon",
           "model": "Clareon Toric CNA3T",
           "model_code": "TORIC_CLAREON",
+          "description": "Premium toric with enhanced rotational stability and clarity",
           "toric_range": "1.0D - 3.75D cylinder",
-          "description": "Premium toric with enhanced rotational stability and clarity"
+          "manufacturer": "Alcon"
         }
       ]
     },
@@ -208,10 +274,10 @@
       "has_toric_variant": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ Vivity DFT015",
           "model_code": "EDOF_VIVITY",
-          "description": "Non-diffractive EDOF lens with X-WAVE technology for seamless distance-to-intermediate vision"
+          "description": "Non-diffractive EDOF lens with X-WAVE technology for seamless distance-to-intermediate vision",
+          "manufacturer": "Alcon"
         }
       ]
     },
@@ -222,11 +288,11 @@
       "is_toric": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ Vivity Toric DFT315",
           "model_code": "EDOF_TORIC_VIVITY",
+          "description": "EDOF with built-in astigmatism correction for extended vision range",
           "toric_range": "1.0D - 3.75D cylinder",
-          "description": "EDOF with built-in astigmatism correction for extended vision range"
+          "manufacturer": "Alcon"
         }
       ]
     },
@@ -236,16 +302,16 @@
       "has_toric_variant": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ PanOptix TFNT00",
           "model_code": "MF_PANOPTIX",
-          "description": "Trifocal IOL providing excellent near (40cm), intermediate (60cm), and distance vision"
+          "description": "Trifocal IOL providing excellent near (40cm), intermediate (60cm), and distance vision",
+          "manufacturer": "Alcon"
         },
         {
-          "manufacturer": "Johnson & Johnson Vision",
           "model": "TECNIS Synergy DFR00V",
           "model_code": "MF_SYNERGY",
-          "description": "Combines EDOF and diffractive technology for continuous range of vision"
+          "description": "Combines EDOF and diffractive technology for continuous range of vision",
+          "manufacturer": "Johnson & Johnson Vision"
         }
       ]
     },
@@ -256,11 +322,11 @@
       "is_toric": true,
       "models": [
         {
-          "manufacturer": "Alcon",
           "model": "AcrySof IQ PanOptix Toric TFNT",
           "model_code": "MF_TORIC_PANOPTIX",
+          "description": "Trifocal with astigmatism correction",
           "toric_range": "1.0D - 2.25D cylinder",
-          "description": "Trifocal with astigmatism correction"
+          "manufacturer": "Alcon"
         }
       ]
     },
@@ -270,10 +336,10 @@
       "has_toric_variant": false,
       "models": [
         {
-          "manufacturer": "RxSight",
           "model": "RxSight LAL",
           "model_code": "LAL_RXSIGHT",
-          "description": "Post-operatively adjustable IOL for fine-tuned customized vision"
+          "description": "Post-operatively adjustable IOL for fine-tuned customized vision",
+          "manufacturer": "RxSight"
         }
       ]
     }
@@ -282,7 +348,27 @@
     "pre_op": {
       "antibiotics": [
         "Moxifloxacin 0.5% (Vigamox) - 1 drop 4 times daily",
-        "Besivance 0.6% - 1 drop 3 times daily"
+        "Besivance 0.6% - 1 drop 3 times daily",
+        {
+          "id": 1771409912729,
+          "name": "Moxifloxacin (Vigamox)"
+        },
+        {
+          "id": 1771409913415,
+          "name": "Besifloxacin (Besivance)"
+        },
+        {
+          "id": 1771409913977,
+          "name": "Gatifloxacin (Zymaxid)"
+        },
+        {
+          "id": 1771409914494,
+          "name": "Ofloxacin (Ocuflox)"
+        },
+        {
+          "id": 1771409915093,
+          "name": "Ciprofloxacin (Ciloxan)"
+        }
       ],
       "frequencies": [
         "4 times daily for 3 days before surgery",
@@ -292,15 +378,100 @@
     },
     "post_op": {
       "antibiotics": [
-        "Moxifloxacin 0.5% (Vigamox) - 1 drop 4 times daily for 1 week"
+        "Moxifloxacin 0.5% (Vigamox) - 1 drop 4 times daily for 1 week",
+        {
+          "id": 1771409922647,
+          "name": "Moxifloxacin (Vigamox)"
+        },
+        {
+          "id": 1771409923053,
+          "name": "Besifloxacin (Besivance)"
+        },
+        {
+          "id": 1771409923324,
+          "name": "Gatifloxacin (Zymaxid)"
+        },
+        {
+          "id": 1771409923516,
+          "name": "Ofloxacin (Ocuflox)"
+        },
+        {
+          "id": 1771409923733,
+          "name": "Ciprofloxacin (Ciloxan)"
+        }
       ],
       "nsaids": [
         "Nepafenac 0.3% (Ilevro) - 1 drop daily for 4 weeks",
-        "Ketorolac 0.5% (Acular LS) - 1 drop 4 times daily for 2 weeks"
+        "Ketorolac 0.5% (Acular LS) - 1 drop 4 times daily for 2 weeks",
+        {
+          "id": 1771409926576,
+          "name": "Ketorolac",
+          "default_weeks": 4,
+          "frequency_label": "4x Daily",
+          "default_frequency": 4
+        },
+        {
+          "id": 1771409926766,
+          "name": "Bromfenac (Prolensa, Bromday, Bromsite)",
+          "default_weeks": 4,
+          "frequency_label": "1x Daily",
+          "default_frequency": 1
+        },
+        {
+          "id": 1771409926939,
+          "name": "Nepafenac (Nevanac, Ilevro)",
+          "default_weeks": 4,
+          "frequency_label": "1x Daily",
+          "default_frequency": 1
+        }
       ],
       "steroids": [
         "Prednisolone acetate 1% (Pred Forte) - 1 drop 4 times daily, taper over 4 weeks",
-        "Difluprednate 0.05% (Durezol) - 1 drop 4 times daily for 2 weeks, then twice daily for 2 weeks"
+        "Difluprednate 0.05% (Durezol) - 1 drop 4 times daily for 2 weeks, then twice daily for 2 weeks",
+        {
+          "id": 1771409929803,
+          "name": "Prednisolone Acetate 1% (Pred Forte)",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        },
+        {
+          "id": 1771409930002,
+          "name": "Loteprednol (Lotemax)",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        },
+        {
+          "id": 1771409930221,
+          "name": "Durezol (difluprednate)",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        },
+        {
+          "id": 1771409931738,
+          "name": "Dexamethasone",
+          "default_taper": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "default_weeks": 4
+        }
       ],
       "glaucoma_drops": [],
       "combination_drops": [],
@@ -368,5 +539,7 @@
     "created_at": "",
     "updated_at": "",
     "updated_by": ""
-  }
+  },
+  "_uuid": "cd671ab0-94e6-43a8-94ef-3d019330394f",
+  "_status": "active"
 }

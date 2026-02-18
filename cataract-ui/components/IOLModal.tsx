@@ -110,16 +110,16 @@ const iolOptions: IOLOption[] = [
             'If you have astigmatism, you may also need glasses for distance',
             'Does not correct astigmatism (unless Toric version or laser correction is used)'
         ],
-        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision at all distances — a Monofocal Toric IOL can correct it, giving you sharper distance vision without glasses. For low levels of astigmatism, your doctor may recommend laser-assisted surgery as an alternative.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision at all ranges (far, intermediate, and near) — a Monofocal Toric IOL can correct it, giving you sharper distance vision without glasses. For low levels of astigmatism, your doctor may recommend laser-assisted surgery as an alternative.'
     },
     {
         id: 'multifocal',
         title: 'Multifocal',
-        description: 'See clearly at ALL three distances—far, intermediate, and near.',
+        description: 'See clearly at all ranges of vision — far, intermediate, and near.',
         icon: Grid,
-        definition: 'Multifocal lenses provide clear vision at ALL three distances—far (driving), intermediate (computer), and near (reading fine print like medicine bottles or recipes). They work like bifocal or progressive eyeglasses, using concentric rings to split light into different focal points. This is the closest option to being completely glasses-free after surgery.',
+        definition: 'Multifocal lenses provide clear vision at all ranges of vision — far (driving), intermediate (computer), and near (reading fine print like medicine bottles or recipes). They work like bifocal or progressive eyeglasses, using concentric rings to split light into different focal points. This is the closest option to being completely glasses-free after surgery.',
         benefits: [
-            'Greatest freedom from glasses—see at all distances',
+            'Greatest freedom from glasses — see at all ranges of vision',
             'Can read fine print, use computer, and drive without glasses',
             'Excellent for active lifestyles'
         ],
@@ -128,7 +128,7 @@ const iolOptions: IOLOption[] = [
             'Your brain needs time to adapt (usually 3-6 months)',
             'Premium cost not covered by insurance'
         ],
-        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision — a Toric Multifocal IOL can correct it while also providing clear vision at all distances. For low levels of astigmatism, laser correction during surgery may be an alternative option.'
+        toricInfo: 'If you have astigmatism — an irregular curve in your cornea that causes blurry vision — a Toric Multifocal IOL can correct it while also providing clear vision at all ranges of vision. For low levels of astigmatism, laser correction during surgery may be an alternative option.'
     },
     {
         id: 'edof',
@@ -232,6 +232,28 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                             </p>
                         </div>
 
+                        {/* Understanding Vision Ranges */}
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-10">
+                            <h3 className="text-lg font-bold text-slate-900 mb-3">Understanding Your Vision Ranges</h3>
+                            <p className="text-slate-700 leading-relaxed text-base mb-4">
+                                The healthy human eye can see at three ranges of vision. Each lens type below differs in how many of these ranges it covers:
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="bg-white rounded-xl p-4 border border-amber-100">
+                                    <p className="font-semibold text-slate-900 text-lg mb-1">Distance Vision</p>
+                                    <p className="text-slate-600 text-base">Driving, watching TV, seeing across a room — anything 6 feet or farther away.</p>
+                                </div>
+                                <div className="bg-white rounded-xl p-4 border border-amber-100">
+                                    <p className="font-semibold text-slate-900 text-lg mb-1">Intermediate Vision</p>
+                                    <p className="text-slate-600 text-base">Using a computer or laptop, cooking, seeing a car dashboard — roughly arm's length (~20 inches).</p>
+                                </div>
+                                <div className="bg-white rounded-xl p-4 border border-amber-100">
+                                    <p className="font-semibold text-slate-900 text-lg mb-1">Near Vision</p>
+                                    <p className="text-slate-600 text-base">Reading fine print in a book, on a prescription bottle, or on your phone — up close.</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <h2 className="text-2xl font-bold text-slate-900 mb-6">IOL Lens Options</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
@@ -258,7 +280,7 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900 mb-3">What is Astigmatism?</h3>
                                 <p className="text-slate-700 leading-relaxed text-xl mb-4">
-                                    Astigmatism is when your <strong className="text-blue-700">cornea</strong> (the clear front surface of your eye) is curved more like a <strong className="text-blue-700">football</strong> than a basketball. This irregular shape causes blurry or distorted vision at all distances.
+                                    Astigmatism is when your <strong className="text-blue-700">cornea</strong> (the clear front surface of your eye) is curved more like a <strong className="text-blue-700">football</strong> than a basketball. This irregular shape causes blurry or distorted vision at all ranges — far, intermediate, and near.
                                 </p>
                                 <p className="text-slate-700 leading-relaxed text-xl">
                                     A <strong className="text-blue-700">Toric lens</strong> is a special version of any IOL that is designed to correct astigmatism during your cataract surgery. If your doctor has identified astigmatism, you will see a Toric option available within each lens type above.
@@ -386,20 +408,43 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                                     </div>
                                 </div>
 
-                                {/* Toric Option */}
-                                <div className="bg-blue-50 rounded-3xl p-8 relative overflow-hidden">
-                                    <div className="relative z-10">
+                                {/* Toric Option — Monofocal gets prominent insurance warning */}
+                                {selectedLens.id === 'monofocal' ? (
+                                    <div className="border-2 border-amber-300 bg-amber-50 rounded-3xl p-8">
+                                        <h3 className="text-2xl font-bold text-slate-900 mb-1">Monofocal Toric</h3>
+                                        <p className="text-base text-amber-800 font-medium mb-4">For patients with astigmatism</p>
+                                        <p className="text-lg text-slate-700 leading-relaxed mb-6">
+                                            {selectedLens.toricInfo}
+                                        </p>
+                                        <div className="bg-white border border-amber-200 rounded-2xl p-5">
+                                            <div className="flex items-start gap-3">
+                                                <AlertCircle size={22} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="font-bold text-slate-900 text-base mb-2">Important: Insurance Difference</p>
+                                                    <p className="text-slate-700 text-base leading-relaxed">
+                                                        A <strong>standard Monofocal lens</strong> (single range of vision) is <strong className="text-emerald-700">covered by most insurance plans</strong>.
+                                                        However, the <strong>Monofocal Toric lens</strong> that corrects astigmatism is <strong className="text-red-700">not covered by insurance</strong> — it is an additional out-of-pocket cost. Ask your doctor about the exact pricing.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-blue-50 rounded-3xl p-8">
                                         <div className="flex items-center gap-3 mb-3">
                                             <h3 className="text-xl font-bold text-slate-900">If You Have Astigmatism</h3>
                                             <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase rounded tracking-wide">
                                                 Toric Lens
                                             </span>
                                         </div>
-                                        <p className="text-blue-900 leading-relaxed text-base">
+                                        <p className="text-blue-900 leading-relaxed text-base mb-4">
                                             {selectedLens.toricInfo}
                                         </p>
+                                        <p className="text-blue-700 text-base font-medium">
+                                            The Toric version is included in the premium lens price — no additional cost for astigmatism correction.
+                                        </p>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>
