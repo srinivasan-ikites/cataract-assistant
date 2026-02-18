@@ -26,11 +26,17 @@ def ping() -> dict:
 @router.get("/version")
 def version() -> dict:
     """Version endpoint returning app version, environment, and timezone information."""
+    # Format timestamp as human-readable: "February 18, 2026 at 7:29 AM UTC"
+    now = datetime.now(timezone.utc)
+    # Use %I for 12-hour format, strip leading zero if present for cross-platform compatibility
+    hour_12 = now.strftime("%I").lstrip("0")
+    human_timestamp = f"{now.strftime('%B %d, %Y')} at {hour_12}:{now.strftime('%M %p')} UTC"
+
     return {
         "version": "1.0.0",
         "environment": "development",
         "timezone": "UTC",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": human_timestamp
     }
 
 
