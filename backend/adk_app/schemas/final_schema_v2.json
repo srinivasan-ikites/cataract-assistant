@@ -112,6 +112,13 @@
         "is_candidate_lal": false
       }
     },
+    "monovision": {
+      "is_candidate": false,
+      "selected": false,
+      "dominant_eye": "",
+      "dominant_eye_target": "distance",
+      "non_dominant_eye_target": ""
+    },
     "offered_packages": [],
     "offered_packages_od": [],
     "offered_packages_os": [],
