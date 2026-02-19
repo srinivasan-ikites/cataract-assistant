@@ -61,7 +61,7 @@ const TextField = memo(({ value, onChange, label, placeholder, type = 'text', di
       value={value ?? ''}
       onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
       disabled={disabled}
-      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:text-slate-400"
+      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all disabled:bg-slate-50 disabled:text-slate-400"
       placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
     />
   </div>
@@ -82,7 +82,7 @@ const TextArea = memo(({ value, onChange, label, placeholder, rows = 3 }: TextAr
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
-      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
             placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           />
       </div>
@@ -103,9 +103,9 @@ const ArrayField = memo(({ items, onAdd, onRemove, label }: ArrayFieldProps) => 
       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</label>
         <div className="flex flex-wrap gap-2">
         {items.map((item: string, idx: number) => (
-          <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-xs font-semibold text-blue-700">
+          <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full text-xs font-semibold text-teal-700">
               {item}
-            <button onClick={() => onRemove(idx)} className="text-blue-400 hover:text-blue-600">×</button>
+            <button onClick={() => onRemove(idx)} className="text-teal-400 hover:text-teal-600">×</button>
             </span>
           ))}
         </div>
@@ -120,7 +120,7 @@ const ArrayField = memo(({ items, onAdd, onRemove, label }: ArrayFieldProps) => 
               setInputValue('');
             }
           }}
-          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-teal-400"
           placeholder={`Add ${label.toLowerCase()}...`}
         />
         <button
@@ -130,7 +130,7 @@ const ArrayField = memo(({ items, onAdd, onRemove, label }: ArrayFieldProps) => 
               setInputValue('');
             }
           }}
-          className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100"
+          className="px-3 py-2 bg-teal-50 text-teal-600 rounded-lg text-xs font-semibold hover:bg-teal-100"
         >
           <Plus size={14} />
         </button>
@@ -162,7 +162,7 @@ const MedItem = memo(({
       type="text"
       value={item.name || ''}
       onChange={(e) => onUpdateField(`${path}.${index}.name`, e.target.value)}
-      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-teal-400"
       placeholder="Medication name..."
     />
     {showCategory && (
@@ -170,7 +170,7 @@ const MedItem = memo(({
         type="text"
         value={item.category || ''}
         onChange={(e) => onUpdateField(`${path}.${index}.category`, e.target.value)}
-        className="w-32 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+        className="w-32 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-teal-400"
         placeholder="Category..."
       />
     )}
@@ -199,7 +199,7 @@ const MedList = memo(({ path, label, items, template, showCategory = false, onUp
       <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
       <button
         onClick={() => onUpdateField(path, [...items, { ...template, id: Date.now() }])}
-        className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+        className="text-xs font-semibold text-teal-600 hover:text-teal-700"
       >
         + Add
       </button>
@@ -564,7 +564,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
       {/* Clinic Identity - Primary section */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-          <Hospital size={16} className="text-blue-500" />
+          <Hospital size={16} className="text-teal-500" />
           Clinic Identity
         </h3>
         <div className="grid grid-cols-2 gap-4">
@@ -601,8 +601,8 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                <Upload size={18} className="text-indigo-600" />
+              <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                <Upload size={18} className="text-teal-600" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Quick Import</h3>
@@ -615,19 +615,19 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           {/* Compact drop zone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-400', 'bg-white'); }}
-            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-indigo-400', 'bg-white'); }}
+            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-teal-400', 'bg-white'); }}
+            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-teal-400', 'bg-white'); }}
             onDrop={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.remove('border-indigo-400', 'bg-white');
+              e.currentTarget.classList.remove('border-teal-400', 'bg-white');
               const droppedFiles = Array.from(e.dataTransfer.files);
               setFiles(prev => [...prev, ...droppedFiles]);
               toast.info('Files Added', `${droppedFiles.length} file(s) ready for extraction.`);
             }}
-            className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center cursor-pointer hover:border-indigo-400 hover:bg-white transition-all"
+            className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center cursor-pointer hover:border-teal-400 hover:bg-white transition-all"
           >
             <p className="text-xs font-medium text-slate-500">
-              <span className="text-indigo-600 font-semibold">Click to upload</span> or drag & drop
+              <span className="text-teal-600 font-semibold">Click to upload</span> or drag & drop
             </p>
             <p className="text-[10px] text-slate-400 mt-1">PDF, Images, Word documents</p>
             <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
@@ -638,7 +638,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
             <div className="mt-3 space-y-2">
                   {files.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-100 text-xs">
-                  <FileText size={12} className="text-indigo-500" />
+                  <FileText size={12} className="text-teal-500" />
                   <span className="flex-1 truncate text-slate-600">{f.name}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); }} 
@@ -651,7 +651,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                 <button
                   onClick={startExtraction}
                   disabled={extracting}
-                className="w-full mt-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full mt-2 px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                 {extracting ? <ButtonLoader /> : <Sparkles size={14} />}
                 {extracting ? 'Processing...' : 'Extract Data'}
@@ -699,7 +699,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           <h3 className="text-sm font-bold text-slate-800">Staff Directory</h3>
                   <button
             onClick={addStaff}
-            className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 flex items-center gap-1"
+            className="px-3 py-1.5 bg-teal-50 text-teal-600 rounded-lg text-xs font-semibold hover:bg-teal-100 flex items-center gap-1"
                   >
             <Plus size={14} /> Add Staff
                   </button>
@@ -715,8 +715,8 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
               {/* Header */}
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Users size={18} className="text-blue-600" />
+                  <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                    <Users size={18} className="text-teal-600" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800">{s.name || `Staff Member #${idx + 1}`}</p>
@@ -773,8 +773,8 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                             onClick={() => toggleDay(`staff_directory.${idx}.availability.surgery_days`, day)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                               selected
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white border border-slate-200 text-slate-500 hover:border-blue-300'
+                                ? 'bg-teal-600 text-white'
+                                : 'bg-white border border-slate-200 text-slate-500 hover:border-teal-300'
                             }`}
                           >
                             {day.slice(0, 3)}
@@ -850,9 +850,9 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
     return (
       <div className="space-y-6">
         {/* Quick Add Presets */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
+        <div className="bg-gradient-to-br from-teal-50 to-teal-50 border border-teal-100 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={16} className="text-blue-500" />
+            <Sparkles size={16} className="text-teal-500" />
             <h4 className="text-sm font-bold text-slate-800">Quick Add Standard Packages</h4>
           </div>
           <p className="text-xs text-slate-500 mb-4">Click to add common surgery packages. You can customize them after adding.</p>
@@ -865,7 +865,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                 <button
                   key={preset.package_id}
                   onClick={() => addPackageAndScroll({ ...preset })}
-                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm flex items-center gap-2"
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition-all shadow-sm flex items-center gap-2"
                 >
                   <Plus size={12} />
                   {preset.display_name}
@@ -1002,7 +1002,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           <h3 className="text-sm font-bold text-slate-800">Lens Inventory</h3>
                 <button
             onClick={addNewCategory}
-            className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 flex items-center gap-1"
+            className="px-3 py-1.5 bg-teal-50 text-teal-600 rounded-lg text-xs font-semibold hover:bg-teal-100 flex items-center gap-1"
                 >
             <Plus size={14} /> Add Category
                 </button>
@@ -1053,7 +1053,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                         <p className="text-xs font-semibold text-slate-500 uppercase">Lens Models ({models.length})</p>
                 <button
                           onClick={() => updateNestedField(`lens_inventory.${catKey}.models`, [...models, { manufacturer: '', model: '', model_code: '', description: '' }])}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                          className="text-xs font-semibold text-teal-600 hover:text-teal-700"
                         >
                           + Add Model
                 </button>
@@ -1163,7 +1163,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
           <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
           <button
             onClick={() => addMedication(path, items, defaultTemplate)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+            className="text-xs font-semibold text-teal-600 hover:text-teal-700"
           >
             + Add
           </button>
@@ -1184,7 +1184,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                   <button
                     key={idx}
                     onClick={() => addMedication(path, items, itemToAdd)}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-medium text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-medium text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition-all"
                   >
                     <Plus size={10} />
                     {displayName}
@@ -1206,7 +1206,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                   type="text"
                   value={item.name || ''}
                   onChange={(e) => updateNestedField(`${path}.${idx}.name`, e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-teal-400"
                   placeholder="Medication name..."
                 />
                 <button
@@ -1263,7 +1263,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
 
         {/* Post-Op Medications - Single accordion with Antibiotics, NSAIDs, Steroids inside */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          {renderAccordionHeader('post_op', 'Post-Op Medications', <Pill size={18} className="text-blue-500" />, 'bg-blue-50', postOpAntibiotics.length + nsaids.length + steroids.length)}
+          {renderAccordionHeader('post_op', 'Post-Op Medications', <Pill size={18} className="text-teal-500" />, 'bg-teal-50', postOpAntibiotics.length + nsaids.length + steroids.length)}
           {expandedMedSection === 'post_op' && (
             <div className="px-5 pb-5 space-y-6 border-t border-slate-100 pt-4">
               {/* Antibiotics */}
@@ -1273,7 +1273,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                 postOpAntibiotics,
                 availablePostOpAntibiotics,
                 { name: '', default_frequency: 4, default_weeks: 1 },
-                'text-blue-500'
+                'text-teal-500'
               )}
 
               <hr className="border-slate-100" />
@@ -1403,14 +1403,14 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                   type="text"
                   value={opt.label || ''}
                   onChange={(e) => updateNestedField(`medications.frequency_options.${idx}.label`, e.target.value)}
-                  className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-blue-400"
+                  className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-teal-400"
                   placeholder="Label..."
                 />
                 <input
                   type="number"
                   value={opt.times_per_day || ''}
                   onChange={(e) => updateNestedField(`medications.frequency_options.${idx}.times_per_day`, Number(e.target.value))}
-                  className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-blue-400 text-center"
+                  className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-teal-400 text-center"
                   placeholder="x/day"
                 />
                   <button
@@ -1430,7 +1430,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
               const opts = getValue('medications.frequency_options') || [];
               updateNestedField('medications.frequency_options', [...opts, { id: Date.now(), label: '', times_per_day: 4 }]);
             }}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+            className="text-xs font-semibold text-teal-600 hover:text-teal-700"
           >
             + Add Frequency Option
           </button>
@@ -1560,8 +1560,8 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
 
     return (
       <div className="space-y-4">
-        <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-4 flex gap-3 items-start">
-          <AlertCircle className="flex-shrink-0 text-blue-600 mt-0.5" size={18} />
+        <div className="bg-teal-50 border-l-4 border-teal-500 rounded-r-xl p-4 flex gap-3 items-start">
+          <AlertCircle className="flex-shrink-0 text-teal-600 mt-0.5" size={18} />
           <div>
             <h4 className="text-sm font-bold text-slate-800 mb-0.5">Form Templates</h4>
             <p className="text-xs text-slate-600 leading-relaxed">
@@ -1604,7 +1604,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                       <button
                         onClick={() => formFileInputRefs.current[formDef.id]?.click()}
                         disabled={isProcessing}
-                        className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-teal-50 text-teal-600 rounded-lg text-xs font-semibold hover:bg-teal-100 transition-colors disabled:opacity-50"
                       >
                         Replace
                       </button>
@@ -1620,10 +1620,10 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                     <button
                       onClick={() => formFileInputRefs.current[formDef.id]?.click()}
                       disabled={isProcessing}
-                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-xs font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-xs font-semibold text-slate-500 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50/50 transition-all disabled:opacity-50"
                     >
                       {isProcessing ? (
-                        <><div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Uploading...</>
+                        <><div className="w-3.5 h-3.5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" /> Uploading...</>
                       ) : (
                         <><Upload size={14} /> Upload PDF</>
                       )}
@@ -1674,14 +1674,14 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
       <nav className="flex items-center gap-2 text-sm">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+          className="flex items-center gap-1.5 text-slate-400 hover:text-teal-600 transition-colors group"
         >
           <LayoutDashboard size={14} className="group-hover:scale-110 transition-transform" />
           <span className="font-medium">Dashboard</span>
         </button>
         <ChevronRight size={14} className="text-slate-300" />
         <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
-          <Hospital size={14} className="text-blue-500" />
+          <Hospital size={14} className="text-teal-500" />
           Clinic Configuration
         </span>
       </nav>
@@ -1691,7 +1691,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white shadow-sm transition-all"
+            className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-teal-600 hover:border-teal-200 bg-white shadow-sm transition-all"
           >
             <ArrowLeft size={18} />
           </button>
@@ -1710,7 +1710,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                   <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 text-sm"
                   >
           {saving ? <ButtonLoader /> : <Save size={16} />}
           Save
@@ -1736,7 +1736,7 @@ const ClinicSetup: React.FC<ClinicSetupProps> = ({ clinicId, onBack }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-600'
+                    ? 'bg-teal-50 text-teal-600'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 }`}
               >

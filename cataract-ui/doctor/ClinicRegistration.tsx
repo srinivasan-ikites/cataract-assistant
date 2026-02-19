@@ -153,7 +153,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
   // Success screen
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={32} className="text-green-600" />
@@ -189,7 +189,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
 
           <button
             onClick={onBack}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            className="w-full py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
           >
             Back to Login
           </button>
@@ -199,7 +199,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-8">
@@ -214,9 +214,9 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
 
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className={`w-3 h-3 rounded-full ${step >= 1 ? 'bg-blue-600' : 'bg-slate-200'}`} />
-          <div className={`w-12 h-1 rounded ${step >= 2 ? 'bg-blue-600' : 'bg-slate-200'}`} />
-          <div className={`w-3 h-3 rounded-full ${step >= 2 ? 'bg-blue-600' : 'bg-slate-200'}`} />
+          <div className={`w-3 h-3 rounded-full ${step >= 1 ? 'bg-teal-600' : 'bg-slate-200'}`} />
+          <div className={`w-12 h-1 rounded ${step >= 2 ? 'bg-teal-600' : 'bg-slate-200'}`} />
+          <div className={`w-3 h-3 rounded-full ${step >= 2 ? 'bg-teal-600' : 'bg-slate-200'}`} />
         </div>
 
         {/* Error message */}
@@ -243,7 +243,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.clinic_name}
                     onChange={handleChange}
                     placeholder="Enter clinic name"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                     required
                   />
                 </div>
@@ -261,7 +261,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.clinic_address}
                     onChange={handleChange}
                     placeholder="123 Main Street"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -274,7 +274,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                   value={formData.clinic_city}
                   onChange={handleChange}
                   placeholder="City"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                 />
               </div>
 
@@ -288,7 +288,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     onChange={handleChange}
                     placeholder="CA"
                     maxLength={2}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all uppercase"
                   />
                 </div>
                 <div>
@@ -300,7 +300,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     onChange={handleChange}
                     placeholder="90210"
                     maxLength={10}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -315,14 +315,14 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.clinic_phone}
                     onChange={handlePhoneChange}
                     placeholder="(555) 123 4567"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors mt-6"
+                className="w-full py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors mt-6"
               >
                 Continue
               </button>
@@ -342,7 +342,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.admin_name}
                     onChange={handleChange}
                     placeholder="Enter your full name"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                     required
                   />
                 </div>
@@ -360,7 +360,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.admin_email}
                     onChange={handleChange}
                     placeholder="you@clinic.com"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                     required
                   />
                 </div>
@@ -378,7 +378,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.admin_password}
                     onChange={handleChange}
                     placeholder="Minimum 6 characters"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                     required
                   />
                 </div>
@@ -396,7 +396,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                     value={formData.confirm_password}
                     onChange={handleChange}
                     placeholder="Re-enter password"
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
                     required
                   />
                 </div>
@@ -414,7 +414,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -434,7 +434,7 @@ const ClinicRegistration: React.FC<ClinicRegistrationProps> = ({ onBack }) => {
         <div className="mt-6 text-center">
           <button
             onClick={onBack}
-            className="text-sm text-slate-500 hover:text-blue-600 transition-colors"
+            className="text-sm text-slate-500 hover:text-teal-600 transition-colors"
           >
             Already have an account? <span className="font-semibold">Sign in</span>
           </button>

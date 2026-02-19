@@ -445,6 +445,62 @@ const IOLModal: React.FC<IOLModalProps> = ({ onClose, moduleContent, onOpenChat,
                                         </p>
                                     </div>
                                 )}
+
+                                {/* Monovision Strategy - Only shown for Monofocal */}
+                                {selectedLens.id === 'monofocal' && (
+                                    <div className="mt-10 bg-gradient-to-r from-rose-50 to-pink-50 rounded-3xl p-8 border border-rose-200">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <h3 className="text-2xl font-bold text-slate-900">Monovision Strategy</h3>
+                                            <span className="px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold uppercase rounded-full tracking-wide">
+                                                With Monofocal
+                                            </span>
+                                        </div>
+                                        <p className="text-lg text-slate-700 leading-relaxed mb-6">
+                                            Monovision is a clever strategy that uses standard monofocal lenses in a special way: <strong className="text-rose-700">one eye is set for distance vision and the other for near or intermediate vision</strong>. Your brain automatically learns to switch between eyes depending on what you're looking at — like having built-in bifocals, but without the glasses.
+                                        </p>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            <div className="bg-white rounded-2xl p-6 border border-emerald-100">
+                                                <h4 className="text-sm font-bold text-emerald-700 uppercase tracking-wider mb-3">Benefits</h4>
+                                                <ul className="space-y-3">
+                                                    {[
+                                                        'Less dependence on reading glasses for everyday tasks',
+                                                        'Uses standard monofocal lenses — typically covered by insurance',
+                                                        'Fewer visual side effects (halos/glare) compared to multifocal lenses',
+                                                        'Proven approach — used successfully for decades',
+                                                    ].map((item, i) => (
+                                                        <li key={i} className="flex gap-3 items-start">
+                                                            <Check size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" strokeWidth={3} />
+                                                            <span className="text-base text-emerald-900">{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <div className="bg-white rounded-2xl p-6 border border-orange-100">
+                                                <h4 className="text-sm font-bold text-orange-700 uppercase tracking-wider mb-3">Things to Know</h4>
+                                                <ul className="space-y-3">
+                                                    {[
+                                                        'Your brain needs a few weeks to adapt to using each eye differently',
+                                                        'There may be a mild reduction in depth perception for precise tasks',
+                                                        'You may still need glasses for very fine print or night driving',
+                                                        'Not ideal if your work requires very precise depth judgment (e.g., pilots)',
+                                                    ].map((item, i) => (
+                                                        <li key={i} className="flex gap-3 items-start">
+                                                            <AlertCircle size={16} className="text-orange-500 flex-shrink-0 mt-0.5" strokeWidth={3} />
+                                                            <span className="text-base text-orange-900">{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white border border-rose-200 rounded-2xl p-5">
+                                            <p className="text-base text-slate-700 leading-relaxed">
+                                                <strong className="text-rose-700">How does your doctor decide?</strong> Your doctor evaluates whether monovision is right for you based on your eye health, lifestyle, and visual goals. A contact lens trial may be recommended first to make sure you're comfortable with the effect. If your doctor has recommended monovision for you, you'll see the details in the <strong>"My IOL Options"</strong> module.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

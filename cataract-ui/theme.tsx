@@ -102,11 +102,11 @@ export const getThemeClasses = (theme: ThemeConfig) => {
     suggestionChip: `border border-${p}-200 text-${p}-700 hover:bg-${p}-50 bg-white`,
 
     // Footer
-    footerBg: `bg-${p}-950`,
-    footerBorder: `border-${p}-900/50`,
-    footerIcon: `text-${p}-400`,
-    footerLink: `text-${p}-300 hover:text-white`,
-    footerAccent: `bg-white/10 border-white/10 text-${p}-300`,
+    footerBg: 'bg-transparent',
+    footerBorder: 'border-slate-200/60',
+    footerIcon: `text-${p}-500`,
+    footerLink: `text-${p}-600 hover:text-${p}-800`,
+    footerAccent: `bg-${p}-50 text-${p}-600`,
   };
 
   // Override for Gradient Theme

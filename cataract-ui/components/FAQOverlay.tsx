@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash, Trash2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ChevronRight, Info, AlertTriangle, CheckCircle2, List, Hash, Trash2, Bot, Sparkles } from 'lucide-react';
 import { api, patientAuthApi, Patient, ChatMessage } from '../services/api';
 import { useTheme } from '../theme';
 import ReactMarkdown from 'react-markdown';
@@ -189,9 +189,37 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const { classes } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Welcome tooltip — show once on first visit after a short delay
+  useEffect(() => {
+    if (isOpen) {
+      setShowTooltip(false);
+      return;
+    }
+    const alreadyShown = localStorage.getItem('cataract_chat_tooltip_shown');
+    if (alreadyShown) return;
+
+    const showTimer = setTimeout(() => setShowTooltip(true), 3000);
+    const dismissTimer = setTimeout(() => {
+      setShowTooltip(false);
+      localStorage.setItem('cataract_chat_tooltip_shown', 'true');
+    }, 11000);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(dismissTimer);
+    };
+  }, [isOpen]);
+
+  const handleFabClick = () => {
+    setShowTooltip(false);
+    localStorage.setItem('cataract_chat_tooltip_shown', 'true');
+    onOpen();
+  };
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -327,14 +355,94 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }
+        @keyframes fadeSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `}</style>
-      {/* Extended FAB Button */}
+      {/* Welcome tooltip — appears once on first visit */}
+      {showTooltip && !isOpen && (
+        <div
+          className="fixed bottom-[5.5rem] right-4 z-[99] animate-[fadeSlideUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)]"
+          style={{ animationFillMode: 'both' }}
+        >
+          <div
+            className="relative w-[280px] rounded-2xl overflow-hidden cursor-pointer shadow-2xl shadow-violet-500/20"
+            onClick={handleFabClick}
+          >
+            {/* Gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700" />
+            {/* Subtle pattern overlay */}
+            <div className="absolute inset-0 opacity-10" style={{
+              backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px), radial-gradient(circle at 60% 80%, white 1px, transparent 1px)',
+              backgroundSize: '60px 60px, 80px 80px, 40px 40px'
+            }} />
+
+            <div className="relative p-4">
+              {/* Close button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTooltip(false);
+                  localStorage.setItem('cataract_chat_tooltip_shown', 'true');
+                }}
+                className="absolute top-2.5 right-2.5 p-1 rounded-full hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+
+              {/* Bot avatar with glow */}
+              <div className="flex items-start gap-3 pr-5">
+                <div className="relative flex-shrink-0">
+                  <div className="absolute inset-0 rounded-full bg-white/30 blur-md animate-pulse" />
+                  <div className="relative w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                    <Bot size={22} className="text-white" />
+                  </div>
+                </div>
+                <div className="pt-0.5">
+                  <p className="font-bold text-white text-[15px] leading-tight flex items-center gap-1.5">
+                    Hi, I'm your care assistant
+                    <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                  </p>
+                  <p className="text-white/80 text-sm mt-1.5 leading-relaxed">
+                    Ask me anything about your surgery — I'm here to help!
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick action hint */}
+              <div className="mt-3 flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm border border-white/10">
+                <MessageCircle size={14} className="text-white/70" />
+                <span className="text-white/70 text-xs">Tap to start chatting</span>
+                <ChevronRight size={14} className="text-white/50 ml-auto" />
+              </div>
+            </div>
+
+            {/* Arrow pointing down to the FAB */}
+            <div className="absolute -bottom-[6px] right-[22px] w-3 h-3 bg-indigo-700 rotate-45" />
+          </div>
+        </div>
+      )}
+
+      {/* Chat FAB Button */}
       <button
-        onClick={onOpen}
-        className={`fixed bottom-6 right-6 z-[100] ${classes.fabBg} text-white pl-4 pr-6 py-4 rounded-[16px] transition-all duration-300 hover:scale-105 flex items-center gap-3 shadow-lg ${isOpen ? 'hidden' : 'flex'}`}
+        onClick={handleFabClick}
+        className={`fixed bottom-6 right-6 z-[100] ${classes.fabBg} text-white w-14 h-14 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${isOpen ? 'hidden' : 'flex'}`}
       >
-        <MessageCircle size={24} />
-        {/* <span className="font-medium text-base tracking-wide">Ask Assistant</span> */}
+        {/* Animated ring on first visit */}
+        {showTooltip && (
+          <>
+            <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-white pointer-events-none" />
+            <span className="absolute -inset-1 rounded-full border-2 border-white/30 animate-pulse pointer-events-none" />
+          </>
+        )}
+        <Bot size={24} />
       </button>
 
       {/* Material Sheet Overlay */}
@@ -342,29 +450,34 @@ const FAQOverlay: React.FC<FAQOverlayProps> = ({ patient, isOpen, onClose, onOpe
         <>
           {/* Backdrop blur */}
           <div className="fixed inset-0 z-[95] bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
-          <div className="fixed inset-0 md:top-auto md:bottom-4 md:right-8 md:left-auto z-[100] w-full md:w-[640px] h-full md:h-[92vh] max-h-full md:max-h-[92vh] bg-white shadow-2xl rounded-none md:rounded-[24px] flex flex-col overflow-hidden animate-[slideUp_0.3s_ease-out] border border-slate-200 ring-1 ring-black/5">
+          <div className="fixed inset-0 md:top-auto md:bottom-4 md:right-8 md:left-auto z-[100] w-full md:w-[640px] h-full md:h-[92vh] max-h-full md:max-h-[92vh] bg-white shadow-2xl rounded-none md:rounded-[24px] flex flex-col overflow-hidden animate-[slideUp_0.3s_ease-out]">
 
             {/* Header */}
-            <div className={`${classes.chatHeader} px-4 py-3 flex justify-between items-center text-white shadow-md`}>
-              <div className="flex items-center gap-2.5">
-                <div className="bg-white/20 p-1.5 rounded-full">
-                  <MessageCircle size={18} />
+            <div className={`${classes.chatHeader} relative px-5 py-4 flex justify-between items-center text-white`}>
+              {/* Subtle pattern overlay for depth */}
+              <div className="absolute inset-0 opacity-[0.07]" style={{
+                backgroundImage: 'radial-gradient(circle at 30% 50%, white 1px, transparent 1px), radial-gradient(circle at 70% 30%, white 1px, transparent 1px)',
+                backgroundSize: '50px 50px, 70px 70px'
+              }} />
+              <div className="relative flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center">
+                  <Bot size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-base leading-tight">Assistant</h3>
-                  <p className="text-[11px] opacity-80">Always here to help</p>
+                  <h3 className="font-bold text-[17px] leading-tight">Care Assistant</h3>
+                  <p className="text-sm opacity-80 mt-0.5">Here for you, {patient.name.first}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="relative flex items-center gap-1">
                 <button
                   type="button"
                   onClick={handleClearChat}
-                  className="hover:bg-red-500/40 px-2.5 py-2 rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors"
+                  className="hover:bg-white/20 p-2.5 rounded-full transition-colors"
+                  title="Clear chat"
                 >
                   <Trash2 size={18} />
-                  {/* <span>Clear</span> */}
                 </button>
-                <button onClick={() => onClose()} className="hover:bg-white/20 p-2 rounded-full transition-colors" type="button">
+                <button onClick={() => onClose()} className="hover:bg-white/20 p-2.5 rounded-full transition-colors" type="button" title="Close">
                   <X size={18} />
                 </button>
               </div>

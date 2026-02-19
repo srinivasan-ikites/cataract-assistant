@@ -149,7 +149,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
         isAdmin
           ? 'bg-purple-100 text-purple-700'
-          : 'bg-blue-100 text-blue-700'
+          : 'bg-teal-100 text-teal-700'
       }`}>
         {isAdmin ? <ShieldCheck size={12} /> : <Shield size={12} />}
         {isAdmin ? 'Admin' : 'Staff'}
@@ -253,7 +253,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           {isClinicAdmin && (
             <button
               onClick={() => setShowInviteModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
             >
               <UserPlus size={18} />
               Invite User
@@ -270,7 +270,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           placeholder="Search by name, email, or specialization..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -308,7 +308,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center text-white font-semibold">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -444,7 +444,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   required
                   value={inviteForm.name}
                   onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Dr. John Smith"
                 />
               </div>
@@ -458,7 +458,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   required
                   value={inviteForm.email}
                   onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="doctor@clinic.com"
                 />
               </div>
@@ -473,7 +473,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   minLength={8}
                   value={inviteForm.password}
                   onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Min 8 characters"
                 />
                 <p className="mt-1 text-xs text-slate-500">User should change this after first login</p>
@@ -486,7 +486,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 <select
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="clinic_user">Staff (can view/edit patients)</option>
                   <option value="clinic_admin">Admin (can manage users)</option>
@@ -501,7 +501,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   type="text"
                   value={inviteForm.specialization || ''}
                   onChange={(e) => setInviteForm({ ...inviteForm, specialization: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Ophthalmologist, Optometrist, etc."
                 />
               </div>
@@ -514,7 +514,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                   type="tel"
                   value={inviteForm.phone || ''}
                   onChange={(e) => setInviteForm({ ...inviteForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
@@ -530,7 +530,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 <button
                   type="submit"
                   disabled={inviting}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {inviting ? (
                     <>

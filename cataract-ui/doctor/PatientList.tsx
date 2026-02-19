@@ -121,7 +121,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
         );
       case 'extracted':
         return (
-          <span className={`${badgeBase} bg-blue-100 text-blue-700 shadow-[0_4px_12px_-6px_rgba(37,99,235,0.35)]`}>
+          <span className={`${badgeBase} bg-teal-100 text-teal-700 shadow-[0_4px_12px_-6px_rgba(37,99,235,0.35)]`}>
             REVIEWED
           </span>
         );
@@ -154,7 +154,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
             {/* Register Patient Button */}
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-600 text-white text-sm font-bold shadow-lg shadow-teal-200 hover:shadow-xl hover:from-teal-700 hover:to-teal-700 transition-all"
             >
               <UserPlus size={18} />
               Register Patient
@@ -166,7 +166,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeFilter === filter
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-50'
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-50'
                     : 'text-slate-500 hover:text-slate-800'
                     }`}
                 >
@@ -233,7 +233,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                     </p>
                     <button
                       onClick={() => setIsRegisterModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-teal-600 text-white text-sm font-bold shadow-lg shadow-teal-200 hover:shadow-xl hover:from-teal-700 hover:to-teal-700 transition-all"
                     >
                       <UserPlus size={18} />
                       Register Your First Patient
@@ -249,7 +249,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
               >
                 <td className="px-10 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm overflow-hidden">
+                    <div className="w-11 h-11 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm overflow-hidden">
                       {patient.patient_id === '9921' || patient.patient_id === '1024' || patient.patient_id === '5512' ? (
                         <img src={`https://i.pravatar.cc/100?u=${patient.patient_id}`} alt="Patient" className="w-full h-full object-cover" />
                       ) : (
@@ -257,7 +257,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                       )}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      <p className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
                         {patient.name.first} {patient.name.last}
                       </p>
                       <p className="text-xs text-slate-400 font-medium tracking-tight mt-0.5">
@@ -279,7 +279,7 @@ const PatientList: React.FC<PatientListProps> = ({ onSelectPatient, clinicId }) 
                   <p className="text-sm font-bold text-slate-700">{patient.lastUpdated}</p>
                 </td>
                 <td className="px-10 py-6 text-right">
-                  <button className="p-2.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                  <button className="p-2.5 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all">
                     <ChevronRight size={20} />
                   </button>
                 </td>
