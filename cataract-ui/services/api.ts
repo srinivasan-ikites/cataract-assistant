@@ -1,7 +1,7 @@
 import { ModuleItem } from '../types';
 
-// const API_BASE = 'http://localhost:8000';
-const API_BASE = 'https://cataract-assistant.ikites.ai/api';
+const API_BASE = 'http://localhost:8000';
+// const API_BASE = 'https://cataract-assistant.ikites.ai/api';
 // const API_BASE = 'http://172.16.0.158:8000'; // Use LAN IP so mobile can reach backend
 // const API_BASE = 'https://cataract-assistant.onrender.com'; // Adjust if your backend port differs
 
@@ -418,6 +418,13 @@ export interface Patient {
                 is_candidate_toric?: boolean;
                 is_candidate_lal?: boolean;
             };
+        };
+        monovision?: {
+            is_candidate?: boolean;
+            selected?: boolean;
+            dominant_eye?: '' | 'OD' | 'OS';
+            dominant_eye_target?: 'distance';
+            non_dominant_eye_target?: '' | 'near' | 'intermediate';
         };
         offered_packages?: string[];
         offered_packages_od?: string[];

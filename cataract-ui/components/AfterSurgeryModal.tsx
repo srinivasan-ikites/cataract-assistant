@@ -197,6 +197,27 @@ const SESSIONS = [
     { label: 'Night', time: '8:00 PM', icon: 'Moon' }
 ];
 
+// Offset a session time string by a given number of minutes (e.g., "8:00 AM" + 5 → "8:05 AM")
+const offsetTime = (timeStr: string, offsetMinutes: number): string => {
+    if (!timeStr || offsetMinutes === 0) return timeStr;
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1]);
+    let minutes = parseInt(match[2]);
+    const period = match[3].toUpperCase();
+    // Convert to 24h for math
+    let h24 = hours;
+    if (period === 'PM' && hours !== 12) h24 += 12;
+    if (period === 'AM' && hours === 12) h24 = 0;
+    const totalMinutes = h24 * 60 + minutes + offsetMinutes;
+    let newH = Math.floor(totalMinutes / 60) % 24;
+    const newM = totalMinutes % 60;
+    const newPeriod = newH >= 12 ? 'PM' : 'AM';
+    if (newH > 12) newH -= 12;
+    if (newH === 0) newH = 12;
+    return `${newH}:${newM.toString().padStart(2, '0')} ${newPeriod}`;
+};
+
 const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoading = false }: AfterSurgeryModalProps) => {
     const { classes } = useTheme();
     const toast = useToast();
@@ -207,8 +228,8 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
     // Get surgery date from v2 schema: surgical_plan.operative_logistics
     const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
     const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
-    const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
-    // const surgeryDateStr = "2026-02-08";
+    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
+    const surgeryDateStr = "2026-02-17";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dateKey = today.toISOString().split('T')[0];
@@ -490,16 +511,32 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                     {/* Medication Daily List */}
                     {!isDropless && medsToTrack.length > 0 && (
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between px-1">
-                                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Personalized Routine</h3>
-                                <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 italic">
-                                    Grouped by session
-                                </div>
+                            {/* Section header with context for patients */}
+                            <div className="px-1">
+                                <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-[0.2em] mb-2">Your Eye Drops — Prescribed by Your Doctor</h3>
+                                <p className="text-sm text-slate-700">
+                                    These are the eye drops your doctor has prescribed for your recovery. Tap each session to confirm after you have taken the drop.
+                                </p>
                             </div>
 
+                            {/* 5-minute spacing banner — only when multiple drops are active */}
+                            {medsToTrack.length > 1 && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                                    <Clock size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-900">Wait 5 minutes between each drop</p>
+                                        <p className="text-sm text-amber-700 mt-1">
+                                            When taking multiple drops in the same session, space them 5 minutes apart so each medication is properly absorbed before applying the next one. The times shown below are already staggered for you.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 gap-6">
-                                {medsToTrack.map((med) => {
+                                {medsToTrack.map((med, medIndex) => {
                                     const isCompleted = med.progress === 100;
+                                    // Calculate the 5-minute offset for this medication (only when multiple drops)
+                                    const timeOffset = medsToTrack.length > 1 ? medIndex * 5 : 0;
                                     return (
                                         <div key={med.id} className={`
                                             relative bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all duration-300
@@ -520,7 +557,7 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                                                         </h4>
                                                         <div className="flex items-center gap-3 mt-2">
                                                             <span className="text-xs font-black px-3 py-1 bg-slate-200 text-slate-700 rounded-lg uppercase tracking-wider border border-slate-300">
-                                                                {med.type}
+                                                                {med.type} Eye Drop
                                                             </span>
                                                             <span className="text-sm font-extrabold text-blue-700">{med.label}</span>
                                                         </div>
@@ -536,6 +573,7 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                                                 {Array.from({ length: med.frequency }).map((_, idx) => {
                                                     const isChecked = !!todaysLocalProgress[`${med.id}_${idx}`];
                                                     const session = SESSIONS[idx] || { label: `Dose ${idx + 1}`, time: '', icon: 'Clock' };
+                                                    const displayTime = session.time ? offsetTime(session.time, timeOffset) : '';
 
                                                     return (
                                                         <button
@@ -556,7 +594,7 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                                                                 <span className={`text-[13px] font-black uppercase tracking-[0.15em] ${isChecked ? 'text-white/90' : 'text-slate-500'}`}>
                                                                     {session.label}
                                                                 </span>
-                                                                {session.time && <span className={`text-[11px] font-extrabold italic ${isChecked ? 'text-white/70' : 'text-blue-500'}`}>@{session.time}</span>}
+                                                                {displayTime && <span className={`text-[11px] font-extrabold italic ${isChecked ? 'text-white/70' : 'text-blue-500'}`}>@{displayTime}</span>}
                                                             </div>
 
                                                             <div className={`
@@ -609,6 +647,77 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                             </div>
                         </div>
                     )}
+
+                    {/* Recovery Instructions — Do's and Don'ts */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 px-1">
+                            <Eye size={18} className="text-slate-700" />
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">Your Recovery Instructions</h3>
+                        </div>
+                        <p className="text-base text-slate-700 px-1">
+                            Follow these guidelines to protect your eye and ensure a smooth recovery. These apply for the first <strong>1–2 weeks</strong> after surgery unless your doctor advises otherwise.
+                        </p>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* AVOID — Don'ts */}
+                            <div className="bg-rose-50 rounded-[28px] p-7 border border-rose-100">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center">
+                                        <AlertCircle size={22} />
+                                    </div>
+                                    <h4 className="text-base font-black text-rose-900 uppercase tracking-wide">Avoid</h4>
+                                </div>
+                                <ul className="space-y-3">
+                                    {[
+                                        'Do NOT rub or press on your eye',
+                                        'No eye makeup for at least 2 weeks',
+                                        'Do not lift anything heavier than 10–15 pounds',
+                                        'Avoid bending below your waist for extended periods',
+                                        'No strenuous exercise or heavy housework',
+                                        'Do not get water directly in your eye — no swimming or hot tubs for 2 weeks',
+                                        'Avoid dusty, smoky, or dirty environments',
+                                        'No driving until your doctor clears you (usually 1–2 days)',
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <div className="w-5 h-5 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <X size={12} className="text-rose-700" />
+                                            </div>
+                                            <span className="text-base font-medium text-rose-800">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* OK TO DO — Do's */}
+                            <div className="bg-emerald-50 rounded-[28px] p-7 border border-emerald-100">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+                                        <CheckCircle2 size={22} />
+                                    </div>
+                                    <h4 className="text-base font-black text-emerald-900 uppercase tracking-wide">OK to Do</h4>
+                                </div>
+                                <ul className="space-y-3">
+                                    {[
+                                        'Wear your eye shield or patch as directed — especially while sleeping for the first week',
+                                        'Sleep on your back or on the side opposite to the operated eye',
+                                        'Wear sunglasses when outdoors to protect from bright light and dust',
+                                        'You CAN watch TV, read, and use your phone or computer',
+                                        'Light walking and normal daily activities are fine',
+                                        'You CAN shower the day after surgery — tilt your head back to keep water away from your eye',
+                                        'Take your prescribed eye drops on schedule',
+                                        'Attend all follow-up appointments with your doctor',
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <div className="w-5 h-5 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <CheckCircle2 size={12} className="text-emerald-700" />
+                                            </div>
+                                            <span className="text-base font-medium text-emerald-800">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* When Should I Call My Doctor? Section */}
                     <div className="space-y-6">

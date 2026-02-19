@@ -4,7 +4,6 @@ import { useTheme } from '../theme';
 import {
   ScanEye,
   Sparkles,
-  Aperture,
   ShieldAlert,
   CalendarClock,
   ClipboardCheck,
@@ -14,13 +13,57 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+// Custom IOL (Intraocular Lens) icon — large glossy sphere with bold sweeping haptics
+const IOLIcon: React.FC<{ size?: number; className?: string; strokeWidth?: number }> = ({
+  size = 24, className = 'currentColor'
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <defs>
+      {/* 3D sphere gradient — bright top-left to darker bottom-right */}
+      <radialGradient id="iol-sphere" cx="38%" cy="32%" r="55%">
+        <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
+        <stop offset="50%" stopColor="currentColor" stopOpacity="0.55" />
+        <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
+      </radialGradient>
+      {/* Glossy highlight spot */}
+      <radialGradient id="iol-highlight" cx="38%" cy="32%" r="35%">
+        <stop offset="0%" stopColor="white" stopOpacity="0.9" />
+        <stop offset="60%" stopColor="white" stopOpacity="0.15" />
+        <stop offset="100%" stopColor="white" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    {/* Upper-left haptic — C-shape that bulges LEFT before sweeping up */}
+    <path
+      d="M6 8.5 C 2 10, 0.5 5, 2.5 1.5"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none" strokeOpacity="0.7"
+    />
+    {/* Lower-right haptic — C-shape that bulges RIGHT before sweeping down */}
+    <path
+      d="M18 15.5 C 22 14, 23.5 19, 21.5 22.5"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none" strokeOpacity="0.7"
+    />
+    {/* Solid sphere (the optic lens) — large and dominant */}
+    <circle cx="12" cy="12" r="7" fill="url(#iol-sphere)" />
+    {/* Glossy highlight layer */}
+    <circle cx="12" cy="12" r="7" fill="url(#iol-highlight)" />
+    {/* Crisp sphere outline */}
+    <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.5" />
+  </svg>
+);
+
 const getIcon = (name: string, size = 32, color = "currentColor") => {
   const props = { size, className: color, strokeWidth: 1.5 };
   switch (name) {
     case 'type': return <ScanEye {...props} />;
     case 'surgery': return <Sparkles {...props} />;
     case 'risk': return <ShieldAlert {...props} />;
-    case 'iol': return <Aperture {...props} />;
+    case 'iol': return <IOLIcon {...props} />;
     case 'options': return <HelpCircle {...props} />;
     case 'day': return <CalendarClock {...props} />;
     case 'preop': return <ClipboardCheck {...props} />;

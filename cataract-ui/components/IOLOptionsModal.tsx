@@ -322,7 +322,7 @@ const PACKAGE_INFO: Record<string, {
             'Corrects astigmatism during cataract surgery',
         ],
         considerations: [
-            'Additional cost for toric feature',
+            'Additional out-of-pocket cost — not covered by insurance',
             'Lens will be precisely positioned manually without laser incision',
             'Will still need glasses for reading and intermediate range',
         ],
@@ -337,7 +337,7 @@ const PACKAGE_INFO: Record<string, {
             'Laser-guided precision for optimal lens alignment',
         ],
         considerations: [
-            'Higher cost for combined technology',
+            'Additional out-of-pocket cost — not covered by insurance',
             'Will still need glasses for reading and intermediate range',
         ],
         category: 'toric',
@@ -389,6 +389,12 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
 
     // Patient name
     const patientName = patient?.name?.first || 'there';
+
+    // Monovision strategy data
+    const isMonovisionCandidate = surgicalPlan?.monovision?.is_candidate;
+    const monovisionDominantEye = surgicalPlan?.monovision?.dominant_eye;
+    const monovisionTarget = surgicalPlan?.monovision?.non_dominant_eye_target;
+    const monovisionConfigured = isMonovisionCandidate && monovisionDominantEye;
 
     // Check eligibility flags
     const hasAstigmatism = candidacyOD.is_candidate_toric || candidacyOS.is_candidate_toric;
@@ -634,7 +640,7 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                     <div className="px-8 pt-6 pb-6 space-y-6">
 
                         {/* About Your Eyes Section */}
-                        {(hasAstigmatism || isMultifocalCandidate || isEdofCandidate || isLALCandidate || hasPremiumOptions) && (
+                        {(hasAstigmatism || isMultifocalCandidate || isEdofCandidate || isLALCandidate || hasPremiumOptions || monovisionConfigured) && (
                             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                                 <div className="bg-gradient-to-r from-violet-100 to-blue-100 px-6 py-4 border-b border-violet-200">
                                     <div className="flex items-center gap-3">
@@ -682,6 +688,81 @@ const IOLOptionsModal: React.FC<IOLOptionsModalProps> = ({
                                             </span>
                                         </div>
                                     )}
+                                    {monovisionConfigured && (
+                                        <div className="flex items-start gap-3 p-4 bg-rose-50 rounded-xl border border-rose-100">
+                                            <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 flex-shrink-0" />
+                                            <span className="text-base text-slate-800">
+                                                <strong className="text-rose-700">You are eligible for monovision</strong> — A strategy that sets each eye to a different focus, reducing your need for reading glasses while using standard insurance-covered lenses.
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Monovision Strategy Banner */}
+                        {monovisionConfigured && (
+                            <div className="bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-2xl overflow-hidden shadow-sm">
+                                <div className="bg-gradient-to-r from-rose-100 to-pink-100 px-6 py-4 border-b border-rose-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-white rounded-xl shadow-sm">
+                                            <Eye size={22} className="text-rose-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 text-lg">Your Monovision Strategy</h3>
+                                            <p className="text-base text-rose-700 font-medium">You are eligible for this option</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-6 space-y-5">
+                                    <p className="text-base text-slate-700 leading-relaxed">
+                                        Your doctor has identified you as a candidate for <strong className="text-rose-700">monovision</strong> — a proven strategy where each eye is given a different focus using standard monofocal lenses. Your brain automatically learns to use the right eye for the right task, like having built-in bifocals without the glasses.
+                                    </p>
+
+                                    {/* Eye assignment cards */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white rounded-xl p-5 border border-blue-200 text-center">
+                                            <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
+                                                <span className="text-sm font-bold">{monovisionDominantEye}</span>
+                                            </div>
+                                            <p className="text-sm font-bold text-blue-700 mb-1">
+                                                {monovisionDominantEye === 'OD' ? 'Right Eye' : 'Left Eye'} (Dominant)
+                                            </p>
+                                            <p className="text-lg font-bold text-slate-900">Distance Vision</p>
+                                            <p className="text-sm text-slate-500 mt-1">Driving, TV, faces across a room</p>
+                                        </div>
+                                        <div className="bg-white rounded-xl p-5 border border-emerald-200 text-center">
+                                            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
+                                                <span className="text-sm font-bold">{monovisionDominantEye === 'OD' ? 'OS' : 'OD'}</span>
+                                            </div>
+                                            <p className="text-sm font-bold text-emerald-700 mb-1">
+                                                {monovisionDominantEye === 'OD' ? 'Left Eye' : 'Right Eye'} (Non-Dominant)
+                                            </p>
+                                            <p className="text-lg font-bold text-slate-900">
+                                                {monovisionTarget === 'near' ? 'Near Vision' : monovisionTarget === 'intermediate' ? 'Intermediate Vision' : 'Close-up Vision'}
+                                            </p>
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                {monovisionTarget === 'near' ? 'Reading, phone, fine print' : monovisionTarget === 'intermediate' ? 'Computer, cooking, dashboard' : 'Up-close tasks'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* How it works */}
+                                    <div className="bg-white rounded-xl p-4 border border-rose-100">
+                                        <div className="flex items-start gap-3">
+                                            <Info size={18} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                                            <div className="text-sm text-slate-700">
+                                                <p className="font-semibold text-rose-700 mb-1">How does this work?</p>
+                                                <p className="leading-relaxed">Your brain automatically learns to favor the right eye for the right task. When you look at something far away, your brain uses the distance eye. When you read or look at your phone, it switches to the near eye. Most patients adapt within a few weeks.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Insurance note */}
+                                    <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium bg-emerald-50 px-4 py-2.5 rounded-lg border border-emerald-200">
+                                        <Check size={16} className="text-emerald-600 flex-shrink-0" />
+                                        <span>Uses standard monofocal lenses — typically covered by insurance with no additional out-of-pocket cost</span>
+                                    </div>
                                 </div>
                             </div>
                         )}

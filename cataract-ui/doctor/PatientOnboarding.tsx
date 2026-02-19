@@ -100,7 +100,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
   ];
 
   const EYE_CONFIG = [
-    { key: 'od_right', label: 'Right Eye (OD)', shortLabel: 'OD', dotColor: 'bg-blue-500', badgeBg: 'bg-blue-50', badgeText: 'text-blue-700' },
+    { key: 'od_right', label: 'Right Eye (OD)', shortLabel: 'OD', dotColor: 'bg-teal-500', badgeBg: 'bg-teal-50', badgeText: 'text-teal-700' },
     { key: 'os_left', label: 'Left Eye (OS)', shortLabel: 'OS', dotColor: 'bg-emerald-500', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
   ];
 
@@ -449,7 +449,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         <input
           type="text"
           placeholder={placeholder || `Add ${label.toLowerCase()}...`}
-          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all"
+          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50 transition-all"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               const val = (e.target as HTMLInputElement).value.trim();
@@ -479,7 +479,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
     return (
       <div className="group/field relative">
         <div className="flex items-center justify-between mb-1.5 px-1">
-          <label className="block text-xs font-bold text-slate-700 transition-colors group-focus-within/field:text-blue-600">
+          <label className="block text-xs font-bold text-slate-700 transition-colors group-focus-within/field:text-teal-600">
             {label}
           </label>
           {isEmpty && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]" title="Not Extracted"></div>}
@@ -490,7 +490,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               value={val || ''}
               onChange={(e) => updateNestedField(path, e.target.value)}
               disabled={disabled}
-              className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all appearance-none`}
+              className={`w-full bg-white border ${disabled ? 'border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-700'} rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50 transition-all appearance-none`}
             >
               <option value="">Select...</option>
               {options?.map((opt) => (
@@ -517,7 +517,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             className={`w-full border rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition-all ${
               disabled
                 ? 'bg-slate-50 border-slate-200 text-slate-600 cursor-not-allowed'
-                : 'bg-white border-slate-200 text-slate-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-50'
+                : 'bg-white border-slate-200 text-slate-700 focus:border-teal-400 focus:ring-2 focus:ring-teal-50'
             }`}
             placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           />
@@ -535,7 +535,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         <span className="text-sm font-semibold text-slate-700">{label}</span>
         <button
           onClick={() => updateNestedField(path, !val)}
-          className={`w-11 h-6 rounded-full transition-all ${val ? 'bg-blue-600' : 'bg-slate-200'}`}
+          className={`w-11 h-6 rounded-full transition-all ${val ? 'bg-teal-600' : 'bg-slate-200'}`}
         >
           <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${val ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
@@ -552,7 +552,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4 py-32">
         <AlertCircle className="text-rose-400" size={32} />
         <p className="font-medium">Failed to load patient data</p>
-        <button onClick={onBack} className="text-blue-600 hover:underline text-sm">Go back</button>
+        <button onClick={onBack} className="text-teal-600 hover:underline text-sm">Go back</button>
       </div>
     );
   }
@@ -587,7 +587,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       <nav className="flex items-center gap-2 text-sm">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+          className="flex items-center gap-1.5 text-slate-400 hover:text-teal-600 transition-colors group"
         >
           <LayoutDashboard size={14} className="group-hover:scale-110 transition-transform" />
           <span className="font-medium">Dashboard</span>
@@ -595,14 +595,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         <ChevronRight size={14} className="text-slate-300" />
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors group"
+          className="flex items-center gap-1.5 text-slate-400 hover:text-teal-600 transition-colors group"
         >
           <Users size={14} className="group-hover:scale-110 transition-transform" />
           <span className="font-medium">Patients</span>
         </button>
         <ChevronRight size={14} className="text-slate-300" />
         <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
-          <User size={14} className="text-blue-500" />
+          <User size={14} className="text-teal-500" />
           {fullName || 'Patient Details'}
         </span>
       </nav>
@@ -610,18 +610,18 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all" title="Back">
+          <button onClick={onBack} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-teal-600 hover:border-teal-200 hover:bg-teal-50 transition-all" title="Back">
             <ChevronLeft size={18} />
           </button>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-200">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-teal-200">
               {firstName.charAt(0)}{lastName.charAt(0)}
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">{fullName}</h1>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs font-medium text-slate-400">ID: {data?.patient_identity?.patient_id || patientId}</span>
-                {age && <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{age} years</span>}
+                {age && <span className="text-xs font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{age} years</span>}
                 {gender && <span className="text-xs font-medium text-slate-400">{gender}</span>}
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                   status === 'saved' ? 'bg-emerald-100 text-emerald-600' :
@@ -651,7 +651,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
           <button onClick={() => setShowUploads((v) => !v)} className="p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all" title={showUploads ? 'Hide uploads' : 'Show uploads'}>
             {showUploads ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
           </button>
-          <button onClick={handleSave} disabled={!data || status === 'saved' || saving} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${!data || status === 'saved' || saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`} title="Save (Ctrl+S)">
+          <button onClick={handleSave} disabled={!data || status === 'saved' || saving} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${!data || status === 'saved' || saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-200'}`} title="Save (Ctrl+S)">
             {saving ? (
               <>
                 <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -706,7 +706,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
         <div className={`col-span-12 ${showUploads ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4 lg:max-h-[calc(100vh-280px)] overflow-y-auto pr-2 custom-scrollbar`}>
 
           {/* Patient Identity */}
-          <CollapsibleCard title="Patient Identity" icon={<User size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200" expanded={expanded.identity} onToggle={() => setExpanded((p) => ({ ...p, identity: !p.identity }))} maxHeight="600px" bodyClassName="p-5 space-y-4">
+          <CollapsibleCard title="Patient Identity" icon={<User size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-teal-200" expanded={expanded.identity} onToggle={() => setExpanded((p) => ({ ...p, identity: !p.identity }))} maxHeight="600px" bodyClassName="p-5 space-y-4">
             <div className="grid grid-cols-3 gap-4">
               {renderField('patient_identity.first_name', 'First Name')}
               {renderField('patient_identity.middle_name', 'Middle Name')}
@@ -717,7 +717,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               {renderField('patient_identity.gender', 'Gender', 'select', ['Male', 'Female', 'Other'])}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 px-1">Age (Auto-calculated)</label>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-bold text-blue-700">
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm font-bold text-teal-700">
                   {age ? `${age} years` : 'Enter DOB'}
                 </div>
               </div>
@@ -741,8 +741,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             <div className="pt-4 border-t border-slate-100">
               <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Scissors size={14} />Surgical History</h4>
               <div className="grid grid-cols-2 gap-5">
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-xs font-bold text-blue-700 mb-3 flex items-center gap-2"><Eye size={12} />Ocular Surgeries</p>
+                <div className="p-4 bg-teal-50 rounded-xl border border-teal-100">
+                  <p className="text-xs font-bold text-teal-700 mb-3 flex items-center gap-2"><Eye size={12} />Ocular Surgeries</p>
                   {renderTagList('medical_profile.surgical_history.ocular', '', 'Add surgery...')}
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -754,19 +754,19 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
           </CollapsibleCard>
 
           {/* Clinical Context */}
-          <CollapsibleCard title="Clinical Context" subtitle="Pathology, visual acuity, biometry" icon={<Stethoscope size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-200" expanded={expanded.clinical} onToggle={() => setExpanded((p) => ({ ...p, clinical: !p.clinical }))} maxHeight="2000px" bodyClassName="p-5 space-y-5">
+          <CollapsibleCard title="Clinical Context" subtitle="Pathology, visual acuity, biometry" icon={<Stethoscope size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-teal-200" expanded={expanded.clinical} onToggle={() => setExpanded((p) => ({ ...p, clinical: !p.clinical }))} maxHeight="2000px" bodyClassName="p-5 space-y-5">
             <div className="grid grid-cols-2 gap-5">
               {/* OD */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">OD</div>
+                <div className="flex items-center gap-2 pb-2 border-b border-teal-100">
+                  <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-xs">OD</div>
                   <span className="font-bold text-slate-800">Right Eye</span>
                 </div>
                 {renderField('clinical_context.od_right.pathology', 'Pathology')}
                 {renderField('clinical_context.od_right.primary_cataract_type', 'Primary Cataract Type', 'select', ['nuclear_sclerosis', 'cortical', 'posterior_subcapsular', 'combined', 'congenital'])}
                 {renderField('clinical_context.od_right.visual_acuity.bcva', 'BCVA (Best Corrected)')}
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
-                  <p className="text-xs font-bold text-blue-700">IOL Master Biometry</p>
+                <div className="p-4 bg-teal-50 rounded-xl border border-teal-100 space-y-3">
+                  <p className="text-xs font-bold text-teal-700">IOL Master Biometry</p>
                   <div className="grid grid-cols-3 gap-3">
                     {renderField('clinical_context.od_right.biometry.iol_master.axial_length_mm', 'Axial Length (mm)', 'number')}
                     {renderField('clinical_context.od_right.biometry.iol_master.acd_mm', 'ACD (mm)', 'number')}
@@ -841,8 +841,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               {renderField('lifestyle_profile.occupation', 'Occupation')}
               <div>{renderTagList('lifestyle_profile.hobbies', 'Hobbies', 'Add hobby...')}</div>
             </div>
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-4">
-              <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2"><Eye size={14} />Visual Goals</h4>
+            <div className="p-4 bg-teal-50 rounded-xl border border-teal-100 space-y-4">
+              <h4 className="text-sm font-bold text-teal-800 flex items-center gap-2"><Eye size={14} />Visual Goals</h4>
               <div className="grid grid-cols-2 gap-4">
                 {renderField('lifestyle_profile.visual_goals.primary_zone', 'Primary Vision Range', 'select', ['Distance', 'Intermediate', 'Near', 'All'])}
                 {renderField('lifestyle_profile.visual_goals.spectacle_independence_desire', 'Spectacle Independence', 'select', ['None', 'Distance only', 'Reading only', 'Distance and Reading', 'Distance and Computer', 'All ranges of vision'])}
@@ -905,27 +905,42 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     <span className="text-sm font-bold text-purple-800">Both Eyes (OU)</span>
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full text-[10px] font-bold">UNIFIED</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-5 gap-3">
                     {[
                       { key: 'is_candidate_multifocal', label: 'Multifocal', desc: 'Full spectacle independence', color: 'blue' },
                       { key: 'is_candidate_edof', label: 'EDOF', desc: 'Extended range, fewer halos', color: 'sky' },
                       { key: 'is_candidate_toric', label: 'Toric', desc: 'Astigmatism ≥0.75D', color: 'emerald' },
                       { key: 'is_candidate_lal', label: 'LAL', desc: 'Post-op fine-tuning', color: 'amber' },
+                      { key: 'monovision', label: 'Monovision', desc: 'Distance + near strategy', color: 'rose' },
                     ].map(item => {
-                      const value = data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
+                      const isMonovision = item.key === 'monovision';
+                      const value = isMonovision
+                        ? data?.surgical_plan?.monovision?.is_candidate
+                        : data?.surgical_plan?.candidacy_profile?.od_right?.[item.key];
                       const colorClasses: Record<string, { bg: string; border: string; text: string; activeBg: string }> = {
-                        blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', activeBg: 'bg-blue-600' },
+                        blue: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', activeBg: 'bg-teal-600' },
                         sky: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', activeBg: 'bg-sky-600' },
                         emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', activeBg: 'bg-emerald-600' },
                         amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', activeBg: 'bg-amber-600' },
+                        rose: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', activeBg: 'bg-rose-600' },
                       };
                       const colors = colorClasses[item.color];
                       return (
                         <button
                           key={item.key}
                           onClick={() => {
-                            updateNestedField(`surgical_plan.candidacy_profile.od_right.${item.key}`, !value);
-                            updateNestedField(`surgical_plan.candidacy_profile.os_left.${item.key}`, !value);
+                            if (isMonovision) {
+                              const current = data?.surgical_plan?.monovision?.is_candidate;
+                              updateNestedField('surgical_plan.monovision.is_candidate', !current);
+                              if (current) {
+                                updateNestedField('surgical_plan.monovision.selected', false);
+                                updateNestedField('surgical_plan.monovision.dominant_eye', '');
+                                updateNestedField('surgical_plan.monovision.non_dominant_eye_target', '');
+                              }
+                            } else {
+                              updateNestedField(`surgical_plan.candidacy_profile.od_right.${item.key}`, !value);
+                              updateNestedField(`surgical_plan.candidacy_profile.os_left.${item.key}`, !value);
+                            }
                           }}
                           className={`p-4 rounded-xl border-2 transition-all ${value ? `${colors.activeBg} border-transparent` : `${colors.bg} ${colors.border} hover:shadow-md`}`}
                         >
@@ -940,17 +955,70 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       );
                     })}
                   </div>
+
+                  {/* Monovision Configuration Sub-panel */}
+                  {data?.surgical_plan?.monovision?.is_candidate && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-bold text-rose-800">Monovision Configuration</span>
+                        <span className="px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full text-[10px] font-bold">BILATERAL</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-3">
+                        Uses standard monofocal lens (PKG_STD) with different power targets per eye. Dominant eye is always set for distance.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Dominant Eye</label>
+                          <div className="flex gap-2">
+                            {(['OD', 'OS'] as const).map(eye => {
+                              const isActive = data?.surgical_plan?.monovision?.dominant_eye === eye;
+                              return (
+                                <button
+                                  key={eye}
+                                  onClick={() => updateNestedField('surgical_plan.monovision.dominant_eye', eye)}
+                                  className={`flex-1 p-2.5 rounded-lg border-2 transition-all text-center ${isActive ? 'bg-rose-600 border-rose-600 text-white' : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700'}`}
+                                >
+                                  <span className="text-sm font-semibold">{eye}</span>
+                                  <span className={`block text-[10px] ${isActive ? 'text-rose-100' : 'text-slate-400'}`}>
+                                    {eye === 'OD' ? 'Right Eye → Distance' : 'Left Eye → Distance'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Non-Dominant Eye Target</label>
+                          <select
+                            value={data?.surgical_plan?.monovision?.non_dominant_eye_target || ''}
+                            onChange={(e) => updateNestedField('surgical_plan.monovision.non_dominant_eye_target', e.target.value)}
+                            className="w-full p-2.5 rounded-lg border-2 border-slate-200 text-sm font-semibold text-slate-700 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none"
+                          >
+                            <option value="">Select target...</option>
+                            <option value="near">Near (reading, fine print)</option>
+                            <option value="intermediate">Intermediate (computer, cooking)</option>
+                          </select>
+                          {data?.surgical_plan?.monovision?.dominant_eye && (
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OS (Left Eye)' : 'OD (Right Eye)'} will be set for this range
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Split view for each eye */
+                <>
                 <div className="grid grid-cols-2 gap-4">
                   {/* OD (Right Eye) */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200">
+                  <div className="p-5 bg-gradient-to-br from-teal-50 to-sky-50 rounded-2xl border border-teal-200">
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                      <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
                       <div>
-                        <span className="text-sm font-bold text-blue-800">Right Eye</span>
-                        <span className="block text-[10px] text-blue-500">Oculus Dexter</span>
+                        <span className="text-sm font-bold text-teal-800">Right Eye</span>
+                        <span className="block text-[10px] text-teal-500">Oculus Dexter</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -965,11 +1033,11 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           <button
                             key={item.key}
                             onClick={() => updateNestedField(`surgical_plan.candidacy_profile.od_right.${item.key}`, !value)}
-                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${value ? 'bg-blue-600 border-blue-600' : 'bg-white border-blue-100 hover:border-blue-300'}`}
+                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${value ? 'bg-teal-600 border-teal-600' : 'bg-white border-teal-100 hover:border-teal-300'}`}
                           >
                             <div>
                               <span className={`text-sm font-semibold ${value ? 'text-white' : 'text-slate-700'}`}>{item.label}</span>
-                              <span className={`block text-[10px] ${value ? 'text-blue-100' : 'text-slate-400'}`}>{item.desc}</span>
+                              <span className={`block text-[10px] ${value ? 'text-teal-100' : 'text-slate-400'}`}>{item.desc}</span>
                             </div>
                             <div className={`w-5 h-5 rounded-md flex items-center justify-center ${value ? 'bg-white/20' : 'border border-slate-200'}`}>
                               {value && <Check size={14} className="text-white" />}
@@ -1016,13 +1084,89 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Monovision - Patient-level even in per-eye mode */}
+                <div className="mt-4 p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl border border-rose-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                        <Eye size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-rose-800">Monovision Strategy</p>
+                        <p className="text-xs text-slate-500">Bilateral — applies to both eyes together</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const current = data?.surgical_plan?.monovision?.is_candidate;
+                        updateNestedField('surgical_plan.monovision.is_candidate', !current);
+                        if (current) {
+                          updateNestedField('surgical_plan.monovision.selected', false);
+                          updateNestedField('surgical_plan.monovision.dominant_eye', '');
+                          updateNestedField('surgical_plan.monovision.non_dominant_eye_target', '');
+                        }
+                      }}
+                      className={`w-14 h-7 rounded-full transition-all ${data?.surgical_plan?.monovision?.is_candidate ? 'bg-rose-600' : 'bg-slate-200'}`}
+                    >
+                      <div className={`w-6 h-6 rounded-full bg-white shadow-sm transform transition-transform ${data?.surgical_plan?.monovision?.is_candidate ? 'translate-x-7' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {data?.surgical_plan?.monovision?.is_candidate && (
+                    <div className="mt-3 pt-3 border-t border-rose-200">
+                      <p className="text-xs text-slate-600 mb-3">
+                        Uses standard monofocal lens (PKG_STD) with different power targets per eye. Dominant eye is always set for distance.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Dominant Eye</label>
+                          <div className="flex gap-2">
+                            {(['OD', 'OS'] as const).map(eye => {
+                              const isActive = data?.surgical_plan?.monovision?.dominant_eye === eye;
+                              return (
+                                <button
+                                  key={eye}
+                                  onClick={() => updateNestedField('surgical_plan.monovision.dominant_eye', eye)}
+                                  className={`flex-1 p-2.5 rounded-lg border-2 transition-all text-center ${isActive ? 'bg-rose-600 border-rose-600 text-white' : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700'}`}
+                                >
+                                  <span className="text-sm font-semibold">{eye}</span>
+                                  <span className={`block text-[10px] ${isActive ? 'text-rose-100' : 'text-slate-400'}`}>
+                                    {eye === 'OD' ? 'Right Eye → Distance' : 'Left Eye → Distance'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">Non-Dominant Eye Target</label>
+                          <select
+                            value={data?.surgical_plan?.monovision?.non_dominant_eye_target || ''}
+                            onChange={(e) => updateNestedField('surgical_plan.monovision.non_dominant_eye_target', e.target.value)}
+                            className="w-full p-2.5 rounded-lg border-2 border-slate-200 text-sm font-semibold text-slate-700 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none"
+                          >
+                            <option value="">Select target...</option>
+                            <option value="near">Near (reading, fine print)</option>
+                            <option value="intermediate">Intermediate (computer, cooking)</option>
+                          </select>
+                          {data?.surgical_plan?.monovision?.dominant_eye && (
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OS (Left Eye)' : 'OD (Right Eye)'} will be set for this range
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                </>
               )}
             </div>
 
             {/* SECTION 2: Package Selection - Grouped by Category */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white flex items-center justify-center">
                   <Package size={16} />
                 </div>
                 <div>
@@ -1095,8 +1239,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     title: 'Extended Depth of Focus (EDOF)',
                     subtitle: 'Excellent intermediate vision with minimal halos',
                     color: 'blue',
-                    bgGradient: 'from-blue-50 to-sky-50',
-                    borderColor: 'border-blue-200',
+                    bgGradient: 'from-teal-50 to-sky-50',
+                    borderColor: 'border-teal-200',
                     packages: ['PKG_EDOF', 'PKG_EDOF_LASER'],
                     alwaysShow: false,
                     showWhen: isEdofCandidate,
@@ -1128,7 +1272,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 const colorClasses: Record<string, { text: string; bg: string; activeBg: string; badge: string }> = {
                   slate: { text: 'text-slate-700', bg: 'bg-slate-100', activeBg: 'bg-slate-600', badge: 'bg-slate-100 text-slate-600' },
                   emerald: { text: 'text-emerald-700', bg: 'bg-emerald-100', activeBg: 'bg-emerald-600', badge: 'bg-emerald-100 text-emerald-600' },
-                  blue: { text: 'text-blue-700', bg: 'bg-blue-100', activeBg: 'bg-blue-600', badge: 'bg-blue-100 text-blue-600' },
+                  blue: { text: 'text-teal-700', bg: 'bg-teal-100', activeBg: 'bg-teal-600', badge: 'bg-teal-100 text-teal-600' },
                   purple: { text: 'text-purple-700', bg: 'bg-purple-100', activeBg: 'bg-purple-600', badge: 'bg-purple-100 text-purple-600' },
                   amber: { text: 'text-amber-700', bg: 'bg-amber-100', activeBg: 'bg-amber-600', badge: 'bg-amber-100 text-amber-600' },
                 };
@@ -1198,12 +1342,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       {/* Two-column layout for per-eye package selection */}
                       <div className="grid grid-cols-2 gap-4">
                         {/* OD (Right Eye) Column */}
-                        <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border-2 border-blue-200">
+                        <div className="p-4 bg-gradient-to-br from-teal-50 to-sky-50 rounded-2xl border-2 border-teal-200">
                           <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                            <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
                             <div>
-                              <span className="text-sm font-bold text-blue-800">Right Eye</span>
-                              <p className="text-[10px] text-blue-600">{offeredPackagesOD.length} package(s) selected</p>
+                              <span className="text-sm font-bold text-teal-800">Right Eye</span>
+                              <p className="text-[10px] text-teal-600">{offeredPackagesOD.length} package(s) selected</p>
                             </div>
                           </div>
                           <div className="space-y-3">
@@ -1250,21 +1394,47 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         </div>
                       </div>
 
+                      {/* Monovision note for per-eye mode */}
+                      {data?.surgical_plan?.monovision?.is_candidate && data?.surgical_plan?.monovision?.dominant_eye && (
+                        <div className="p-3 bg-rose-50 rounded-xl border border-rose-200">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-bold text-rose-700">Monovision Strategy Applies</p>
+                              <p className="text-xs text-rose-600 mt-0.5">
+                                Standard monofocal lens with different power targets per eye.{' '}
+                                <span className="font-semibold">
+                                  {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OD (Right)' : 'OS (Left)'} &rarr; distance
+                                </span>
+                                {data?.surgical_plan?.monovision?.non_dominant_eye_target && (
+                                  <>
+                                    ,{' '}
+                                    <span className="font-semibold">
+                                      {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OS (Left)' : 'OD (Right)'} &rarr; {data?.surgical_plan?.monovision?.non_dominant_eye_target}
+                                    </span>
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Summary for per-eye packages */}
                       {(offeredPackagesOD.length > 0 || offeredPackagesOS.length > 0) && (
-                        <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                        <div className="p-4 bg-gradient-to-r from-teal-50 to-purple-50 rounded-xl border border-teal-200">
                           <div className="flex items-center gap-2 mb-3">
-                            <CheckCircle2 size={16} className="text-indigo-600" />
-                            <span className="text-sm font-bold text-indigo-800">Packages Offered (Per Eye)</span>
+                            <CheckCircle2 size={16} className="text-teal-600" />
+                            <span className="text-sm font-bold text-teal-800">Packages Offered (Per Eye)</span>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <p className="text-xs font-bold text-blue-700 mb-1.5">OD (Right)</p>
+                              <p className="text-xs font-bold text-teal-700 mb-1.5">OD (Right)</p>
                               <div className="flex flex-wrap gap-1">
                                 {offeredPackagesOD.length > 0 ? offeredPackagesOD.map((pkgId: string) => {
                                   const pkg = surgicalPackages.find(p => p.package_id === pkgId);
                                   return pkg ? (
-                                    <span key={pkgId} className="px-2 py-1 bg-white rounded-md text-[10px] font-semibold text-blue-700 border border-blue-200">
+                                    <span key={pkgId} className="px-2 py-1 bg-white rounded-md text-[10px] font-semibold text-teal-700 border border-teal-200">
                                       {pkg.display_name}
                                     </span>
                                   ) : null;
@@ -1355,6 +1525,30 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                               );
                             })}
                           </div>
+                          {category.id === 'monofocal' && data?.surgical_plan?.monovision?.is_candidate && data?.surgical_plan?.monovision?.dominant_eye && (
+                            <div className="mt-3 p-3 bg-rose-50 rounded-xl border border-rose-200">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-xs font-bold text-rose-700">Monovision Strategy Applies</p>
+                                  <p className="text-xs text-rose-600 mt-0.5">
+                                    Standard monofocal lens with different power targets per eye.{' '}
+                                    <span className="font-semibold">
+                                      {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OD (Right)' : 'OS (Left)'} &rarr; distance
+                                    </span>
+                                    {data?.surgical_plan?.monovision?.non_dominant_eye_target && (
+                                      <>
+                                        ,{' '}
+                                        <span className="font-semibold">
+                                          {data?.surgical_plan?.monovision?.dominant_eye === 'OD' ? 'OS (Left)' : 'OD (Right)'} &rarr; {data?.surgical_plan?.monovision?.non_dominant_eye_target}
+                                        </span>
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1362,16 +1556,16 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
                     {/* Summary of offered packages */}
                     {offeredPackages.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                      <div className="p-4 bg-gradient-to-r from-teal-50 to-purple-50 rounded-xl border border-teal-200">
                         <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle2 size={16} className="text-indigo-600" />
-                          <span className="text-sm font-bold text-indigo-800">{offeredPackages.length} Package(s) Offered to Patient</span>
+                          <CheckCircle2 size={16} className="text-teal-600" />
+                          <span className="text-sm font-bold text-teal-800">{offeredPackages.length} Package(s) Offered to Patient</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {offeredPackages.map((pkgId: string) => {
                             const pkg = surgicalPackages.find(p => p.package_id === pkgId);
                             return pkg ? (
-                              <span key={pkgId} className="px-3 py-1.5 bg-white rounded-lg text-xs font-semibold text-indigo-700 border border-indigo-200">
+                              <span key={pkgId} className="px-3 py-1.5 bg-white rounded-lg text-xs font-semibold text-teal-700 border border-teal-200">
                                 {pkg.display_name}
                               </span>
                             ) : null;
@@ -1400,18 +1594,18 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               {!(data?.surgical_plan?.same_plan_both_eyes ?? true) ? (
                 <div className="grid grid-cols-2 gap-4">
                   {/* OD (Right Eye) Selection */}
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 space-y-3">
+                  <div className="p-4 bg-gradient-to-br from-teal-50 to-sky-50 rounded-xl border border-teal-200 space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
-                      <span className="text-sm font-bold text-blue-800">Right Eye Selection</span>
+                      <div className="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                      <span className="text-sm font-bold text-teal-800">Right Eye Selection</span>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-blue-700 mb-1.5">Selected Package</label>
+                      <label className="block text-xs font-bold text-teal-700 mb-1.5">Selected Package</label>
                       <div className="relative">
                         <select
                           value={data?.surgical_plan?.patient_selection_od?.selected_package_id || ''}
                           onChange={(e) => updateNestedField('surgical_plan.patient_selection_od.selected_package_id', e.target.value)}
-                          className="w-full bg-white border-2 border-blue-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-blue-300"
+                          className="w-full bg-white border-2 border-teal-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-teal-300"
                         >
                           <option value="">Not yet selected</option>
                           {(data?.surgical_plan?.offered_packages_od || []).map((pkgId: string) => {
@@ -1421,23 +1615,23 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             ) : null;
                           })}
                         </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" />
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-300 pointer-events-none" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-blue-700 mb-1.5">Status</label>
+                      <label className="block text-xs font-bold text-teal-700 mb-1.5">Status</label>
                       <div className="relative">
                         <select
                           value={data?.surgical_plan?.patient_selection_od?.status || ''}
                           onChange={(e) => updateNestedField('surgical_plan.patient_selection_od.status', e.target.value)}
-                          className="w-full bg-white border-2 border-blue-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-blue-300"
+                          className="w-full bg-white border-2 border-teal-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-teal-300"
                         >
                           <option value="">Select status...</option>
                           <option value="pending">Pending Decision</option>
                           <option value="confirmed">Confirmed</option>
                           <option value="declined">Declined Surgery</option>
                         </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" />
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-300 pointer-events-none" />
                       </div>
                     </div>
                     {renderField('surgical_plan.patient_selection_od.selection_date', 'Selection Date', 'date')}
@@ -1547,7 +1741,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 {/* OD Surgery Date */}
                 <div className="p-4 bg-white rounded-xl border border-rose-200 space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                    <div className="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
                     <span className="text-sm font-bold text-slate-800">Right Eye</span>
                   </div>
                   <div>
@@ -1610,7 +1804,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
               return (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 text-white flex items-center justify-center">
                       <Eye size={16} />
                     </div>
                     <div>
@@ -1627,12 +1821,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         const selectedPkgOD = surgicalPackages.find(p => p.package_id === data?.surgical_plan?.patient_selection_od?.selected_package_id);
                         const lensModelsOD = getLensModelsForPackage(data?.surgical_plan?.patient_selection_od?.selected_package_id);
                         return (
-                          <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200 space-y-3">
+                          <div className="p-4 bg-gradient-to-br from-teal-50 to-sky-50 rounded-2xl border border-teal-200 space-y-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                              <div className="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
                               <div>
-                                <span className="text-sm font-bold text-blue-800">Right Eye Lens</span>
-                                <p className="text-[10px] text-blue-600">Package: {selectedPkgOD?.display_name}</p>
+                                <span className="text-sm font-bold text-teal-800">Right Eye Lens</span>
+                                <p className="text-[10px] text-teal-600">Package: {selectedPkgOD?.display_name}</p>
                               </div>
                             </div>
                             {lensModelsOD.length > 0 ? (
@@ -1647,7 +1841,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                         updateNestedField('surgical_plan.operative_logistics.od_right.lens_order.model_code', item.model.model_code);
                                       }}
                                       className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                                        isSelected ? 'border-blue-500 bg-blue-100' : 'border-slate-200 bg-white hover:border-blue-300'
+                                        isSelected ? 'border-teal-500 bg-teal-100' : 'border-slate-200 bg-white hover:border-teal-300'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between">
@@ -1655,7 +1849,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                           <p className="text-xs font-bold text-slate-800">{item.model.model}</p>
                                           <p className="text-[10px] text-slate-500">{item.model.manufacturer}</p>
                                         </div>
-                                        {isSelected && <Check size={14} className="text-blue-600" />}
+                                        {isSelected && <Check size={14} className="text-teal-600" />}
                                       </div>
                                     </div>
                                   );
@@ -1735,7 +1929,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       const isToric = allowedLensCodes.some((code: string) => code.includes('TORIC'));
 
                       return (
-                        <div className="p-5 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl border border-cyan-200 space-y-4">
+                        <div className="p-5 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-2xl border border-cyan-200 space-y-4">
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-bold text-cyan-800">
@@ -1783,8 +1977,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                         }}
                                         className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
                                           isSelectedOD
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                            ? 'bg-teal-600 text-white'
+                                            : 'bg-teal-50 text-teal-600 hover:bg-teal-100'
                                         }`}
                                       >
                                         {isSelectedOD ? '✓ OD Selected' : 'Select for OD'}
@@ -1829,7 +2023,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             ) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center">
                     <Calendar size={16} />
                   </div>
                   <div>
@@ -1840,14 +2034,14 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   {/* OD (Right Eye) Logistics */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-200 space-y-4">
+                  <div className="p-5 bg-gradient-to-br from-teal-50 to-sky-50 rounded-2xl border border-teal-200 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
+                        <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">OD</div>
                         <div>
-                          <span className="text-sm font-bold text-blue-800">Right Eye</span>
+                          <span className="text-sm font-bold text-teal-800">Right Eye</span>
                           {data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_name && (
-                            <span className="block text-[10px] text-blue-500">
+                            <span className="block text-[10px] text-teal-500">
                               Lens: {data?.surgical_plan?.operative_logistics?.od_right?.lens_order?.model_name}
                             </span>
                           )}
@@ -1857,7 +2051,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         <select
                           value={data?.surgical_plan?.operative_logistics?.od_right?.status || ''}
                           onChange={(e) => updateNestedField('surgical_plan.operative_logistics.od_right.status', e.target.value)}
-                          className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-700 outline-none focus:border-blue-400 appearance-none cursor-pointer pr-7"
+                          className="bg-white border border-teal-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-teal-700 outline-none focus:border-teal-400 appearance-none cursor-pointer pr-7"
                         >
                           <option value="">Status...</option>
                           <option value="pending">Pending</option>
@@ -1867,15 +2061,15 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           <option value="completed">Completed</option>
                           <option value="not_applicable">N/A</option>
                         </select>
-                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-teal-400 pointer-events-none" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {renderField('surgical_plan.operative_logistics.od_right.surgery_date', 'Surgery Date', 'date')}
                       {renderField('surgical_plan.operative_logistics.od_right.arrival_time', 'Arrival Time')}
                     </div>
-                    <div className="p-3 bg-white/60 rounded-xl border border-blue-100 space-y-3">
-                      <p className="text-xs font-bold text-blue-700">Lens Specifications</p>
+                    <div className="p-3 bg-white/60 rounded-xl border border-teal-100 space-y-3">
+                      <p className="text-xs font-bold text-teal-700">Lens Specifications</p>
                       <div className="grid grid-cols-3 gap-2">
                         {renderField('surgical_plan.operative_logistics.od_right.lens_order.power', 'Power (D)')}
                         {renderField('surgical_plan.operative_logistics.od_right.lens_order.cylinder', 'Cylinder')}
@@ -1943,7 +2137,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         }
                         toast.success('Scheduled', 'Surgery has been scheduled successfully');
                       }}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all"
+                      className="px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-teal-200 hover:shadow-xl hover:shadow-teal-300 transition-all"
                     >
                       <Calendar size={16} className="inline mr-2" />
                       Confirm Surgery Booking
@@ -1956,7 +2150,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
           </CollapsibleCard>
 
           {/* Medications Plan */}
-          <CollapsibleCard title="Medications Plan" subtitle="Pre-op and post-op protocols" icon={<Pill size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200" expanded={expanded.postop_meds} onToggle={() => setExpanded((p) => ({ ...p, postop_meds: !p.postop_meds }))} maxHeight="3000px" bodyClassName="p-6 space-y-6">
+          <CollapsibleCard title="Medications Plan" subtitle="Pre-op and post-op protocols" icon={<Pill size={16} />} iconClassName="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-teal-200" expanded={expanded.postop_meds} onToggle={() => setExpanded((p) => ({ ...p, postop_meds: !p.postop_meds }))} maxHeight="3000px" bodyClassName="p-6 space-y-6">
 
             {/* Protocol Type Selection - At Top */}
             <div className="p-5 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200">
@@ -1974,19 +2168,19 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                       onClick={() => updateNestedField('medications_plan.protocol_type', opt.id)}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-indigo-500 bg-white shadow-xl shadow-indigo-100'
+                          ? 'border-teal-500 bg-white shadow-xl shadow-teal-100'
                           : 'border-transparent bg-white hover:border-slate-300 hover:shadow-md'
                       }`}
                     >
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${isSelected ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${isSelected ? 'bg-teal-100 text-teal-600' : 'bg-slate-100 text-slate-400'}`}>
                         {opt.icon}
                       </div>
-                      <h5 className={`font-bold text-sm mb-1 ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{opt.label}</h5>
+                      <h5 className={`font-bold text-sm mb-1 ${isSelected ? 'text-teal-900' : 'text-slate-700'}`}>{opt.label}</h5>
                       <p className="text-xs text-slate-500 leading-relaxed">{opt.desc}</p>
                       {isSelected && (
                         <div className="mt-3 flex items-center gap-1.5">
-                          <CheckCircle2 size={14} className="text-indigo-500" />
-                          <span className="text-xs font-semibold text-indigo-600">Selected</span>
+                          <CheckCircle2 size={14} className="text-teal-500" />
+                          <span className="text-xs font-semibold text-teal-600">Selected</span>
                         </div>
                       )}
                     </div>
@@ -1999,11 +2193,11 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             {data?.medications_plan?.protocol_type === 'COMBINATION' && (
               <div className="space-y-5">
                 {/* Info Banner */}
-                <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200 flex items-start gap-3">
-                  <Activity size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+                <div className="p-4 bg-teal-50 rounded-xl border border-teal-200 flex items-start gap-3">
+                  <Activity size={18} className="text-teal-500 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-sm font-semibold text-indigo-800">Combination Drop Protocol</p>
-                    <p className="text-xs text-indigo-600 mt-0.5">The selected combination drop will be used for both pre-operative and post-operative care with a taper schedule.</p>
+                    <p className="text-sm font-semibold text-teal-800">Combination Drop Protocol</p>
+                    <p className="text-xs text-teal-600 mt-0.5">The selected combination drop will be used for both pre-operative and post-operative care with a taper schedule.</p>
                   </div>
                 </div>
 
@@ -2022,7 +2216,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           updateNestedField('medications_plan.combination.taper_type', 'standard');
                         }
                       }}
-                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
                     >
                       <option value="" className="text-slate-400">Choose a combination drop...</option>
                       {combinationDrops.map((c: any) => (
@@ -2036,7 +2230,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   {data?.medications_plan?.combination?.name && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {(data?.medications_plan?.combination?.components || []).map((comp: string, idx: number) => (
-                        <span key={idx} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold">{comp}</span>
+                        <span key={idx} className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-xs font-semibold">{comp}</span>
                       ))}
                     </div>
                   )}
@@ -2046,7 +2240,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center">
                         <Activity size={18} className="text-white" />
                       </div>
                       <div>
@@ -2089,7 +2283,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         {(data?.medications_plan?.combination?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
                           <div key={i} className="flex-1 text-center">
                             <div className={`py-4 rounded-xl font-bold text-white text-base transition-all ${
-                              freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-200'
+                              freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-teal-500 to-teal-600 shadow-lg shadow-teal-200'
                             }`}>
                               {freq}x
                             </div>
@@ -2112,7 +2306,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                 updateNestedField('medications_plan.combination.taper_schedule', newSchedule);
                                 updateNestedField('medications_plan.combination.taper_type', 'custom');
                               }}
-                              className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-indigo-600 outline-none focus:border-indigo-400 cursor-pointer"
+                              className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-teal-600 outline-none focus:border-teal-400 cursor-pointer"
                             >
                               {[0, 1, 2, 3, 4].map(n => (
                                 <option key={n} value={n}>{n}x</option>
@@ -2151,12 +2345,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                 </div>
 
                 {/* Pre-op antibiotic still needed for dropless */}
-                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 space-y-4">
+                <div className="p-5 bg-gradient-to-r from-teal-50 to-teal-50 rounded-2xl border border-teal-200 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2 uppercase tracking-wide">
+                    <h4 className="text-sm font-bold text-teal-900 flex items-center gap-2 uppercase tracking-wide">
                       <Clock size={16} />Pre-Op Antibiotic (Still Required)
                     </h4>
-                    <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                    <span className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">
                       Start {preOpDefaultDays} days before
                     </span>
                   </div>
@@ -2172,7 +2366,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             updateNestedField('medications_plan.pre_op.antibiotic_id', id);
                             updateNestedField('medications_plan.pre_op.antibiotic_name', ab?.name || '');
                           }}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select...</option>
                           {preOpAntibiotics.map((ab: any) => (
@@ -2190,7 +2384,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           onChange={(e) => {
                             updateNestedField('medications_plan.pre_op.frequency', e.target.value);
                           }}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select...</option>
                           {(frequencyOptions.length > 0 ? frequencyOptions : [
@@ -2212,7 +2406,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         <select
                           value={data?.medications_plan?.pre_op?.duration_days || 3}
                           onChange={(e) => updateNestedField('medications_plan.pre_op.duration_days', parseInt(e.target.value))}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value={3}>3 Days</option>
                           <option value={7}>1 Week</option>
@@ -2229,12 +2423,12 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             {(data?.medications_plan?.protocol_type === 'STANDARD' || !data?.medications_plan?.protocol_type) && (
               <div className="space-y-6">
                 {/* PRE-OP SECTION */}
-                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 space-y-4">
+                <div className="p-5 bg-gradient-to-r from-teal-50 to-teal-50 rounded-2xl border border-teal-200 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2 uppercase tracking-wide">
+                    <h4 className="text-sm font-bold text-teal-900 flex items-center gap-2 uppercase tracking-wide">
                       <Clock size={16} />Pre-Op Medications
                     </h4>
-                    <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                    <span className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">
                       Start {preOpDefaultDays} days before
                     </span>
                   </div>
@@ -2251,7 +2445,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             updateNestedField('medications_plan.pre_op.antibiotic_id', id);
                             updateNestedField('medications_plan.pre_op.antibiotic_name', ab?.name || '');
                           }}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select antibiotic...</option>
                           {preOpAntibiotics.map((ab: any) => (
@@ -2269,7 +2463,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                           onChange={(e) => {
                             updateNestedField('medications_plan.pre_op.frequency', e.target.value);
                           }}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select frequency...</option>
                           {(frequencyOptions.length > 0 ? frequencyOptions : [
@@ -2291,7 +2485,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         <select
                           value={data?.medications_plan?.pre_op?.duration_days || 3}
                           onChange={(e) => updateNestedField('medications_plan.pre_op.duration_days', parseInt(e.target.value))}
-                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value={3}>3 Days</option>
                           <option value={7}>1 Week</option>
@@ -2302,13 +2496,13 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   </div>
 
                   {/* Additional Instructions for Pre-Op */}
-                  <div className="pt-3 border-t border-blue-200">
-                    <label className="block text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">Additional Pre-Op Instructions</label>
+                  <div className="pt-3 border-t border-teal-200">
+                    <label className="block text-xs font-bold text-teal-700 mb-2 uppercase tracking-wide">Additional Pre-Op Instructions</label>
                     <textarea
                       value={data?.medications_plan?.pre_op?.additional_instructions || ''}
                       onChange={(e) => updateNestedField('medications_plan.pre_op.additional_instructions', e.target.value)}
                       placeholder="Enter any additional instructions (e.g., continue dry eye medications, hold specific drops, etc.)"
-                      className="w-full bg-white border-2 border-blue-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-400 transition-all resize-none"
+                      className="w-full bg-white border-2 border-teal-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 transition-all resize-none"
                       rows={2}
                     />
                   </div>
@@ -2326,7 +2520,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                     <div className="p-5 bg-white rounded-2xl border-2 border-slate-200 space-y-4 hover:border-slate-300 transition-all">
                       <div className="flex items-center justify-between">
                         <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wide">A. Antibiotic</h5>
-                        <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">1 Week</span>
+                        <span className="px-2.5 py-1 bg-teal-100 text-teal-700 rounded-full text-[10px] font-bold">1 Week</span>
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Select Antibiotic</label>
@@ -2339,7 +2533,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                               updateNestedField('medications_plan.post_op.antibiotic.frequency', ab?.default_frequency || 4);
                               updateNestedField('medications_plan.post_op.antibiotic.weeks', ab?.default_weeks || 1);
                             }}
-                            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
                           >
                             <option value="">Select antibiotic...</option>
                             {postOpAntibiotics.map((a: any) => (
@@ -2350,7 +2544,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg">
-                        <Activity size={14} className="text-indigo-400" />
+                        <Activity size={14} className="text-teal-400" />
                         <span className="font-medium">Fixed: {data?.medications_plan?.post_op?.antibiotic?.frequency || 4}x Daily (7 Days)</span>
                       </div>
                     </div>
@@ -2370,7 +2564,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                               updateNestedField('medications_plan.post_op.nsaid.weeks', nsaid.default_weeks);
                             }
                           }}
-                          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
                         >
                           <option value="">Select NSAID...</option>
                           {postOpNsaids.map((n: any) => (
@@ -2391,7 +2585,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                 updateNestedField('medications_plan.post_op.nsaid.frequency', freq);
                                 updateNestedField('medications_plan.post_op.nsaid.frequency_label', label);
                               }}
-                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer"
                             >
                               <option value="">Select...</option>
                               <option value={1}>1x Daily</option>
@@ -2408,7 +2602,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             <select
                               value={data?.medications_plan?.post_op?.nsaid?.weeks || 4}
                               onChange={(e) => updateNestedField('medications_plan.post_op.nsaid.weeks', parseInt(e.target.value))}
-                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                              className="w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 transition-all appearance-none cursor-pointer"
                             >
                               <option value={2}>2 Weeks</option>
                               <option value={3}>3 Weeks</option>
@@ -2426,7 +2620,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   <div className="p-5 bg-white rounded-2xl border-2 border-slate-200 space-y-5 hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center">
                           <Activity size={18} className="text-white" />
                         </div>
                         <div>
@@ -2476,7 +2670,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                   updateNestedField('medications_plan.post_op.steroid.taper_schedule', steroid.default_taper || [4, 3, 2, 1]);
                                 }
                               }}
-                              className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
+                              className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-teal-400 focus:bg-white transition-all appearance-none cursor-pointer hover:border-slate-300"
                             >
                               <option value="">Select steroid...</option>
                               {postOpSteroids.map((s: any) => (
@@ -2493,7 +2687,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                             {(data?.medications_plan?.post_op?.steroid?.taper_schedule || [4, 3, 2, 1]).map((freq: number, i: number) => (
                               <div key={i} className="flex-1 text-center">
                                 <div className={`py-4 rounded-xl font-bold text-white text-base transition-all ${
-                                  freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-200'
+                                  freq === 0 ? 'bg-slate-300' : 'bg-gradient-to-b from-teal-500 to-teal-600 shadow-lg shadow-teal-200'
                                 }`}>
                                   {freq}x
                                 </div>
@@ -2518,7 +2712,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                   updateNestedField('medications_plan.post_op.steroid.taper_schedule', newSchedule);
                                   updateNestedField('medications_plan.post_op.steroid.taper_type', 'custom');
                                 }}
-                                className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-indigo-600 outline-none focus:border-indigo-400 cursor-pointer"
+                                className="w-16 bg-white border-2 border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-teal-600 outline-none focus:border-teal-400 cursor-pointer"
                               >
                                 {[0, 1, 2, 3, 4].map(n => (
                                   <option key={n} value={n}>{n}x</option>
@@ -2532,13 +2726,13 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                   </div>
 
                   {/* Additional Instructions for Post-Op */}
-                  <div className="pt-3 border-t border-indigo-200">
-                    <label className="block text-xs font-bold text-indigo-700 mb-2 uppercase tracking-wide">Additional Post-Op Instructions</label>
+                  <div className="pt-3 border-t border-teal-200">
+                    <label className="block text-xs font-bold text-teal-700 mb-2 uppercase tracking-wide">Additional Post-Op Instructions</label>
                     <textarea
                       value={data?.medications_plan?.post_op?.additional_instructions || ''}
                       onChange={(e) => updateNestedField('medications_plan.post_op.additional_instructions', e.target.value)}
                       placeholder="Enter any additional instructions (e.g., activity restrictions, follow-up reminders, special considerations, etc.)"
-                      className="w-full bg-white border-2 border-indigo-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-400 transition-all resize-none"
+                      className="w-full bg-white border-2 border-teal-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 transition-all resize-none"
                       rows={2}
                     />
                   </div>
@@ -2607,8 +2801,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
             ) : (
               <>
                 {/* Info banner */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-3 flex gap-2.5 items-start">
-                  <AlertCircle className="flex-shrink-0 text-blue-600 mt-0.5" size={14} />
+                <div className="bg-teal-50 border-l-4 border-teal-500 rounded-r-xl p-3 flex gap-2.5 items-start">
+                  <AlertCircle className="flex-shrink-0 text-teal-600 mt-0.5" size={14} />
                   <p className="text-[11px] text-slate-600 leading-relaxed">
                     Upload signed copies of each form per eye. Blank templates are managed in <span className="font-semibold">Clinic Setup &rarr; Documents</span>.
                   </p>
@@ -2680,7 +2874,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                     )}
                                   </div>
                                 ) : eyeStatus === 'ready' ? (
-                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">
+                                  <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-[10px] font-bold">
                                     Ready to Sign
                                   </span>
                                 ) : (
@@ -2695,7 +2889,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                 {eyeStatus === 'signed' && (
                                   <button
                                     onClick={() => handleFormDownload(formDef.id, 'signed', eyeConf.key)}
-                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                    className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
                                     title="Download signed copy"
                                   >
                                     <Download size={13} />
@@ -2704,7 +2898,7 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                 {hasTemplate && eyeStatus === 'ready' && (
                                   <button
                                     onClick={() => handleFormDownload(formDef.id, 'blank')}
-                                    className="px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
+                                    className="px-2 py-1 text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition-all"
                                     title="Download blank template"
                                   >
                                     Blank PDF
@@ -2716,8 +2910,8 @@ const PatientOnboarding: React.FC<PatientOnboardingProps> = ({
                                   disabled={isUploading}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
                                     eyeStatus === 'signed'
-                                      ? 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
-                                      : 'text-white bg-blue-600 hover:bg-blue-700 shadow-sm'
+                                      ? 'text-slate-400 hover:text-teal-600 hover:bg-teal-50'
+                                      : 'text-white bg-teal-600 hover:bg-teal-700 shadow-sm'
                                   } disabled:opacity-50`}
                                   title={eyeStatus === 'signed' ? 'Replace signed copy' : 'Upload signed copy'}
                                 >

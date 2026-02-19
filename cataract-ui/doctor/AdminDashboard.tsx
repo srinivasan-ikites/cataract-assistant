@@ -160,7 +160,7 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 size={40} className="animate-spin text-blue-500" />
+          <Loader2 size={40} className="animate-spin text-teal-500" />
           <p className="text-slate-500 font-medium">Loading admin dashboard...</p>
         </div>
       </div>
@@ -176,7 +176,7 @@ const AdminDashboard: React.FC = () => {
           <p className="text-slate-600 mb-6">{error}</p>
           <button
             onClick={fetchData}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
           >
             Try Again
           </button>
@@ -191,7 +191,7 @@ const AdminDashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-            <Shield className="text-blue-600" size={28} />
+            <Shield className="text-teal-600" size={28} />
             Admin Dashboard
           </h1>
           <p className="text-slate-500 mt-1">Manage clinics and monitor platform activity</p>
@@ -234,8 +234,8 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Building2 size={24} className="text-blue-600" />
+              <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
+                <Building2 size={24} className="text-teal-600" />
               </div>
               <div>
                 <p className="text-sm text-slate-500 font-medium">Total Clinics</p>
@@ -284,7 +284,7 @@ const AdminDashboard: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               <option value="">All Status</option>
               <option value="pending">Pending</option>
@@ -305,7 +305,7 @@ const AdminDashboard: React.FC = () => {
               <div
                 key={clinic.id}
                 className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
-                  selectedClinic?.id === clinic.id ? 'bg-blue-50' : ''
+                  selectedClinic?.id === clinic.id ? 'bg-teal-50' : ''
                 }`}
                 onClick={() => setSelectedClinic(clinic)}
               >
@@ -313,11 +313,11 @@ const AdminDashboard: React.FC = () => {
                   {/* Clinic Icon */}
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                     clinic.status === 'pending' ? 'bg-amber-100' :
-                    clinic.status === 'active' ? 'bg-blue-100' : 'bg-slate-100'
+                    clinic.status === 'active' ? 'bg-teal-100' : 'bg-slate-100'
                   }`}>
                     <Building2 size={24} className={
                       clinic.status === 'pending' ? 'text-amber-600' :
-                      clinic.status === 'active' ? 'text-blue-600' : 'text-slate-500'
+                      clinic.status === 'active' ? 'text-teal-600' : 'text-slate-500'
                     } />
                   </div>
 

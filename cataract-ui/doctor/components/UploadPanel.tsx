@@ -136,7 +136,7 @@ const ExtractionLoader: React.FC<{ fileCount: number }> = ({ fileCount }) => {
   const currentMessage = EXTRACTION_PHASES[currentPhase]?.messages[messageIndex] || 'Processing...';
 
   return (
-    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white via-blue-50 to-indigo-50 flex flex-col items-center justify-center p-6 z-10">
+    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white via-teal-50 to-teal-50 flex flex-col items-center justify-center p-6 z-10">
       <style>{`
         @keyframes lensFocus {
           0%, 100% { transform: scale(1); }
@@ -194,8 +194,8 @@ const ExtractionLoader: React.FC<{ fileCount: number }> = ({ fileCount }) => {
         </div>
 
         {/* Subtle track rings */}
-        <div className="absolute rounded-full border border-indigo-100/50" style={{ width: 120, height: 120 }} />
-        <div className="absolute rounded-full border border-blue-100/30" style={{ width: 95, height: 95 }} />
+        <div className="absolute rounded-full border border-teal-100/50" style={{ width: 120, height: 120 }} />
+        <div className="absolute rounded-full border border-teal-100/30" style={{ width: 95, height: 95 }} />
 
         {/* Floating particles */}
         {[0, 1, 2, 3, 4].map((i) => (
@@ -243,7 +243,7 @@ const ExtractionLoader: React.FC<{ fileCount: number }> = ({ fileCount }) => {
       <div className="w-full max-w-xs mb-4">
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out"
+            className="h-full bg-gradient-to-r from-teal-500 to-teal-500 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -269,7 +269,7 @@ const ExtractionLoader: React.FC<{ fileCount: number }> = ({ fileCount }) => {
               className={`
                 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
                 ${isComplete ? 'bg-green-100 text-green-600' : ''}
-                ${isCurrent ? 'bg-blue-100 text-blue-600 scale-110 shadow-md' : ''}
+                ${isCurrent ? 'bg-teal-100 text-teal-600 scale-110 shadow-md' : ''}
                 ${!isComplete && !isCurrent ? 'bg-slate-100 text-slate-300' : ''}
               `}
               title={phase.label}
@@ -474,7 +474,7 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext || '')) {
-      return <FileImage size={14} className="text-blue-500" />;
+      return <FileImage size={14} className="text-teal-500" />;
     }
     return <FileText size={14} className="text-slate-500" />;
   };
@@ -492,23 +492,23 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
             relative bg-[#f7f9ff] border-2 border-dashed rounded-3xl p-6 text-center
             transition-all duration-300 ease-out
             ${isDragging
-              ? 'border-blue-500 bg-blue-50 scale-[1.02] shadow-lg shadow-blue-100'
-              : 'border-blue-200/80 hover:border-blue-300'
+              ? 'border-teal-500 bg-teal-50 scale-[1.02] shadow-lg shadow-teal-100'
+              : 'border-teal-200/80 hover:border-teal-300'
             }
           `}
         >
           {/* Drag overlay */}
           {isDragging && (
-            <div className="absolute inset-0 rounded-3xl bg-blue-500/10 flex items-center justify-center z-10 pointer-events-none">
-              <div className="bg-white px-6 py-4 rounded-2xl shadow-xl border border-blue-200">
-                <Upload className="mx-auto text-blue-500 mb-2 animate-bounce" size={32} />
-                <p className="text-sm font-bold text-blue-700">Drop files here</p>
-                <p className="text-xs text-blue-500 mt-1">Images, PDFs, or documents</p>
+            <div className="absolute inset-0 rounded-3xl bg-teal-500/10 flex items-center justify-center z-10 pointer-events-none">
+              <div className="bg-white px-6 py-4 rounded-2xl shadow-xl border border-teal-200">
+                <Upload className="mx-auto text-teal-500 mb-2 animate-bounce" size={32} />
+                <p className="text-sm font-bold text-teal-700">Drop files here</p>
+                <p className="text-xs text-teal-500 mt-1">Images, PDFs, or documents</p>
               </div>
             </div>
           )}
 
-          <div className={`mx-auto w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-blue-500 mb-3 transition-transform ${isDragging ? 'scale-110' : ''}`}>
+          <div className={`mx-auto w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-teal-500 mb-3 transition-transform ${isDragging ? 'scale-110' : ''}`}>
             <Upload size={26} />
           </div>
           <h4 className="font-semibold text-slate-800 text-lg">Upload EMR / IOL Sheets</h4>
@@ -520,7 +520,7 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="mt-4 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-[0.99]"
+            className="mt-4 inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-teal-100 transition-all active:scale-[0.99]"
           >
             <Upload size={16} />
             Browse Files
@@ -552,7 +552,7 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
                 {files.map((f, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between px-3 py-2 bg-white rounded-lg text-sm text-slate-700 border border-slate-100 shadow-[0_4px_10px_-6px_rgba(0,0,0,0.08)] group hover:border-blue-200 transition-colors"
+                    className="flex items-center justify-between px-3 py-2 bg-white rounded-lg text-sm text-slate-700 border border-slate-100 shadow-[0_4px_10px_-6px_rgba(0,0,0,0.08)] group hover:border-teal-200 transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {getFileIcon(f.name)}
@@ -605,7 +605,7 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
           <p className="text-sm font-semibold text-slate-900">Recent Uploads</p>
           {recentUploads.length > 4 && (
             <button
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700"
               onClick={() => setShowAllUploads((v) => !v)}
             >
               {showAllUploads ? 'View Less' : 'View All'}
@@ -623,7 +623,7 @@ const UploadPanel: React.FC<UploadPanelProps> = ({
             (showAllUploads ? recentUploads : recentUploads.slice(0, 4)).map((file, idx) => (
               <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-teal-50 text-teal-500 flex items-center justify-center text-[10px] font-bold shrink-0">
                     {idx + 1}
                   </div>
                   <span className="truncate">{file}</span>

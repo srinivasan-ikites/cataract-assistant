@@ -151,7 +151,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-200">
               <UserPlus size={20} className="text-white" />
             </div>
             <div>
@@ -192,7 +192,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
                   transition-all outline-none
                   ${errors.firstName
                     ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
-                    : 'border-slate-200 bg-slate-50 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                    : 'border-slate-200 bg-slate-50 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:bg-white'
                   }
                   disabled:opacity-60 disabled:cursor-not-allowed
                 `}
@@ -224,7 +224,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
                   transition-all outline-none
                   ${errors.lastName
                     ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
-                    : 'border-slate-200 bg-slate-50 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                    : 'border-slate-200 bg-slate-50 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:bg-white'
                   }
                   disabled:opacity-60 disabled:cursor-not-allowed
                 `}
@@ -253,7 +253,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
                   transition-all outline-none
                   ${errors.phone
                     ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
-                    : 'border-slate-200 bg-slate-50 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:bg-white'
+                    : 'border-slate-200 bg-slate-50 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:bg-white'
                   }
                   disabled:opacity-60 disabled:cursor-not-allowed
                 `}
@@ -280,7 +280,7 @@ const RegisterPatientModal: React.FC<RegisterPatientModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-teal-600 text-white font-semibold text-sm shadow-lg shadow-teal-200 hover:shadow-xl hover:from-teal-700 hover:to-teal-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

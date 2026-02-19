@@ -24,7 +24,7 @@ import ClinicSetup from './ClinicSetup';
 import UserManagement from './UserManagement';
 import { api, Clinic, DashboardResponse } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import Logo from '../components/Logo';
+
 
 type View = 'dashboard' | 'onboarding' | 'clinic' | 'patients' | 'appointments' | 'team';
 
@@ -111,8 +111,9 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
 
   const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
 
-  // Get clinic name - prefer from auth user, then from clinic data
-  const clinicName = user?.clinic_name || clinicData?.clinic_profile?.name || 'MedCore';
+  // Get clinic name and logo - prefer from clinic data, then from auth user
+  const clinicName = clinicData?.clinic_profile?.name || user?.clinic_name || 'Clinic';
+  const clinicLogoUrl = clinicData?.clinic_profile?.branding?.logo_url;
 
   // Handle logout
   const handleLogout = async () => {
@@ -177,10 +178,10 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                   value: dashboardLoading ? '...' : stats.todays_surgeries.toString(),
                   icon: <Calendar size={24} />,
                   badge: todaysSurgeries.length > 0 ? 'Scheduled' : null,
-                  color: 'text-blue-600',
-                  bg: 'bg-blue-50',
-                  badgeBg: 'bg-blue-100',
-                  badgeText: 'text-blue-600'
+                  color: 'text-teal-600',
+                  bg: 'bg-teal-50',
+                  badgeBg: 'bg-teal-100',
+                  badgeText: 'text-teal-600'
                 },
                 {
                   label: 'Pending Review',
@@ -234,8 +235,8 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-blue-50">
-                    <Calendar size={20} className="text-blue-600" />
+                  <div className="p-2.5 rounded-xl bg-teal-50">
+                    <Calendar size={20} className="text-teal-600" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">Today's Surgery Schedule</h3>
@@ -244,14 +245,14 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                 </div>
                 <div className="flex items-center gap-3">
                   {todaysSurgeries.length > 0 && (
-                    <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">
+                    <span className="px-3 py-1.5 rounded-full bg-teal-50 text-teal-600 text-xs font-bold">
                       {todaysSurgeries.length} {todaysSurgeries.length === 1 ? 'Surgery' : 'Surgeries'}
                     </span>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); fetchDashboardStats(); }}
                     disabled={dashboardLoading}
-                    className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+                    className="p-2 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all disabled:opacity-50"
                     title="Refresh"
                   >
                     <RefreshCw size={16} className={dashboardLoading ? 'animate-spin' : ''} />
@@ -261,7 +262,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
 
               {dashboardLoading ? (
                 <div className="p-8 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+                  <Loader2 className="w-8 h-8 animate-spin text-teal-500 mx-auto mb-3" />
                   <p className="text-sm text-slate-500">Loading schedule...</p>
                 </div>
               ) : todaysSurgeries.length === 0 ? (
@@ -302,7 +303,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                           </td>
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                              <div className="w-9 h-9 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-xs">
                                 {surgery.patient_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                               </div>
                               <div>
@@ -316,7 +317,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                               <Eye size={16} className="text-slate-400" />
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                                 surgery.eye === 'OD'
-                                  ? 'bg-indigo-50 text-indigo-600'
+                                  ? 'bg-teal-50 text-teal-600'
                                   : 'bg-violet-50 text-violet-600'
                               }`}>
                                 {surgery.eye} ({surgery.eye === 'OD' ? 'Right' : 'Left'})
@@ -383,32 +384,41 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
           sidebarCollapsed ? 'w-[72px]' : 'w-64'
         }`}
       >
-        {/* Logo Section with Toggle */}
-        <div className={`${sidebarCollapsed ? 'py-4' : 'p-6 pb-4'} transition-all duration-300`}>
-          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between px-2'} mb-6`}>
+        {/* Clinic Header with Toggle */}
+        <div className={`${sidebarCollapsed ? 'py-4' : 'p-4 pb-4'} transition-all duration-300`}>
+          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-2'} mb-6`}>
+            {/* Clinic logo or default icon */}
             <div
-              className={`flex items-center gap-3 group cursor-pointer`}
+              className="shrink-0 cursor-pointer group"
               onClick={() => sidebarCollapsed && toggleSidebar()}
-              title={sidebarCollapsed ? 'Expand sidebar' : undefined}
+              title={sidebarCollapsed ? 'Expand sidebar' : clinicName}
             >
-              <div className={`shrink-0 transition-transform duration-500 group-hover:scale-105 ${sidebarCollapsed ? '' : ''}`}>
-                <Logo size="sm" />
-              </div>
-              <span className={`font-bold text-lg tracking-tight text-blue-900 transition-all duration-300 truncate ${
-                sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100 max-w-[140px]'
-              }`}>
-                {clinicName}
-              </span>
+              {clinicLogoUrl ? (
+                <img
+                  src={clinicLogoUrl}
+                  alt={clinicName}
+                  className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-200 group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Eye size={18} className="text-teal-600" />
+                </div>
+              )}
             </div>
-            {/* Toggle Button - Top Right */}
+            {/* Clinic name + collapse toggle */}
             {!sidebarCollapsed && (
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
-                title="Collapse sidebar"
-              >
-                <PanelLeftClose size={18} />
-              </button>
+              <>
+                <span className="font-bold text-base tracking-tight text-slate-800 truncate flex-1 min-w-0" title={clinicName}>
+                  {clinicName}
+                </span>
+                <button
+                  onClick={toggleSidebar}
+                  className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all duration-200"
+                  title="Collapse sidebar"
+                >
+                  <PanelLeftClose size={16} />
+                </button>
+              </>
             )}
           </div>
 
@@ -431,11 +441,11 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                     }}
                     className={`flex items-center rounded-xl transition-all duration-200 ${
                       sidebarCollapsed
-                        ? `w-10 h-10 justify-center ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:text-slate-600 hover:bg-slate-50'}`
-                        : `w-full px-4 py-3 gap-4 ${isActive ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'}`
+                        ? `w-10 h-10 justify-center ${isActive ? 'bg-teal-50 text-teal-600' : 'text-slate-500 hover:text-slate-600 hover:bg-slate-50'}`
+                        : `w-full px-4 py-3 gap-4 ${isActive ? 'bg-teal-50 text-teal-600 font-semibold' : 'text-slate-500 font-semibold hover:text-slate-700 hover:bg-slate-50'}`
                     }`}
                   >
-                    <div className={`shrink-0 ${isActive ? 'text-blue-600' : ''}`}>
+                    <div className={`shrink-0 ${isActive ? 'text-teal-600' : ''}`}>
                       {item.icon}
                     </div>
                     {!sidebarCollapsed && (
@@ -461,7 +471,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
         {/* User Profile Section */}
         <div className={`mt-auto ${sidebarCollapsed ? 'py-3 flex flex-col items-center' : 'p-6'} border-t border-slate-100 transition-all duration-300`}>
           <div className={`flex items-center gap-3 ${sidebarCollapsed ? '' : 'px-2'} mb-2 group cursor-pointer relative`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border border-slate-200 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center border border-slate-200 shrink-0">
               <span className="text-white font-bold text-sm">
                 {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
               </span>
@@ -519,7 +529,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-2xl w-[320px] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 border border-transparent transition-all">
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-2xl w-[320px] focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-100 border border-transparent transition-all">
               <Search size={18} className="text-slate-300" />
               <input 
                 type="text" 
@@ -527,7 +537,7 @@ const DoctorPortalContent: React.FC<DoctorPortalContentProps> = ({ clinicId: url
                 className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-300 font-medium"
               />
             </div>
-            <button className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all relative group">
+            <button className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all relative group">
               <Bell size={20} />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white shadow-sm group-hover:scale-125 transition-transform"></span>
             </button>

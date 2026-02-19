@@ -53,7 +53,7 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
       </div>
     );
   }
@@ -65,7 +65,7 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
         <p className="text-slate-600">{error}</p>
         <button
           onClick={fetchClinicData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           Try Again
         </button>
@@ -173,8 +173,8 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Package size={24} className="text-blue-600" />
+            <div className="p-3 bg-teal-100 rounded-xl">
+              <Package size={24} className="text-teal-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
@@ -242,7 +242,7 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
               {clinic.surgical_packages.map((pkg: any, index: number) => (
                 <div
                   key={pkg.package_id || index}
-                  className="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                  className="border border-slate-200 rounded-lg p-4 hover:border-teal-300 transition-colors"
                 >
                   <h3 className="font-semibold text-slate-900">{pkg.display_name || pkg.name}</h3>
                   <p className="text-sm text-slate-500 mt-1">{pkg.description || 'No description'}</p>
@@ -310,7 +310,7 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
                   key={staff.provider_id || index}
                   className="flex items-center gap-3 border border-slate-200 rounded-lg p-4"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center text-white font-semibold">
                     {staff.name?.charAt(0) || '?'}
                   </div>
                   <div>
@@ -327,7 +327,7 @@ const ClinicSettings: React.FC<ClinicSettingsProps> = ({ clinicId }) => {
       </div>
 
       {/* Info Note */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+      <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-sm text-teal-700">
         <p className="font-medium">Note:</p>
         <p>
           To update clinic configuration (packages, medications, lens inventory), please use the
