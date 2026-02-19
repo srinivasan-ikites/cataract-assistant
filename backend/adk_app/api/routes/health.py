@@ -1,7 +1,7 @@
 """
 Health check route.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
 
 from adk_app.services.supabase_service import get_supabase_admin_client
@@ -26,16 +26,18 @@ def ping() -> dict:
 @router.get("/version")
 def version() -> dict:
     """Version endpoint returning app version, environment, and timezone information."""
-    # Format timestamp as human-readable: "February 18, 2026 at 7:29 AM UTC"
-    now = datetime.now(timezone.utc)
+    # IST is UTC+5:30
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(ist)
+    # Format as human-readable: "February 18, 2026 at 7:29 AM IST"
     # Use %I for 12-hour format, strip leading zero if present for cross-platform compatibility
-    hour_12 = now.strftime("%I").lstrip("0")
-    human_timestamp = f"{now.strftime('%B %d, %Y')} at {hour_12}:{now.strftime('%M %p')} UTC"
+    hour_12 = now.strftime("%I").lstrip("0") or "12"
+    human_timestamp = f"{now.strftime('%B %d, %Y')} at {hour_12}:{now.strftime('%M %p')} IST"
 
     return {
         "version": "1.0.0",
         "environment": "development",
-        "timezone": "UTC",
+        "timezone": "IST",
         "timestamp": human_timestamp
     }
 

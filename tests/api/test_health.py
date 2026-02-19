@@ -28,7 +28,7 @@ class TestVersion:
         assert "timestamp" in data
 
     def test_version_timestamp_is_human_readable(self, http_client):
-        """Version endpoint timestamp is in human-readable format."""
+        """Version endpoint timestamp is in human-readable IST format."""
         response = http_client.get("/version")
         assert response.status_code == 200
 
@@ -38,10 +38,20 @@ class TestVersion:
         # Should NOT be ISO format (contains 'T' and '+')
         assert 'T' not in timestamp, f"Timestamp should not be ISO format: {timestamp}"
 
-        # Should be human-readable format like "February 18, 2026 at 7:29 AM UTC"
-        # Pattern: Month DD, YYYY at HH:MM AM/PM UTC
-        pattern = r'^[A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} (AM|PM) UTC$'
-        assert re.match(pattern, timestamp), f"Timestamp should match human-readable format: {timestamp}"
+        # Updated: /version now returns IST timezone (changed from UTC in issue #24)
+        # Should be human-readable format like "February 18, 2026 at 7:29 AM IST"
+        # Pattern: Month DD, YYYY at HH:MM AM/PM IST
+        pattern = r'^[A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} (AM|PM) IST$'
+        assert re.match(pattern, timestamp), f"Timestamp should match human-readable IST format: {timestamp}"
+
+    def test_version_timezone_is_ist(self, http_client):
+        """Version endpoint timezone field returns IST."""
+        response = http_client.get("/version")
+        assert response.status_code == 200
+
+        data = response.json()
+        # Updated: timezone is now IST (changed from UTC in issue #24)
+        assert data["timezone"] == "IST", f"Expected timezone 'IST', got '{data['timezone']}'"
 
     def test_version_has_correct_structure(self, http_client):
         """Version endpoint returns all expected fields with correct types."""
