@@ -187,20 +187,8 @@ def clinic_access_test(user: AuthenticatedUser = Depends(require_clinic_user)):
 
 @router.get("/healthz/test-error")
 def test_error() -> dict:
-    """Temporary test endpoint to trigger a 500 error for New Relic alert testing. REMOVE AFTER TESTING."""
-    raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify New Relic alerting pipeline")
-
-
-@router.get("/healthz/test-error-2")
-def test_error_upload() -> dict:
-    """Temporary test endpoint simulating an upload failure. REMOVE AFTER TESTING."""
-    raise RuntimeError("TEST ERROR: Simulated document upload processing failure")
-
-
-@router.get("/healthz/test-error-3")
-def test_error_chat() -> dict:
-    """Temporary test endpoint simulating a chat/RAG failure. REMOVE AFTER TESTING."""
-    raise RuntimeError("TEST ERROR: Simulated RAG pipeline failure")
+    """Test endpoint to trigger a 500 error for alert testing."""
+    raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify alerting pipeline")
 
 
 @router.get("/healthz/storage-debug")
