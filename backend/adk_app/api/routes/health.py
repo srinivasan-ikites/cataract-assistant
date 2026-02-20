@@ -187,8 +187,17 @@ def clinic_access_test(user: AuthenticatedUser = Depends(require_clinic_user)):
 
 @router.get("/healthz/test-error")
 def test_error() -> dict:
-    """Test endpoint to trigger a 500 error for alert testing."""
+    """Test endpoint to trigger a 500 error for alert testing. Skipped by GitHub issue handler."""
     raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify alerting pipeline")
+
+
+@router.get("/healthz/test-full-pipeline")
+def test_full_pipeline() -> dict:
+    """
+    Test endpoint that triggers the FULL pipeline: Google Chat + GitHub Issue + Claude Agent.
+    Hit this once to verify the complete loop. REMOVE AFTER TESTING.
+    """
+    raise RuntimeError("NoneType error in patient data transformation: 'NoneType' object has no attribute 'get' when processing clinical_context for patient")
 
 
 @router.get("/healthz/storage-debug")
