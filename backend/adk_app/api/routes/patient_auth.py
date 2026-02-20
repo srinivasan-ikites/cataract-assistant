@@ -378,7 +378,12 @@ async def verify_otp(request: VerifyOTPRequest, http_request: Request):
         print(f"[Patient Auth] Login successful for patient: {patient['patient_id']}")
 
         # Log login activity
-        ip = http_request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (http_request.client.host if http_request.client else "unknown")
+        print(f"[Patient Auth] IP headers: x-forwarded-for={http_request.headers.get('x-forwarded-for')}, x-real-ip={http_request.headers.get('x-real-ip')}, client.host={http_request.client.host if http_request.client else 'none'}")
+        ip = (
+            http_request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            or http_request.headers.get("x-real-ip", "").strip()
+            or (http_request.client.host if http_request.client else "unknown")
+        )
         log_login_activity(
             user_type="patient",
             phone=request.phone,

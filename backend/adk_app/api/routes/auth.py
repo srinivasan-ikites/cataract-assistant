@@ -215,7 +215,11 @@ async def login(request_body: LoginRequest, request: Request):
         print(f"[Auth Login] SUCCESS - User logged in: {profile.get('name')} ({profile.get('role')})")
 
         # Log login activity (fire-and-forget, never blocks login)
-        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+        ip = (
+            request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            or request.headers.get("x-real-ip", "").strip()
+            or (request.client.host if request.client else "unknown")
+        )
         log_login_activity(
             user_type="clinic_user",
             email=user.email,
