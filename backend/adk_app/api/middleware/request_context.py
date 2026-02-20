@@ -22,13 +22,14 @@ from __future__ import annotations
 import time
 import uuid
 import json
-from typing import Optional
-
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
 from adk_app.api.middleware.patient_token import decode_patient_token
+from adk_app.telemetry.logger import get_logger
+
+logger = get_logger("request")
 
 try:
     import newrelic.agent
@@ -79,26 +80,6 @@ def get_user_context(request: Request) -> dict:
             return context
 
     return context
-
-
-def format_user_context(context: dict) -> str:
-    """Format user context for log output."""
-    parts = []
-
-    if context.get("user"):
-        parts.append(f"user:{context['user']}")
-    elif context.get("patient_id"):
-        parts.append(f"patient:{context['patient_id']}")
-    else:
-        parts.append("user:anonymous")
-
-    if context.get("clinic"):
-        parts.append(f"clinic:{context['clinic']}")
-
-    if context.get("role"):
-        parts.append(f"role:{context['role']}")
-
-    return " ".join(f"[{p}]" for p in parts)
 
 
 def set_newrelic_attributes(request: Request, user_context: dict, request_id: str, status_code: int = 0, duration_ms: float = 0, error: str = None):
@@ -185,7 +166,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 pass
 
         # Log request start
-        print(f"[REQ-{request_id}]{body_context} -> {request.method} {request.url.path}")
+        logger.info(
+            "request_start",
+            extra={"request_id": request_id, "method": request.method, "path": request.url.path},
+        )
 
         # Process request
         try:
@@ -196,11 +180,24 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
             # Get user context (now auth middleware may have set it)
             user_context = get_user_context(request)
-            context_str = format_user_context(user_context)
 
-            # Log request end
-            status_text = "OK" if response.status_code < 400 else "ERROR"
-            print(f"[REQ-{request_id}] {context_str} <- {response.status_code} {status_text} ({duration_ms:.0f}ms)")
+            # Build structured log extra fields
+            log_extra = {
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": round(duration_ms, 1),
+                **{k: v for k, v in user_context.items() if v},
+            }
+
+            # Log at appropriate level based on status code
+            if response.status_code >= 500:
+                logger.error("request_error", extra=log_extra)
+            elif response.status_code >= 400:
+                logger.warning("request_client_error", extra=log_extra)
+            else:
+                logger.info("request_end", extra=log_extra)
 
             # Tag New Relic transaction with user context
             set_newrelic_attributes(request, user_context, request_id, response.status_code, duration_ms)
@@ -227,11 +224,22 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             return response
 
         except Exception as exc:
-            # Log error
+            # Log unhandled exception as ERROR with full context
             duration_ms = (time.perf_counter() - start_time) * 1000
             user_context = get_user_context(request)
-            context_str = format_user_context(user_context)
-            print(f"[REQ-{request_id}] {context_str} <- 500 EXCEPTION ({duration_ms:.0f}ms): {exc}")
+            logger.error(
+                "unhandled_exception",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": 500,
+                    "duration_ms": round(duration_ms, 1),
+                    "error": str(exc),
+                    **{k: v for k, v in user_context.items() if v},
+                },
+                exc_info=True,
+            )
 
             # Tag New Relic with error context
             set_newrelic_attributes(request, user_context, request_id, 500, duration_ms, error=str(exc))
