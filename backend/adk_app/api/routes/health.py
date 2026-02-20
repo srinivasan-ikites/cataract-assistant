@@ -191,15 +191,6 @@ def test_error() -> dict:
     raise RuntimeError("TEST ERROR: This is a deliberate 500 error to verify alerting pipeline")
 
 
-@router.get("/healthz/test-full-pipeline")
-def test_full_pipeline() -> dict:
-    """
-    Test endpoint that triggers the FULL pipeline: Google Chat + GitHub Issue + Claude Agent.
-    Hit this once to verify the complete loop. REMOVE AFTER TESTING.
-    """
-    raise RuntimeError("NoneType error in patient data transformation: 'NoneType' object has no attribute 'get' when processing clinical_context for patient")
-
-
 @router.get("/healthz/storage-debug")
 def storage_debug() -> dict:
     """

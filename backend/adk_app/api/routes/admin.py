@@ -26,6 +26,7 @@ from adk_app.api.middleware.auth import (
     require_super_admin,
 )
 from adk_app.services.supabase_service import get_supabase_admin_client
+from adk_app.utils.supabase_data_loader import get_login_activity
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -501,3 +502,16 @@ async def get_platform_overview(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get platform overview: {str(e)}"
         )
+
+
+# ── Login Activity ─────────────────────────────────────────────────────
+
+
+@router.get("/login-activity")
+async def list_login_activity(
+    limit: int = 100,
+    user: AuthenticatedUser = Depends(require_super_admin),
+):
+    """Fetch recent login activity across all clinics."""
+    activity = get_login_activity(limit=limit)
+    return {"status": "ok", "activity": activity, "count": len(activity)}

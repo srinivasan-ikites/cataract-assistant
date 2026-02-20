@@ -26,8 +26,43 @@ import {
   Phone,
   Calendar,
   TrendingUp,
+  Monitor,
+  Smartphone,
+  Globe,
 } from 'lucide-react';
 import { adminApi, AdminClinic, AdminOverviewResponse } from '../services/api';
+
+type AdminTab = 'clinics' | 'activity';
+
+function parseBrowser(ua: string | null): string {
+  if (!ua) return 'Unknown';
+  if (ua.includes('Edg/')) return 'Edge';
+  if (ua.includes('Chrome/')) return 'Chrome';
+  if (ua.includes('Firefox/')) return 'Firefox';
+  if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari';
+  if (ua.includes('Postman')) return 'Postman';
+  if (ua.includes('curl')) return 'curl';
+  return 'Other';
+}
+
+function parseOS(ua: string | null): string {
+  if (!ua) return '';
+  if (ua.includes('Windows')) return 'Windows';
+  if (ua.includes('Mac OS')) return 'macOS';
+  if (ua.includes('Android')) return 'Android';
+  if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+  if (ua.includes('Linux')) return 'Linux';
+  return '';
+}
+
+function formatTime(ts: string): string {
+  const d = new Date(ts);
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+    hour12: true,
+  });
+}
 
 const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -38,6 +73,9 @@ const AdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedClinic, setSelectedClinic] = useState<AdminClinic | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>('clinics');
+  const [loginActivity, setLoginActivity] = useState<any[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   // Fetch data on mount
   useEffect(() => {
@@ -64,9 +102,28 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchLoginActivity = async () => {
+    setActivityLoading(true);
+    try {
+      const res = await adminApi.getLoginActivity(200);
+      setLoginActivity(res.activity || []);
+    } catch (err: any) {
+      console.error('Failed to fetch login activity:', err);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'activity' && loginActivity.length === 0) {
+      fetchLoginActivity();
+    }
+  }, [activeTab]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchData();
+    if (activeTab === 'activity') fetchLoginActivity();
   };
 
   const handleApprove = async (clinic: AdminClinic) => {
@@ -275,7 +332,123 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Tab Bar */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('clinics')}
+          className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'clinics'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Building2 size={16} className="inline mr-2 -mt-0.5" />
+          Clinics
+        </button>
+        <button
+          onClick={() => setActiveTab('activity')}
+          className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'activity'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Activity size={16} className="inline mr-2 -mt-0.5" />
+          Login Activity
+          {loginActivity.length > 0 && (
+            <span className="ml-2 px-2 py-0.5 bg-teal-100 text-teal-700 text-xs rounded-full">
+              {loginActivity.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Login Activity Tab */}
+      {activeTab === 'activity' && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">Recent Login Activity</h2>
+            <button
+              onClick={fetchLoginActivity}
+              disabled={activityLoading}
+              className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+            >
+              {activityLoading ? <Loader2 size={16} className="animate-spin" /> : 'Refresh'}
+            </button>
+          </div>
+
+          {activityLoading && loginActivity.length === 0 ? (
+            <div className="p-12 text-center">
+              <Loader2 size={24} className="animate-spin text-teal-500 mx-auto" />
+              <p className="text-slate-500 mt-3 text-sm">Loading activity...</p>
+            </div>
+          ) : loginActivity.length === 0 ? (
+            <div className="p-12 text-center text-slate-500">
+              <Activity size={32} className="mx-auto mb-3 text-slate-300" />
+              <p>No login activity recorded yet.</p>
+              <p className="text-sm mt-1">Activity will appear here when users log in.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-left">
+                    <th className="px-5 py-3 font-semibold text-slate-600">Time</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">User</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">Type</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">Clinic</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">Location</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">Browser</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">IP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loginActivity.map((item: any) => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
+                        <Clock size={14} className="inline mr-1.5 text-slate-400 -mt-0.5" />
+                        {formatTime(item.created_at)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-slate-900">{item.user_name || 'Unknown'}</div>
+                        <div className="text-xs text-slate-500">{item.email || item.phone || ''}</div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          item.user_type === 'patient'
+                            ? 'bg-violet-100 text-violet-700'
+                            : 'bg-teal-100 text-teal-700'
+                        }`}>
+                          {item.user_type === 'patient' ? (
+                            <><Smartphone size={12} /> Patient</>
+                          ) : (
+                            <><Monitor size={12} /> {item.role === 'super_admin' ? 'Admin' : 'Doctor'}</>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600">{item.clinic_name || '—'}</td>
+                      <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
+                        <MapPin size={14} className="inline mr-1.5 text-slate-400 -mt-0.5" />
+                        {item.city && item.country
+                          ? `${item.city}, ${item.country}`
+                          : item.country || '—'}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
+                        <Globe size={14} className="inline mr-1.5 text-slate-400 -mt-0.5" />
+                        {parseBrowser(item.user_agent)}{parseOS(item.user_agent) ? ` / ${parseOS(item.user_agent)}` : ''}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 font-mono text-xs">{item.ip_address || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Clinics Section */}
+      {activeTab === 'clinics' && (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {/* Clinics Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -387,9 +560,10 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* Selected Clinic Details */}
-      {selectedClinic && (
+      {selectedClinic && activeTab === 'clinics' && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
