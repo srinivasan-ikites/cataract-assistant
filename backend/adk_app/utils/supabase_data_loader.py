@@ -993,3 +993,85 @@ def update_clinic_from_reviewed(clinic_id: str, reviewed_data: dict) -> dict:
     except Exception as e:
         print(f"[SupabaseDataLoader] Error updating clinic: {e}")
         raise ValueError(f"Error updating clinic: {e}")
+
+
+# ── Login Activity Logging ─────────────────────────────────────────────
+
+
+def _lookup_ip_location(ip_address: str) -> tuple:
+    """Look up city and country from IP address using ip-api.com (free, no key needed)."""
+    import urllib.request
+    import json as _json
+
+    if not ip_address or ip_address in ("unknown", "127.0.0.1", "::1", "localhost"):
+        return None, None
+
+    try:
+        url = f"http://ip-api.com/json/{ip_address}?fields=status,city,country"
+        req = urllib.request.Request(url, headers={"User-Agent": "CataractAssistant/1.0"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = _json.loads(resp.read().decode())
+            if data.get("status") == "success":
+                return data.get("city"), data.get("country")
+    except Exception:
+        pass
+    return None, None
+
+
+def log_login_activity(
+    user_type: str,
+    email: str = None,
+    phone: str = None,
+    user_name: str = None,
+    role: str = None,
+    clinic_id: str = None,
+    clinic_name: str = None,
+    ip_address: str = None,
+    user_agent: str = None,
+) -> None:
+    """
+    Record a login event in the login_activity table.
+
+    Called after successful clinic user login or patient OTP verification.
+    Wrapped in try/except — must never break the actual login flow.
+    """
+    client = get_supabase_admin_client()
+    if not client:
+        return
+
+    try:
+        city, country = _lookup_ip_location(ip_address)
+
+        client.table("login_activity").insert({
+            "user_type": user_type,
+            "email": email,
+            "phone": phone,
+            "user_name": user_name,
+            "role": role,
+            "clinic_id": clinic_id,
+            "clinic_name": clinic_name,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "city": city,
+            "country": country,
+        }).execute()
+    except Exception as e:
+        print(f"[LoginActivity] Failed to log: {e}")
+
+
+def get_login_activity(limit: int = 100) -> list:
+    """Fetch recent login activity for the admin dashboard."""
+    client = get_supabase_admin_client()
+    if not client:
+        return []
+
+    try:
+        result = client.table("login_activity") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .execute()
+        return result.data or []
+    except Exception as e:
+        print(f"[LoginActivity] Failed to fetch: {e}")
+        return []

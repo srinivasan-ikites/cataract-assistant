@@ -19,10 +19,11 @@ MongoDB comparison:
 
 import re
 import time
-from fastapi import APIRouter, HTTPException, status, Header
+from fastapi import APIRouter, HTTPException, status, Header, Request
 from pydantic import BaseModel, EmailStr
 
 from adk_app.services.supabase_service import get_supabase_admin_client
+from adk_app.utils.supabase_data_loader import log_login_activity
 
 
 # =============================================================================
@@ -114,7 +115,7 @@ class MessageResponse(BaseModel):
 # =============================================================================
 
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest):
+async def login(request_body: LoginRequest, request: Request):
     """
     Authenticate a clinic user with email and password.
 
@@ -133,7 +134,7 @@ async def login(request: LoginRequest):
     - Then manually create a JWT
     - Supabase does both automatically
     """
-    print(f"\n[Auth Login] Attempt for email: {request.email}")
+    print(f"\n[Auth Login] Attempt for email: {request_body.email}")
 
     client = get_supabase_admin_client()
     if not client:
@@ -148,8 +149,8 @@ async def login(request: LoginRequest):
         # This checks the auth.users table (managed by Supabase)
         print(f"[Auth Login] Authenticating with Supabase...")
         auth_response = client.auth.sign_in_with_password({
-            "email": request.email,
-            "password": request.password
+            "email": request_body.email,
+            "password": request_body.password
         })
 
         # Get the session and user from response
@@ -212,6 +213,19 @@ async def login(request: LoginRequest):
                 )
 
         print(f"[Auth Login] SUCCESS - User logged in: {profile.get('name')} ({profile.get('role')})")
+
+        # Log login activity (fire-and-forget, never blocks login)
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+        log_login_activity(
+            user_type="clinic_user",
+            email=user.email,
+            user_name=profile.get("name"),
+            role=profile.get("role"),
+            clinic_id=clinic.get("clinic_id") if clinic else None,
+            clinic_name=clinic.get("name") if clinic else None,
+            ip_address=ip,
+            user_agent=request.headers.get("user-agent"),
+        )
 
         return LoginResponse(
             access_token=session.access_token,

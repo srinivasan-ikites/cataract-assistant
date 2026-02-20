@@ -1489,4 +1489,13 @@ export const adminApi = {
         }
         return res.json();
     },
+
+    async getLoginActivity(limit: number = 100): Promise<{ status: string; activity: any[]; count: number }> {
+        const res = await authFetch(`${API_BASE}/api/admin/login-activity?limit=${limit}`);
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ detail: 'Failed to fetch login activity' }));
+            throw new Error(error.detail || 'Failed to fetch login activity');
+        }
+        return res.json();
+    },
 };

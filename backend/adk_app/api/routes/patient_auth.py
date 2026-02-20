@@ -26,11 +26,12 @@ import string
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status, Header
+from fastapi import APIRouter, HTTPException, status, Header, Request
 from pydantic import BaseModel, Field
 import jwt
 
 from adk_app.services.supabase_service import get_supabase_admin_client
+from adk_app.utils.supabase_data_loader import log_login_activity
 
 # New Relic for custom attributes (patient tracking)
 try:
@@ -259,7 +260,7 @@ async def request_otp(request: RequestOTPRequest):
 
 
 @router.post("/verify-otp", response_model=VerifyOTPResponse)
-async def verify_otp(request: VerifyOTPRequest):
+async def verify_otp(request: VerifyOTPRequest, http_request: Request):
     """
     Verify OTP and create patient session.
 
@@ -375,6 +376,19 @@ async def verify_otp(request: VerifyOTPRequest):
         )
 
         print(f"[Patient Auth] Login successful for patient: {patient['patient_id']}")
+
+        # Log login activity
+        ip = http_request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (http_request.client.host if http_request.client else "unknown")
+        log_login_activity(
+            user_type="patient",
+            phone=request.phone,
+            user_name=f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip(),
+            role="patient",
+            clinic_id=clinic_id,
+            clinic_name=clinic_name,
+            ip_address=ip,
+            user_agent=http_request.headers.get("user-agent"),
+        )
 
         # Add custom attributes to New Relic transaction for patient tracking
         if NEWRELIC_AVAILABLE:
