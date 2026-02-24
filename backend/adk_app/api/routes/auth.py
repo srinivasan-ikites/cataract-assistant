@@ -17,6 +17,7 @@ MongoDB comparison:
 - Supabase handles all of this automatically via auth.users table
 """
 
+import os
 import re
 import time
 from fastapi import APIRouter, HTTPException, status, Header, Request
@@ -459,6 +460,19 @@ async def register_clinic(request: ClinicRegistrationRequest):
             detail="Database connection not available"
         )
 
+    # Diagnostic: verify service role key is loaded (not the anon key)
+    service_key = os.getenv("SERVICE_ROLE_KEY", "")
+    anon_key = os.getenv("ANON_PUBLIC_KEY", "")
+    if service_key and anon_key:
+        if service_key == anon_key:
+            print("[Register Clinic] WARNING: SERVICE_ROLE_KEY == ANON_PUBLIC_KEY! Admin ops will fail.")
+        elif service_key.strip() != service_key:
+            print("[Register Clinic] WARNING: SERVICE_ROLE_KEY has leading/trailing whitespace!")
+        else:
+            print(f"[Register Clinic] Service key OK (starts: {service_key[:8]}..., length: {len(service_key)})")
+    elif not service_key:
+        print("[Register Clinic] WARNING: SERVICE_ROLE_KEY is empty!")
+
     try:
         # Step 1: Check if email already exists
         print(f"[Register Clinic] Step 1: Checking if email already exists...")
@@ -562,6 +576,14 @@ async def register_clinic(request: ClinicRegistrationRequest):
                 last_error = auth_error
                 error_msg = str(auth_error)
                 print(f"[Register Clinic] Step 4: Attempt {attempt + 1} failed: {error_msg}")
+                print(f"[Register Clinic] Step 4: Error type: {type(auth_error).__name__}")
+                # Log full error attributes for debugging
+                if hasattr(auth_error, 'message'):
+                    print(f"[Register Clinic] Step 4: Error .message: {auth_error.message}")
+                if hasattr(auth_error, 'status'):
+                    print(f"[Register Clinic] Step 4: Error .status: {auth_error.status}")
+                if hasattr(auth_error, 'code'):
+                    print(f"[Register Clinic] Step 4: Error .code: {auth_error.code}")
 
                 # Don't retry for certain errors
                 if "already been registered" in error_msg:
@@ -569,9 +591,10 @@ async def register_clinic(request: ClinicRegistrationRequest):
 
                 # "User not allowed" means Supabase config issue - don't retry
                 if "User not allowed" in error_msg:
-                    print(f"[Register Clinic] Step 4: 'User not allowed' = Supabase Auth config issue")
-                    print(f"[Register Clinic] Step 4: Check: Authentication > Providers > Email > Enable Signup")
-                    print(f"[Register Clinic] Step 4: Also check: Authentication > Settings > CAPTCHA (should be OFF)")
+                    print(f"[Register Clinic] Step 4: 'User not allowed' - likely wrong key or signup disabled")
+                    print(f"[Register Clinic] Step 4: Check 1: SERVICE_ROLE_KEY is the service key, NOT the anon key")
+                    print(f"[Register Clinic] Step 4: Check 2: Authentication > Providers > Email > Enable Signup")
+                    print(f"[Register Clinic] Step 4: Check 3: Authentication > Settings > CAPTCHA (should be OFF)")
                     break  # No point retrying - this is a config issue
 
                 # For actual rate limiting errors, we should retry

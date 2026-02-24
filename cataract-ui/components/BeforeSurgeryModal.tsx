@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, Fragment } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle2, ChevronDown, Clock, Phone, ArrowRight, ShieldCheck, MapPin, Coffee, Utensils, Car, Shirt, Droplets, MessageCircle, FileText, Download, Eye } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useToast } from './Toast';
-import { Patient, api, patientAuthStorage, patientAuthApi } from '../services/api';
+import { Patient, api, patientAuthStorage, patientAuthApi, buildEyeContexts, normalizePreOpProgress, EyeContext } from '../services/api';
 import { getAntibioticName, getFrequencyName } from '../constants/medications';
 import { GeminiContentResponse } from '../types';
 import ReactMarkdown from 'react-markdown';
@@ -196,17 +196,31 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
     const [formsData, setFormsData] = useState<Record<string, any> | null>(null);
     const [loadingForms, setLoadingForms] = useState(false);
 
-    // Get surgery date from v2 schema: surgical_plan.operative_logistics
-    // If both eyes have different dates, show the earlier one (right eye by default)
+    // ── Per-Eye Context ──────────────────────────────────────────────
+    const eyeContexts = buildEyeContexts(patient);
+    const isSingleEye = eyeContexts.length <= 1;
+    const primaryEye = eyeContexts[0] || null;
+
+    // Pre-op: eyes whose surgery is upcoming (not yet post-op)
+    const preOpEyes = eyeContexts.filter(e => !e.isPostOp);
+
+    // The soonest upcoming surgery for countdown/case logic
+    const nextSurgeryEye = preOpEyes[0] || null;
     const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
     const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
-    const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
-    // const surgeryDateStr = "2026-01-30";
+    const surgeryDateStr = nextSurgeryEye?.surgeryDateStr
+        || rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
     const arrivalTime = rightEyeLogistics?.arrival_time || leftEyeLogistics?.arrival_time || "7:00 AM";
 
     // Use fallback lookups if strings are missing
     const antibioticName = patient?.medications?.pre_op?.antibiotic_name || getAntibioticName(patient?.medications?.pre_op?.antibiotic_id);
     const frequency = patient?.medications?.pre_op?.frequency || getFrequencyName(patient?.medications?.pre_op?.frequency_id);
+
+    // Eye color scheme
+    const EYE_COLORS: Record<string, { border: string; text: string; accent: string; badge: string }> = {
+        od: { border: 'border-blue-500', text: 'text-blue-700', accent: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
+        os: { border: 'border-emerald-500', text: 'text-emerald-700', accent: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+    };
 
     // Helper to convert progress record to checklist format
     const progressToChecklist = (progress: Record<string, string[]>) => {
@@ -220,10 +234,17 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         return checklist;
     };
 
+    // Helper: normalize pre-op progress if multi-eye
+    const normalizeProgress = (progress: Record<string, string[]>) => {
+        return (!isSingleEye && primaryEye)
+            ? normalizePreOpProgress(progress, primaryEye.eyeKey)
+            : progress;
+    };
+
     // Load initial progress from prop
     useEffect(() => {
         if (patient?.medications?.pre_op?.progress) {
-            setChecklist(progressToChecklist(patient.medications.pre_op.progress));
+            setChecklist(progressToChecklist(normalizeProgress(patient.medications.pre_op.progress)));
         }
 
         // Set today as expanded by default
@@ -238,19 +259,17 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         }
     }, [patient, surgeryDateStr]);
 
-    // Fetch fresh medication data when modal opens (to get latest from DB)
+    // Fetch fresh medication data when modal opens
     useEffect(() => {
         const fetchFreshData = async () => {
-            // Only fetch if patient is logged in (not doctor view)
             if (patientAuthStorage.isAuthenticated() && patient?.patient_id) {
                 try {
                     const freshPatient = await patientAuthApi.getMyData();
                     if (freshPatient?.medications?.pre_op?.progress) {
-                        setChecklist(progressToChecklist(freshPatient.medications.pre_op.progress));
+                        setChecklist(progressToChecklist(normalizeProgress(freshPatient.medications.pre_op.progress)));
                     }
                 } catch (err) {
                     console.error("Failed to fetch fresh medication data:", err);
-                    // Fall back to prop data
                 }
             }
         };
@@ -283,21 +302,22 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
 
     const activeCase = getActiveCase();
 
-    const getFrequencyItems = (freq?: string) => {
+    const getFrequencyItems = (freq?: string, eyeKey?: string, eyeLabel?: string) => {
+        const prefix = (!isSingleEye && eyeKey) ? `${eyeKey}_` : '';
+        const eyeDesc = eyeLabel || (patient?.clinical_context?.diagnosis?.anatomical_status?.includes('Right') ? 'Right eye' : 'target eye');
         const lower = (freq || '').toLowerCase();
         if (lower.includes('4 times') || lower.includes('qid')) {
             return [
-                { id: 'morning', label: 'Morning Drop', sub: '1 drop in ' + (patient?.clinical_context?.diagnosis?.anatomical_status?.includes('Right') ? 'Right eye' : 'target eye'), time: '8:00 AM' },
-                { id: 'noon', label: 'Noon Drop', sub: '1 drop in target eye', time: '12:00 PM' },
-                { id: 'afternoon', label: 'Afternoon Drop', sub: '1 drop in target eye', time: '4:00 PM' },
-                { id: 'bedtime', label: 'Bedtime Drop', sub: '1 drop in target eye', time: '9:00 PM' },
+                { id: `${prefix}morning`, label: 'Morning Drop', sub: `1 drop in ${eyeDesc}`, time: '8:00 AM' },
+                { id: `${prefix}noon`, label: 'Noon Drop', sub: `1 drop in ${eyeDesc}`, time: '12:00 PM' },
+                { id: `${prefix}afternoon`, label: 'Afternoon Drop', sub: `1 drop in ${eyeDesc}`, time: '4:00 PM' },
+                { id: `${prefix}bedtime`, label: 'Bedtime Drop', sub: `1 drop in ${eyeDesc}`, time: '9:00 PM' },
             ];
         }
-        // Default to 3 times if something is set, or if it explicitly says 3 times
         return [
-            { id: 'morning', label: 'Morning Drop', sub: '1 drop in ' + (patient?.clinical_context?.diagnosis?.anatomical_status?.includes('Right') ? 'Right eye' : 'target eye'), time: '8:00 AM' },
-            { id: 'afternoon', label: 'Afternoon Drop', sub: '1 drop in target eye', time: '2:00 PM' },
-            { id: 'evening', label: 'Evening Drop', sub: '1 drop in target eye', time: '8:00 PM' },
+            { id: `${prefix}morning`, label: 'Morning Drop', sub: `1 drop in ${eyeDesc}`, time: '8:00 AM' },
+            { id: `${prefix}afternoon`, label: 'Afternoon Drop', sub: `1 drop in ${eyeDesc}`, time: '2:00 PM' },
+            { id: `${prefix}evening`, label: 'Evening Drop', sub: `1 drop in ${eyeDesc}`, time: '8:00 PM' },
         ];
     };
 
@@ -357,10 +377,31 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         }
     };
 
-    const trackerItems = getFrequencyItems(frequency);
+    // Build per-eye pre-op data
+    const eyePreOps = preOpEyes.map(eye => {
+        if (!eye.surgeryDate) return null;
+        const surgery = new Date(eye.surgeryDate);
+        surgery.setHours(0, 0, 0, 0);
+        const timelineDays = [3, 2, 1].map(offset => {
+            const date = new Date(surgery);
+            date.setDate(surgery.getDate() - offset);
+            return date;
+        });
+        const eyeLabel = eye.eyeKey === 'od' ? 'Right eye' : 'Left eye';
+        return {
+            eye,
+            timelineDays,
+            trackerItems: getFrequencyItems(frequency, eye.eyeKey, eyeLabel),
+            colors: EYE_COLORS[eye.eyeKey],
+        };
+    }).filter(Boolean) as { eye: EyeContext; timelineDays: Date[]; trackerItems: any[]; colors: any }[];
+
+    // For single-eye fallback and progress counting
+    const trackerItems = isSingleEye
+        ? getFrequencyItems(frequency)
+        : eyePreOps.flatMap(ep => ep.trackerItems);
 
     const toggleItem = async (dateKey: string, itemId: string) => {
-        // Only allow toggling for Today or Past days
         const itemDate = new Date(dateKey + 'T00:00:00');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -382,9 +423,9 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
     const markAllComplete = async () => {
         const todayKey = formatDateKey(new Date());
         const newChecklist = { ...checklist };
-
         if (!newChecklist[todayKey]) newChecklist[todayKey] = {};
 
+        // Mark all items for all pre-op eyes
         trackerItems.forEach(item => {
             newChecklist[todayKey][item.id] = true;
         });
@@ -393,13 +434,11 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
         await syncChecklist(newChecklist);
     };
 
-    // No longer need a duplicate local definition
-    // Case 1: 3-Day Window Logic
+    // Single-eye fallback timeline
     const getTimelineDays = () => {
         if (!surgeryDateStr) return [];
         const surgery = new Date(surgeryDateStr);
         surgery.setHours(0, 0, 0, 0);
-
         return [3, 2, 1].map(offset => {
             const date = new Date(surgery);
             date.setDate(surgery.getDate() - offset);
@@ -837,93 +876,115 @@ const BeforeSurgeryModal: React.FC<BeforeSurgeryModalProps> = ({ onClose, patien
                     {(activeCase === 'TIMELINE' || activeCase === 'PHARMACY') && (
                         <div className="space-y-6">
                             <h2 className="text-2xl font-black text-slate-900">Eye Drop Tracker</h2>
-                            <div className="space-y-6">
-                                {timelineDays.map((date, index) => {
-                                    const dateKey = formatDateKey(date);
-                                    const isFuture = date.getTime() > new Date().setHours(0, 0, 0, 0);
-                                    const isPast = date.getTime() < new Date().setHours(0, 0, 0, 0);
-                                    const isTodayDay = date.getTime() === new Date().setHours(0, 0, 0, 0);
-                                    const dayProgress = checklist[dateKey] ? Object.values(checklist[dateKey]).filter(v => v).length : 0;
-                                    const dayCompleted = dayProgress === trackerItems.length;
 
-                                    return (
-                                        <div key={dateKey} className={`relative flex gap-6 transition-all duration-300 ${isFuture ? 'hover:translate-x-1' : ''}`}>
-                                            {/* Vertical Line - behind date nodes */}
-                                            {index < 2 && <div className="absolute left-[31px] top-16 bottom-[-24px] w-0.5 bg-slate-200 z-0" />}
-
-                                            {/* Date Node */}
-                                            <div className={`relative z-10 w-16 h-16 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 transition-all ${isTodayDay && activeCase !== 'PHARMACY' ? 'bg-violet-600 border-violet-600 text-white' :
-                                                dayCompleted ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white border-slate-200 text-slate-700'
-                                                }`}>
-                                                <span className="text-xs font-black uppercase leading-none mb-1">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
-                                                <span className="text-2xl font-black leading-none">{date.getDate()}</span>
+                            {/* Per-eye sections (or single-eye fallback) */}
+                            {(isSingleEye ? [{ eye: null, timelineDays, trackerItems: getFrequencyItems(frequency), colors: null }] : eyePreOps).map((section, sectionIdx) => {
+                                const sectionKey = section.eye?.eyeKey || 'single';
+                                const sectionItems = section.trackerItems;
+                                const sectionColors = section.colors;
+                                return (
+                                    <div key={sectionKey} className={`space-y-6 ${!isSingleEye && sectionColors ? `rounded-[28px] border-2 ${sectionColors.border} p-5` : ''}`}>
+                                        {/* Eye header (multi-eye only) */}
+                                        {!isSingleEye && section.eye && sectionColors && (
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${sectionColors.accent}`} />
+                                                <h3 className={`text-lg font-black ${sectionColors.text} tracking-tight`}>{section.eye.label}</h3>
+                                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${sectionColors.badge}`}>
+                                                    Surgery: {section.eye.surgeryDate?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </span>
                                             </div>
+                                        )}
 
-                                            {/* Day Accordion */}
-                                            <div className={`flex-1 bg-white rounded-[24px] border ${isTodayDay && activeCase !== 'PHARMACY' ? 'border-violet-200 shadow-lg' : 'border-slate-100'} overflow-hidden transition-all duration-300`}>
-                                                <button
-                                                    onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
-                                                    className={`w-full px-6 py-4 flex items-center justify-between text-left transition-colors ${isFuture ? 'bg-slate-50/50 hover:bg-slate-100' : 'hover:bg-slate-50'
-                                                        }`}
-                                                >
-                                                    <div>
-                                                        <span className={`text-base font-black ${isFuture ? 'text-slate-500' : 'text-slate-900'}`}>
-                                                            Day {3 - index} before Surgery {isTodayDay ? '(Today)' : isPast ? '(Past Day)' : '(Upcoming)'}
-                                                        </span>
-                                                        <p className="text-sm font-bold text-slate-600">{dayProgress}/{trackerItems.length} drops taken</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {isPast && dayCompleted && <CheckCircle2 className="text-emerald-500" size={20} />}
-                                                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${expandedIndex === index ? 'rotate-180' : ''}`} size={20} />
-                                                    </div>
-                                                </button>
+                                        <div className="space-y-6">
+                                            {section.timelineDays.map((date, index) => {
+                                                // Use unique expandedIndex per section for multi-eye
+                                                const globalIndex = sectionIdx * 10 + index;
+                                                const dateKey = formatDateKey(date);
+                                                const isFuture = date.getTime() > new Date().setHours(0, 0, 0, 0);
+                                                const isPast = date.getTime() < new Date().setHours(0, 0, 0, 0);
+                                                const isTodayDay = date.getTime() === new Date().setHours(0, 0, 0, 0);
+                                                const dayProgress = checklist[dateKey] ? Object.entries(checklist[dateKey]).filter(([k, v]) => v && sectionItems.some(si => si.id === k)).length : 0;
+                                                const dayCompleted = dayProgress === sectionItems.length;
 
-                                                {/* Locked Status Message */}
-                                                {lockedMessageDate === dateKey && (
-                                                    <div className="px-6 py-3 bg-amber-50 border-y border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-                                                        <AlertCircle size={16} className="text-amber-600" />
-                                                        <p className="text-sm font-bold text-amber-800">
-                                                            This tracker starts 3 days before surgery on {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                return (
+                                                    <div key={`${sectionKey}-${dateKey}`} className={`relative flex gap-6 transition-all duration-300 ${isFuture ? 'hover:translate-x-1' : ''}`}>
+                                                        {index < 2 && <div className="absolute left-[31px] top-16 bottom-[-24px] w-0.5 bg-slate-200 z-0" />}
 
-                                                {expandedIndex === index && (
-                                                    <div className="px-6 pb-6 pt-2 divide-y divide-slate-50">
-                                                        {trackerItems.length > 0 ? (
-                                                            trackerItems.map(item => (
-                                                                <div key={item.id} className="py-4 flex items-center justify-between">
-                                                                    <div className="flex items-center gap-4">
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                toggleItem(dateKey, item.id);
-                                                                            }}
-                                                                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${checklist[dateKey]?.[item.id] ? 'bg-violet-600 border-violet-600 text-white' :
-                                                                                isFuture || activeCase === 'PHARMACY' ? 'border-slate-200 bg-slate-50' : 'border-slate-200'
-                                                                                }`}
-                                                                        >
-                                                                            {checklist[dateKey]?.[item.id] && <CheckCircle2 size={14} />}
-                                                                        </button>
-                                                                        <div>
-                                                                            <p className="text-base font-bold text-slate-900">{item.label}</p>
-                                                                            <p className="text-sm text-slate-600">{item.time} • {item.sub}</p>
-                                                                        </div>
-                                                                    </div>
+                                                        {/* Date Node */}
+                                                        <div className={`relative z-10 w-16 h-16 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 transition-all ${isTodayDay && activeCase !== 'PHARMACY' ? 'bg-violet-600 border-violet-600 text-white' :
+                                                            dayCompleted ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white border-slate-200 text-slate-700'
+                                                            }`}>
+                                                            <span className="text-xs font-black uppercase leading-none mb-1">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
+                                                            <span className="text-2xl font-black leading-none">{date.getDate()}</span>
+                                                        </div>
+
+                                                        {/* Day Accordion */}
+                                                        <div className={`flex-1 bg-white rounded-[24px] border ${isTodayDay && activeCase !== 'PHARMACY' ? 'border-violet-200 shadow-lg' : 'border-slate-100'} overflow-hidden transition-all duration-300`}>
+                                                            <button
+                                                                onClick={() => setExpandedIndex(expandedIndex === globalIndex ? null : globalIndex)}
+                                                                className={`w-full px-6 py-4 flex items-center justify-between text-left transition-colors ${isFuture ? 'bg-slate-50/50 hover:bg-slate-100' : 'hover:bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                <div>
+                                                                    <span className={`text-base font-black ${isFuture ? 'text-slate-500' : 'text-slate-900'}`}>
+                                                                        Day {3 - index} before Surgery {isTodayDay ? '(Today)' : isPast ? '(Past Day)' : '(Upcoming)'}
+                                                                    </span>
+                                                                    <p className="text-sm font-bold text-slate-600">{dayProgress}/{sectionItems.length} drops taken</p>
                                                                 </div>
-                                                            ))
-                                                        ) : (
-                                                            <div className="py-4">
-                                                                <p className="text-base text-slate-600 italic">No medication frequency set.</p>
-                                                            </div>
-                                                        )}
+                                                                <div className="flex items-center gap-3">
+                                                                    {isPast && dayCompleted && <CheckCircle2 className="text-emerald-500" size={20} />}
+                                                                    <ChevronDown className={`text-slate-400 transition-transform duration-300 ${expandedIndex === globalIndex ? 'rotate-180' : ''}`} size={20} />
+                                                                </div>
+                                                            </button>
+
+                                                            {lockedMessageDate === dateKey && (
+                                                                <div className="px-6 py-3 bg-amber-50 border-y border-amber-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                                                    <AlertCircle size={16} className="text-amber-600" />
+                                                                    <p className="text-sm font-bold text-amber-800">
+                                                                        This tracker starts 3 days before surgery on {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.
+                                                                    </p>
+                                                                </div>
+                                                            )}
+
+                                                            {expandedIndex === globalIndex && (
+                                                                <div className="px-6 pb-6 pt-2 divide-y divide-slate-50">
+                                                                    {sectionItems.length > 0 ? (
+                                                                        sectionItems.map(item => (
+                                                                            <div key={item.id} className="py-4 flex items-center justify-between">
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            toggleItem(dateKey, item.id);
+                                                                                        }}
+                                                                                        className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${checklist[dateKey]?.[item.id] ? 'bg-violet-600 border-violet-600 text-white' :
+                                                                                            isFuture || activeCase === 'PHARMACY' ? 'border-slate-200 bg-slate-50' : 'border-slate-200'
+                                                                                            }`}
+                                                                                    >
+                                                                                        {checklist[dateKey]?.[item.id] && <CheckCircle2 size={14} />}
+                                                                                    </button>
+                                                                                    <div>
+                                                                                        <p className="text-base font-bold text-slate-900">{item.label}</p>
+                                                                                        <p className="text-sm text-slate-600">{item.time} • {item.sub}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))
+                                                                    ) : (
+                                                                        <div className="py-4">
+                                                                            <p className="text-base text-slate-600 italic">No medication frequency set.</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })}
 
                             {activeCase === 'TIMELINE' && (
                                 <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-10">
