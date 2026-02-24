@@ -16,7 +16,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Patient, api, patientAuthStorage, patientAuthApi } from '../services/api';
+import { Patient, api, patientAuthStorage, patientAuthApi, buildEyeContexts, normalizePostOpProgress, EyeContext } from '../services/api';
 import { useTheme } from '../theme';
 import { useToast } from './Toast';
 
@@ -224,57 +224,59 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
     const [updating, setUpdating] = useState(false);
 
-    // 1. Calculate Progress & Timing
-    // Get surgery date from v2 schema: surgical_plan.operative_logistics
-    const rightEyeLogistics = patient?.surgical_plan?.operative_logistics?.od_right;
-    const leftEyeLogistics = patient?.surgical_plan?.operative_logistics?.os_left;
-    // const surgeryDateStr = rightEyeLogistics?.surgery_date || leftEyeLogistics?.surgery_date;
-    const surgeryDateStr = "2026-02-17";
+    // ── Per-Eye Context ──────────────────────────────────────────────
+    const eyeContexts = buildEyeContexts(patient);
+    const postOpEyes = eyeContexts.filter(e => e.isPostOp);
+    const isSingleEye = eyeContexts.length <= 1;
+    const primaryEye = eyeContexts[0] || null;
+
+    // For header: use the earliest post-op eye, or the next upcoming
+    const activeEye = postOpEyes[0] || eyeContexts[0] || null;
+    const diffInDays = activeEye?.diffInDays ?? -1;
+    const currentWeekIndex = activeEye?.currentWeekIndex ?? 0;
+    const healingProgress = activeEye?.healingProgress ?? 0;
+    console.log("diffInDays:", diffInDays, "currentWeekIndex:", currentWeekIndex, "healingProgress:", healingProgress);
+    const isSurgeryDay = diffInDays === 0;
+    const isPostOp = diffInDays >= 0;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dateKey = today.toISOString().split('T')[0];
 
-    const surgeryDate = new Date(surgeryDateStr);
-    surgeryDate.setHours(0, 0, 0, 0);
-
-    const diffInTime = today.getTime() - surgeryDate.getTime();
-    const diffInDays = Math.floor(diffInTime / (1000 * 3600 * 24));
-    const currentWeekIndex = Math.floor(diffInDays / 7);
-
-    const isSurgeryDay = diffInDays === 0;
-    const isPostOp = diffInDays >= 0;
-
-    // Healing Progress (Total recovery ~28 days)
-    const totalRecoveryDays = 28;
-    const healingProgress = Math.min(Math.max((diffInDays / totalRecoveryDays) * 100, 0), 100);
-
     // 2. Local State for Instant UI Feedback
-    const initialProgress = patient?.medications?.post_op?.progress || {};
-    const [localProgress, setLocalProgress] = useState(initialProgress);
+    const rawProgress = patient?.medications?.post_op?.progress || {};
+    const normalizedProgress = (!isSingleEye && primaryEye)
+        ? normalizePostOpProgress(rawProgress, primaryEye.eyeKey)
+        : rawProgress;
+    const [localProgress, setLocalProgress] = useState(normalizedProgress);
 
-    // Fetch fresh medication data when modal opens (to get latest from DB)
+    // Fetch fresh medication data when modal opens
     React.useEffect(() => {
         const fetchFreshData = async () => {
-            // Only fetch if patient is logged in (not doctor view)
             if (patientAuthStorage.isAuthenticated() && patient?.patient_id) {
                 try {
                     const freshPatient = await patientAuthApi.getMyData();
                     if (freshPatient?.medications?.post_op?.progress) {
-                        setLocalProgress(freshPatient.medications.post_op.progress);
+                        const fresh = (!isSingleEye && primaryEye)
+                            ? normalizePostOpProgress(freshPatient.medications.post_op.progress, primaryEye.eyeKey)
+                            : freshPatient.medications.post_op.progress;
+                        setLocalProgress(fresh);
                     }
                 } catch (err) {
                     console.error("Failed to fetch fresh medication data:", err);
-                    // Fall back to prop data
                 }
             }
         };
         fetchFreshData();
-    }, []); // Only run on mount
+    }, []);
 
-    // Sync local state if patient prop changes significantly (e.g. from parent refresh)
+    // Sync local state if patient prop changes
     React.useEffect(() => {
         if (patient?.medications?.post_op?.progress) {
-            setLocalProgress(patient.medications.post_op.progress);
+            const updated = (!isSingleEye && primaryEye)
+                ? normalizePostOpProgress(patient.medications.post_op.progress, primaryEye.eyeKey)
+                : patient.medications.post_op.progress;
+            setLocalProgress(updated);
         }
     }, [patient?.medications?.post_op?.progress]);
 
@@ -285,63 +287,65 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
     const isDropless = postOp?.is_dropless;
     const isCombination = postOp?.is_combination;
 
-    // 4. Logic: What should show today?
-    const medsToTrack: any[] = [];
+    // Eye color scheme
+    const EYE_COLORS: Record<string, { border: string; bg: string; text: string; accent: string; light: string; ring: string; badge: string }> = {
+        od: { border: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', accent: 'bg-blue-500', light: 'bg-blue-100', ring: 'ring-blue-500/20', badge: 'bg-blue-100 text-blue-700' },
+        os: { border: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', accent: 'bg-emerald-500', light: 'bg-emerald-100', ring: 'ring-emerald-500/20', badge: 'bg-emerald-100 text-emerald-700' },
+    };
 
-    if (isPostOp && postOp && !isDropless) {
-        // A. Antibiotic (Week 1 only)
-        if (!isCombination && postOp.antibiotic?.name && diffInDays < ((postOp.antibiotic.weeks || 1) * 7)) {
+    // 4. Build per-eye medication lists
+    const getMedsForEye = (eye: EyeContext): any[] => {
+        const meds: any[] = [];
+        if (!postOp || isDropless || !eye.isPostOp) return meds;
+        const prefix = isSingleEye ? '' : `${eye.eyeKey}_`;
+
+        // A. Antibiotic
+        if (!isCombination && postOp.antibiotic?.name && eye.diffInDays < ((postOp.antibiotic.weeks || 1) * 7)) {
             const freq = postOp.antibiotic.frequency || 0;
             let doneCount = 0;
-            for (let i = 0; i < freq; i++) if (todaysLocalProgress[`antibiotic_${i}`]) doneCount++;
-
-            medsToTrack.push({
-                id: 'antibiotic',
-                name: postOp.antibiotic.name,
-                type: 'Antibiotic',
-                frequency: freq,
-                label: postOp.antibiotic.frequency_label || '',
-                progress: freq > 0 ? (doneCount / freq) * 100 : 0
+            for (let i = 0; i < freq; i++) if (todaysLocalProgress[`${prefix}antibiotic_${i}`]) doneCount++;
+            meds.push({
+                id: `${prefix}antibiotic`, name: postOp.antibiotic.name, type: 'Antibiotic',
+                frequency: freq, label: postOp.antibiotic.frequency_label || '',
+                progress: freq > 0 ? (doneCount / freq) * 100 : 0,
             });
         }
 
-        // B. NSAID (Based on weeks)
-        if (!isCombination && postOp.nsaid?.name && diffInDays < ((postOp.nsaid.weeks || 4) * 7)) {
+        // B. NSAID
+        if (!isCombination && postOp.nsaid?.name && eye.diffInDays < ((postOp.nsaid.weeks || 4) * 7)) {
             const freq = postOp.nsaid.frequency || 0;
             let doneCount = 0;
-            for (let i = 0; i < freq; i++) if (todaysLocalProgress[`nsaid_${i}`]) doneCount++;
-
-            medsToTrack.push({
-                id: 'nsaid',
-                name: postOp.nsaid.name,
-                type: 'Anti-Inflammatory',
-                frequency: freq,
-                label: postOp.nsaid.frequency_label || '',
-                progress: freq > 0 ? (doneCount / freq) * 100 : 0
+            for (let i = 0; i < freq; i++) if (todaysLocalProgress[`${prefix}nsaid_${i}`]) doneCount++;
+            meds.push({
+                id: `${prefix}nsaid`, name: postOp.nsaid.name, type: 'Anti-Inflammatory',
+                frequency: freq, label: postOp.nsaid.frequency_label || '',
+                progress: freq > 0 ? (doneCount / freq) * 100 : 0,
             });
         }
 
         // C. Steroid / Combination (Tapering)
         const steroid = postOp.steroid;
         const taperSchedule = steroid?.taper_schedule || [];
-        const todayFreq = taperSchedule[currentWeekIndex] || 0;
-
-        if (steroid?.name || isCombination) {
-            if (todayFreq > 0) {
-                let doneCount = 0;
-                for (let i = 0; i < todayFreq; i++) if (todaysLocalProgress[`steroid_${i}`]) doneCount++;
-
-                medsToTrack.push({
-                    id: 'steroid',
-                    name: isCombination ? (postOp.combination_name || 'Combination Drop') : steroid?.name,
-                    type: isCombination ? '3-in-1 Combo' : 'Steroid (Tapering)',
-                    frequency: todayFreq,
-                    label: `${todayFreq}x Daily (Week ${currentWeekIndex + 1})`,
-                    progress: (doneCount / todayFreq) * 100
-                });
-            }
+        const todayFreq = taperSchedule[eye.currentWeekIndex] || 0;
+        if ((steroid?.name || isCombination) && todayFreq > 0) {
+            let doneCount = 0;
+            for (let i = 0; i < todayFreq; i++) if (todaysLocalProgress[`${prefix}steroid_${i}`]) doneCount++;
+            meds.push({
+                id: `${prefix}steroid`,
+                name: isCombination ? (postOp.combination_name || 'Combination Drop') : steroid?.name,
+                type: isCombination ? '3-in-1 Combo' : 'Steroid (Tapering)',
+                frequency: todayFreq, label: `${todayFreq}x Daily (Week ${eye.currentWeekIndex + 1})`,
+                progress: (doneCount / todayFreq) * 100,
+            });
         }
-    }
+        return meds;
+    };
+
+    // Build the per-eye medication list
+    const eyeMedsList = postOpEyes.map(eye => ({
+        eye, meds: getMedsForEye(eye), colors: EYE_COLORS[eye.eyeKey],
+    }));
+    const allMeds = eyeMedsList.flatMap(em => em.meds);
 
     const syncProgress = async (updatedProgress: any) => {
         if (!patient) return;
@@ -373,7 +377,9 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                 err?.message || "Could not save your medication progress. Please try again."
             );
             // Revert local state on error
-            setLocalProgress(patient?.medications?.post_op?.progress || {});
+            setLocalProgress((!isSingleEye && primaryEye)
+                ? normalizePostOpProgress(patient?.medications?.post_op?.progress || {}, primaryEye.eyeKey)
+                : patient?.medications?.post_op?.progress || {});
         } finally {
             setUpdating(false);
         }
@@ -431,7 +437,9 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                             ? 'Surgery Day - Your recovery begins today'
                             : diffInDays < 0
                                 ? `Surgery in ${Math.abs(diffInDays)} ${Math.abs(diffInDays) === 1 ? 'day' : 'days'}`
-                                : `Day ${diffInDays} of Recovery - Track your progress`}
+                                : postOpEyes.length > 1
+                                    ? `${postOpEyes.map(e => `${e.shortLabel}: Day ${e.diffInDays}`).join(' · ')} — Track your progress`
+                                    : `Day ${diffInDays} of Recovery - Track your progress`}
                     </p>
                 </div>
 
@@ -456,25 +464,46 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                                         ? "Preparing for surgery"
                                         : isDropless
                                             ? "Heal effortlessly"
-                                            : medsToTrack.length > 0
-                                                ? medsToTrack.every(m => m.progress === 100)
+                                            : allMeds.length > 0
+                                                ? allMeds.every(m => m.progress === 100)
                                                     ? <><span className="text-blue-200 text-2xl font-bold italic tracking-normal">You're</span> All Set <span className="text-blue-200 text-2xl font-bold tracking-normal italic">Today!</span></>
-                                                    : <>{medsToTrack.length} <span className="text-blue-200 text-2xl font-bold italic tracking-normal">Drops Today</span></>
+                                                    : <>{allMeds.length} <span className="text-blue-200 text-2xl font-bold italic tracking-normal">{allMeds.length === 1 ? 'Drop' : 'Drops'} Today{!isSingleEye ? ` (${postOpEyes.length} eyes)` : ''}</span></>
                                                 : "Completely on track"}
                                 </h1>
 
                                 {isPostOp && (
-                                    <div className="space-y-4 max-w-sm">
-                                        <div className="flex justify-between items-end mb-1">
-                                            <span className="text-xs font-black text-blue-200 uppercase tracking-widest">Healing Progress</span>
-                                            <span className="text-sm font-black text-white">{Math.round(healingProgress)}%</span>
-                                        </div>
-                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(52,211,153,0.5)]"
-                                                style={{ width: `${healingProgress}%` }}
-                                            />
-                                        </div>
+                                    <div className="space-y-3 max-w-sm">
+                                        {postOpEyes.length > 1 ? (
+                                            // Multi-eye: show per-eye progress bars
+                                            postOpEyes.map(eye => (
+                                                <div key={eye.eyeKey} className="space-y-1">
+                                                    <div className="flex justify-between items-end">
+                                                        <span className="text-xs font-black text-blue-200 uppercase tracking-widest">{eye.shortLabel} — Day {eye.diffInDays}</span>
+                                                        <span className="text-sm font-black text-white">{Math.round(eye.healingProgress)}%</span>
+                                                    </div>
+                                                    <div className="h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
+                                                        <div
+                                                            className={`h-full transition-all duration-1000 ease-out ${eye.eyeKey === 'od' ? 'bg-gradient-to-r from-blue-400 to-blue-300' : 'bg-gradient-to-r from-emerald-400 to-emerald-300'}`}
+                                                            style={{ width: `${eye.healingProgress}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            // Single eye: original display
+                                            <>
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <span className="text-xs font-black text-blue-200 uppercase tracking-widest">Healing Progress</span>
+                                                    <span className="text-sm font-black text-white">{Math.round(healingProgress)}%</span>
+                                                </div>
+                                                <div className="h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(52,211,153,0.5)]"
+                                                        style={{ width: `${healingProgress}%` }}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -508,10 +537,10 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                         </div>
                     </div>
 
-                    {/* Medication Daily List */}
-                    {!isDropless && medsToTrack.length > 0 && (
+                    {/* Medication Daily List — Per-Eye Sections */}
+                    {!isDropless && allMeds.length > 0 && (
                         <div className="space-y-6">
-                            {/* Section header with context for patients */}
+                            {/* Section header */}
                             <div className="px-1">
                                 <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-[0.2em] mb-2">Your Eye Drops — Prescribed by Your Doctor</h3>
                                 <p className="text-sm text-slate-700">
@@ -519,102 +548,128 @@ const AfterSurgeryModal = ({ patient, onClose, moduleContent, onOpenChat, isLoad
                                 </p>
                             </div>
 
-                            {/* 5-minute spacing banner — only when multiple drops are active */}
-                            {medsToTrack.length > 1 && (
+                            {/* 5-minute spacing banner */}
+                            {allMeds.length > 1 && (
                                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                                     <Clock size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-sm font-bold text-amber-900">Wait 5 minutes between each drop</p>
                                         <p className="text-sm text-amber-700 mt-1">
-                                            When taking multiple drops in the same session, space them 5 minutes apart so each medication is properly absorbed before applying the next one. The times shown below are already staggered for you.
+                                            When taking multiple drops in the same session, space them 5 minutes apart{!isSingleEye ? ' for the same eye' : ''} so each medication is properly absorbed. The times shown are already staggered for you.
                                         </p>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 gap-6">
-                                {medsToTrack.map((med, medIndex) => {
-                                    const isCompleted = med.progress === 100;
-                                    // Calculate the 5-minute offset for this medication (only when multiple drops)
-                                    const timeOffset = medsToTrack.length > 1 ? medIndex * 5 : 0;
-                                    return (
-                                        <div key={med.id} className={`
-                                            relative bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all duration-300
-                                            ${isCompleted ? 'bg-emerald-50/30 border-emerald-100 ring-2 ring-emerald-500/10' : 'hover:shadow-md hover:border-slate-200'}
-                                        `}>
-                                            <div className="flex items-start justify-between mb-8">
-                                                <div className="flex gap-5">
-                                                    <div className={`
-                                                        w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500
-                                                        ${isCompleted ? 'bg-emerald-500 text-white rotate-6 scale-110 shadow-lg shadow-emerald-200' : 'bg-blue-50 text-blue-600'}
-                                                    `}>
-                                                        {isCompleted ? <CheckCircle2 size={28} /> : <Activity size={28} />}
+                            {/* Per-eye sections */}
+                            {eyeMedsList.map(({ eye, meds, colors }) => {
+                                if (meds.length === 0) return null;
+                                return (
+                                    <div key={eye.eyeKey} className={`space-y-6 ${!isSingleEye ? `rounded-[36px] border-2 ${colors.border} p-6` : ''}`}>
+                                        {/* Eye header (only for multi-eye) */}
+                                        {!isSingleEye && (
+                                            <div className="flex items-center justify-between flex-wrap gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-3 h-3 rounded-full ${colors.accent}`} />
+                                                    <h4 className={`text-lg font-black ${colors.text} tracking-tight`}>{eye.label}</h4>
+                                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${colors.badge}`}>
+                                                        Day {eye.diffInDays} of Recovery
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-slate-500">Healing</span>
+                                                    <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${colors.accent} rounded-full transition-all duration-1000`} style={{ width: `${eye.healingProgress}%` }} />
                                                     </div>
-                                                    <div>
-                                                        <h4 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                                                            {med.name}
-                                                            {isCompleted && <span className="text-xs font-black px-3 py-1 bg-emerald-500 text-white rounded-full uppercase tracking-tighter shadow-sm animate-bounce">Perfect</span>}
-                                                        </h4>
-                                                        <div className="flex items-center gap-3 mt-2">
-                                                            <span className="text-xs font-black px-3 py-1 bg-slate-200 text-slate-700 rounded-lg uppercase tracking-wider border border-slate-300">
-                                                                {med.type} Eye Drop
-                                                            </span>
-                                                            <span className="text-sm font-extrabold text-blue-700">{med.label}</span>
+                                                    <span className="text-xs font-black text-slate-700">{Math.round(eye.healingProgress)}%</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 gap-6">
+                                            {meds.map((med, medIndex) => {
+                                                const isCompleted = med.progress === 100;
+                                                const timeOffset = meds.length > 1 ? medIndex * 5 : 0;
+                                                return (
+                                                    <div key={med.id} className={`
+                                                        relative bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all duration-300
+                                                        ${isCompleted ? 'bg-emerald-50/30 border-emerald-100 ring-2 ring-emerald-500/10' : 'hover:shadow-md hover:border-slate-200'}
+                                                    `}>
+                                                        <div className="flex items-start justify-between mb-8">
+                                                            <div className="flex gap-5">
+                                                                <div className={`
+                                                                    w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500
+                                                                    ${isCompleted ? 'bg-emerald-500 text-white rotate-6 scale-110 shadow-lg shadow-emerald-200' : 'bg-blue-50 text-blue-600'}
+                                                                `}>
+                                                                    {isCompleted ? <CheckCircle2 size={28} /> : <Activity size={28} />}
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                                                        {med.name}
+                                                                        {isCompleted && <span className="text-xs font-black px-3 py-1 bg-emerald-500 text-white rounded-full uppercase tracking-tighter shadow-sm animate-bounce">Perfect</span>}
+                                                                    </h4>
+                                                                    <div className="flex items-center gap-3 mt-2">
+                                                                        <span className="text-xs font-black px-3 py-1 bg-slate-200 text-slate-700 rounded-lg uppercase tracking-wider border border-slate-300">
+                                                                            {med.type} Eye Drop
+                                                                        </span>
+                                                                        <span className="text-sm font-extrabold text-blue-700">{med.label}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-white/50 backdrop-blur-sm p-1 rounded-full border border-slate-100">
+                                                                <CircularProgress progress={med.progress} color={isCompleted ? "text-emerald-500" : "text-blue-600"} />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Doses grid */}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                            {Array.from({ length: med.frequency }).map((_, idx) => {
+                                                                const isChecked = !!todaysLocalProgress[`${med.id}_${idx}`];
+                                                                const session = SESSIONS[idx] || { label: `Dose ${idx + 1}`, time: '', icon: 'Clock' };
+                                                                const displayTime = session.time ? offsetTime(session.time, timeOffset) : '';
+
+                                                                return (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => handleToggle(med.id, idx)}
+                                                                        className={`
+                                                                            relative p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-4 transition-all duration-300 group overflow-hidden
+                                                                            ${isChecked
+                                                                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 translate-y-[-2px]'
+                                                                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-xl hover:shadow-blue-100'
+                                                                            }
+                                                                        `}
+                                                                    >
+                                                                        {!isChecked && <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+
+                                                                        <div className="flex flex-col items-center gap-1">
+                                                                            <span className={`text-[13px] font-black uppercase tracking-[0.15em] ${isChecked ? 'text-white/90' : 'text-slate-500'}`}>
+                                                                                {session.label}
+                                                                            </span>
+                                                                            {displayTime && <span className={`text-[11px] font-extrabold italic ${isChecked ? 'text-white/70' : 'text-blue-500'}`}>@{displayTime}</span>}
+                                                                        </div>
+
+                                                                        <div className={`
+                                                                            w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                                                                            ${isChecked ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500 group-hover:text-blue-600 shadow-sm'}
+                                                                        `}>
+                                                                            {isChecked ? <CheckCircle2 size={28} /> : (idx + 1)}
+                                                                        </div>
+
+                                                                        <span className={`text-[14px] font-black uppercase tracking-widest leading-none ${isChecked ? 'text-white' : 'text-slate-800'}`}>
+                                                                            {isChecked ? 'Confirmed' : 'Take Drop'}
+                                                                        </span>
+                                                                    </button>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div className="bg-white/50 backdrop-blur-sm p-1 rounded-full border border-slate-100">
-                                                    <CircularProgress progress={med.progress} color={isCompleted ? "text-emerald-500" : "text-blue-600"} />
-                                                </div>
-                                            </div>
-
-                                            {/* Doses grid - Session Based */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                                {Array.from({ length: med.frequency }).map((_, idx) => {
-                                                    const isChecked = !!todaysLocalProgress[`${med.id}_${idx}`];
-                                                    const session = SESSIONS[idx] || { label: `Dose ${idx + 1}`, time: '', icon: 'Clock' };
-                                                    const displayTime = session.time ? offsetTime(session.time, timeOffset) : '';
-
-                                                    return (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => handleToggle(med.id, idx)}
-                                                            className={`
-                                                                relative p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-4 transition-all duration-300 group overflow-hidden
-                                                                ${isChecked
-                                                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 translate-y-[-2px]'
-                                                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-xl hover:shadow-blue-100'
-                                                                }
-                                                            `}
-                                                        >
-                                                            {/* Ripple Effect for unchecked */}
-                                                            {!isChecked && <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
-
-                                                            <div className="flex flex-col items-center gap-1">
-                                                                <span className={`text-[13px] font-black uppercase tracking-[0.15em] ${isChecked ? 'text-white/90' : 'text-slate-500'}`}>
-                                                                    {session.label}
-                                                                </span>
-                                                                {displayTime && <span className={`text-[11px] font-extrabold italic ${isChecked ? 'text-white/70' : 'text-blue-500'}`}>@{displayTime}</span>}
-                                                            </div>
-
-                                                            <div className={`
-                                                                w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
-                                                                ${isChecked ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500 group-hover:text-blue-600 shadow-sm'}
-                                                            `}>
-                                                                {isChecked ? <CheckCircle2 size={28} /> : (idx + 1)}
-                                                            </div>
-
-                                                            <span className={`text-[14px] font-black uppercase tracking-widest leading-none ${isChecked ? 'text-white' : 'text-slate-800'}`}>
-                                                                {isChecked ? 'Confirmed' : 'Take Drop'}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 

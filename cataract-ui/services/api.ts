@@ -483,6 +483,99 @@ export interface Patient {
     status?: string;
 }
 
+// ── Per-Eye Medication Tracking Utilities ──────────────────────────
+
+export interface EyeContext {
+    eyeKey: 'od' | 'os';
+    label: string;
+    shortLabel: string;
+    surgeryDate: Date | null;
+    surgeryDateStr: string | null;
+    diffInDays: number;
+    currentWeekIndex: number;
+    isPostOp: boolean;
+    healingProgress: number;
+}
+
+/**
+ * Build EyeContext objects from a patient's operative_logistics.
+ * Returns only eyes that have a surgery date. Sorted by surgery date (earliest first).
+ */
+export function buildEyeContexts(patient: Patient | null): EyeContext[] {
+    if (!patient) return [];
+    const contexts: EyeContext[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const logistics = patient.surgical_plan?.operative_logistics;
+    const eyes: Array<{ key: 'od' | 'os'; label: string; short: string; data: any }> = [
+        { key: 'od', label: 'Right Eye (OD)', short: 'OD', data: logistics?.od_right },
+        { key: 'os', label: 'Left Eye (OS)', short: 'OS', data: logistics?.os_left },
+    ];
+
+    for (const eye of eyes) {
+        if (!eye.data?.surgery_date) continue;
+        const sd = new Date(eye.data.surgery_date);
+        sd.setHours(0, 0, 0, 0);
+        const diff = Math.floor((today.getTime() - sd.getTime()) / (1000 * 3600 * 24));
+        contexts.push({
+            eyeKey: eye.key,
+            label: eye.label,
+            shortLabel: eye.short,
+            surgeryDate: sd,
+            surgeryDateStr: eye.data.surgery_date,
+            diffInDays: diff,
+            currentWeekIndex: Math.floor(diff / 7),
+            isPostOp: diff >= 0,
+            healingProgress: Math.min(Math.max((diff / 28) * 100, 0), 100),
+        });
+    }
+
+    // Sort by surgery date (earliest first)
+    contexts.sort((a, b) => (a.surgeryDate?.getTime() || 0) - (b.surgeryDate?.getTime() || 0));
+    return contexts;
+}
+
+/**
+ * Normalize post-op progress keys to include eye prefix.
+ * Old format: { "antibiotic_0": true } → New: { "od_antibiotic_0": true }
+ */
+export function normalizePostOpProgress(
+    progress: Record<string, Record<string, boolean>>,
+    primaryEyeKey: 'od' | 'os'
+): Record<string, Record<string, boolean>> {
+    const normalized: Record<string, Record<string, boolean>> = {};
+    for (const [dateKey, dayProgress] of Object.entries(progress)) {
+        normalized[dateKey] = {};
+        for (const [key, value] of Object.entries(dayProgress)) {
+            if (key.startsWith('od_') || key.startsWith('os_')) {
+                normalized[dateKey][key] = value;
+            } else {
+                normalized[dateKey][`${primaryEyeKey}_${key}`] = value;
+            }
+        }
+    }
+    return normalized;
+}
+
+/**
+ * Normalize pre-op progress keys to include eye prefix.
+ * Old format: { "2026-02-26": ["morning", "noon"] } → New: { "2026-02-26": ["od_morning", "od_noon"] }
+ */
+export function normalizePreOpProgress(
+    progress: Record<string, string[]>,
+    primaryEyeKey: 'od' | 'os'
+): Record<string, string[]> {
+    const normalized: Record<string, string[]> = {};
+    for (const [dateKey, items] of Object.entries(progress)) {
+        normalized[dateKey] = items.map(item => {
+            if (item.startsWith('od_') || item.startsWith('os_')) return item;
+            return `${primaryEyeKey}_${item}`;
+        });
+    }
+    return normalized;
+}
+
 export interface Clinic {
     clinic_profile: {
         clinic_id: string;
